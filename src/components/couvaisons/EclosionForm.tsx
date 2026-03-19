@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
+import { useAuth } from '../../context/AuthContext';
 
 export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, updateCouvaison } = useAppContext();
+  const { couvaisons, updateCouvaison, deleteCouvaison } = useAppContext();
+  const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   
   const [nes, setNes] = useState(couv?.poussinsNes || 0);
   const [morts, setMorts] = useState(couv?.mortsEnCoque || 0);
   const [cause, setCause] = useState<any>(couv?.causeEchecMajeure || 'Aucune');
+  const canDelete = currentUser?.role === 'Admin';
+
+  const handleDelete = async () => {
+    if (!couv) return;
+    const ok = window.confirm("Supprimer ce lot ? Ceci efface la saisie associée.");
+    if (!ok) return;
+    try {
+      await deleteCouvaison(couv.id);
+      onCancel();
+    } catch (e) {
+      alert((e as Error).message || 'Erreur lors de la suppression');
+    }
+  };
 
   if (!couv) return null;
 
@@ -76,6 +91,11 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
             <button type="button" onClick={onCancel} className="px-4 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50">
               Annuler
             </button>
+            {canDelete && (
+              <button type="button" onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-md hover:bg-red-100 transition-colors">
+                Supprimer
+              </button>
+            )}
             <button type="submit" disabled={nonEclos < 0} className="px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors disabled:opacity-50">
               Clôturer la Couvaison
             </button>

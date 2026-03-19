@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppProvider';
+import { useAuth } from '../context/AuthContext';
 import { CouvaisonForm } from '../components/couvaisons/CouvaisonForm';
 import { MirageForm } from '../components/couvaisons/MirageForm';
 import { EclosionForm } from '../components/couvaisons/EclosionForm';
 import { PlacementForm } from '../components/couvaisons/PlacementForm';
 import type { StatutCouvaison } from '../types';
 import { format, parseISO } from 'date-fns';
-import { Search, Filter, Plus, Calendar, CheckCircle, EggOff, Eye, MessageCircle } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, CheckCircle, EggOff, Eye, MessageCircle, Trash2 } from 'lucide-react';
 
 const formatWhatsAppNumber = (phone?: string) => {
   if (!phone) return '';
@@ -19,11 +20,13 @@ const formatWhatsAppNumber = (phone?: string) => {
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosion' | 'placement';
 
 const Couvaisons = () => {
-  const { couvaisons, clients } = useAppContext();
+  const { couvaisons, clients, deleteCouvaison } = useAppContext();
+  const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatutCouvaison | 'Tous'>('Tous');
   const [searchTerm, setSearchTerm] = useState('');
+  const canDelete = currentUser?.role === 'Admin';
 
   const filteredCouvaisons = useMemo(() => {
     return couvaisons.filter(c => {
@@ -38,6 +41,17 @@ const Couvaisons = () => {
 
   const handleOpenMirage = (id: string) => { setActiveId(id); setView('mirage'); };
   const handleOpenEclosion = (id: string) => { setActiveId(id); setView('eclosion'); };
+
+  const handleDelete = async (id: string) => {
+    if (!canDelete) return;
+    const ok = window.confirm("Supprimer ce lot ? Ceci efface la saisie (mirage/éclosion/placement) associée.");
+    if (!ok) return;
+    try {
+      await deleteCouvaison(id);
+    } catch (e) {
+      alert((e as Error).message || 'Erreur lors de la suppression');
+    }
+  };
 
   if (view === 'create') {
     return (
@@ -158,6 +172,11 @@ const Couvaisons = () => {
                            >
                              <MessageCircle size={18} />
                            </a>
+                           {canDelete && (
+                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                               <Trash2 size={18} />
+                             </button>
+                           )}
                          </div>
                        )}
                        {c.statut === 'En cours' && (
@@ -174,6 +193,11 @@ const Couvaisons = () => {
                            <button onClick={() => handleOpenEclosion(c.id)} title="Enregistrer Éclosion" className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors">
                              <EggOff size={18} />
                            </button>
+                           {canDelete && (
+                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                               <Trash2 size={18} />
+                             </button>
+                           )}
                          </div>
                        )}
                        {c.statut === 'Terminé' && (
@@ -188,6 +212,11 @@ const Couvaisons = () => {
                              >
                                <MessageCircle size={18} />
                              </a>
+                             {canDelete && (
+                               <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                                 <Trash2 size={18} />
+                               </button>
+                             )}
                           </div>
                        )}
                      </td>

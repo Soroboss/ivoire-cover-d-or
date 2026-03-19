@@ -13,6 +13,7 @@ interface AppState {
   logs: AuditLog[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => void;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => void;
+  deleteCouvaison: (id: string) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   addMachine: (machine: Omit<Machine, 'id'>) => void;
   updateMachine: (id: string, updates: Partial<Machine>) => void;
@@ -171,6 +172,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     })()
   };
 
+  const deleteCouvaison = async (id: string) => {
+    try {
+      await callInsforgeFunction<{ success: boolean }>('couvaison_delete', { id })
+
+      // Met à jour l'état local pour refléter la suppression immédiatement.
+      setCouvaisons(prev => prev.filter(c => c.id !== id))
+      setTransactions(prev => prev.filter(t => t.couvaisonId !== id))
+
+      addLog('SUPPRESSION', 'Couvaison', `Suppression du lot ID...${id.slice(-4)}.`)
+
+      // Resynchronise depuis le backend pour rester cohérent.
+      const [clientsRes, couvRes] = await Promise.all([
+        callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
+        callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
+      ])
+      setClients(clientsRes.clients)
+      setCouvaisons(couvRes.couvaisons)
+    } catch {
+      // Si la suppression backend échoue, on ne modifie pas l'état.
+      throw new Error('Echec de suppression côté backend')
+    }
+  }
+
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }]);
     addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`);
@@ -188,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ logs, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, addTransaction, addMachine, updateMachine, addLog }}>
+    <AppContext.Provider value={{ logs, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, addLog }}>
       {children}
     </AppContext.Provider>
   );

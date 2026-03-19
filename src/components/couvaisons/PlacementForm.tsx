@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
+import { useAuth } from '../../context/AuthContext';
 import { addDays, format, parseISO } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, updateCouvaison } = useAppContext();
+  const { couvaisons, machines, updateCouvaison, deleteCouvaison } = useAppContext();
+  const { currentUser } = useAuth();
 
   const getCasierOccupation = (machineId: string, casierId: string) => {
     return couvaisons.reduce((sum, c) => {
@@ -17,6 +19,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
   };
 
   const couv = couvaisons.find(c => c.id === couvaisonId);
+  const canDelete = currentUser?.role === 'Admin';
   
   const [dateMiseEnMachine, setDateMiseEnMachine] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [emplacements, setEmplacements] = useState<{machineId: string, casierId: string, quantite: number}[]>([
@@ -40,6 +43,18 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
     });
     
     onSuccess();
+  };
+
+  const handleDelete = async () => {
+    if (!couv) return;
+    const ok = window.confirm("Supprimer ce lot ? Ceci efface la saisie associée.");
+    if (!ok) return;
+    try {
+      await deleteCouvaison(couv.id);
+      onCancel();
+    } catch (e) {
+      alert((e as Error).message || 'Erreur lors de la suppression');
+    }
   };
 
   const handleAddEmplacement = () => {
@@ -124,6 +139,11 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
           <button type="button" onClick={onCancel} className="px-6 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50 transition-colors">
             Annuler
           </button>
+          {canDelete && (
+            <button type="button" onClick={handleDelete} className="px-6 py-2 bg-red-50 text-red-600 font-medium rounded-md hover:bg-red-100 transition-colors">
+              Supprimer
+            </button>
+          )}
           <button type="submit" disabled={totalPlaque !== couv.nombreOeufs || emplacements.some(emp => {
              if(!emp.machineId || !emp.casierId) return false;
              const machine = machines.find(m => m.id === emp.machineId);
