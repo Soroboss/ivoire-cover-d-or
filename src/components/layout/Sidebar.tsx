@@ -11,7 +11,7 @@ const Sidebar = () => {
   const [alertMsg, setAlertMsg] = useState('');
   const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if(newPassword !== confirmPassword) {
       setAlertMsg("Les mots de passe ne correspondent pas.");
@@ -22,7 +22,7 @@ const Sidebar = () => {
       return;
     }
     if(currentUser) {
-      updateUser(currentUser.id, { passwordHash: newPassword });
+      await updateUser(currentUser.id, { passwordHash: newPassword });
       setAlertMsg('');
       setIsProfileOpen(false);
       setNewPassword('');

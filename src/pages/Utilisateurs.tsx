@@ -14,19 +14,19 @@ export const Utilisateurs = () => {
 
   if (currentUser?.role !== 'Admin') return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addUser({ nom, username, passwordHash: password, role, actif: true });
+    await addUser({ nom, username, passwordHash: password, role, actif: true });
     setShowModal(false);
     setNom(''); setUsername(''); setPassword(''); setRole('Technicien');
   };
 
-  const toggleStatut = (id: string, actif: boolean) => {
-    updateUser(id, { actif: !actif });
+  const toggleStatut = async (id: string, actif: boolean) => {
+    await updateUser(id, { actif: !actif });
   };
 
-  const setRoleAuto = (id: string, r: Role) => {
-    updateUser(id, { role: r });
+  const setRoleAuto = async (id: string, r: Role) => {
+    await updateUser(id, { role: r });
   };
 
   return (

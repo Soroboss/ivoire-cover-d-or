@@ -8,9 +8,10 @@ export const Login = () => {
   const [error, setError] = useState('');
   const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!login(username, password)) {
+    const ok = await login(username, password)
+    if (!ok) {
       setError('Identifiants incorrects ou compte désactivé.');
     }
   };

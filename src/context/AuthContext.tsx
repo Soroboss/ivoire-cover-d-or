@@ -1,14 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../types';
+import { callInsforgeFunction } from '../lib/insforgeApi';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AuthState {
   currentUser: User | null;
   users: User[];
-  login: (username: string, pass: string) => boolean;
+  login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
-  addUser: (u: Omit<User, 'id'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
+  addUser: (u: Omit<User, 'id'>) => Promise<void>;
+  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -29,8 +31,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
+    // Cache local pour éviter une mauvaise UX au rechargement.
     localStorage.setItem('ivoire_users', JSON.stringify(users));
   }, [users]);
+
+  useEffect(() => {
+    // Récupère la liste des utilisateurs depuis InsForge.
+    // Si ça échoue, on garde le cache local.
+    (async () => {
+      try {
+        const res = await callInsforgeFunction<{ users: User[] }>('users_list', {})
+        setUsers(res.users)
+      } catch {
+        // no-op (fallback localStorage)
+      }
+    })()
+  }, [])
 
   useEffect(() => {
     if (currentUser) {
@@ -40,29 +56,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [currentUser]);
 
-  const login = (username: string, pass: string) => {
-    const user = users.find(u => u.username === username && u.passwordHash === pass);
-    if (user && user.actif) {
-      setCurrentUser(user);
-      return true;
+  const login = async (username: string, pass: string) => {
+    try {
+      const res = await callInsforgeFunction<{ user: User }>('login', { username, password: pass })
+      if (res.user && res.user.actif) {
+        setCurrentUser(res.user)
+        return true
+      }
+      return false
+    } catch {
+      return false
     }
-    return false;
-  };
+  }
 
   const logout = () => {
     setCurrentUser(null);
   };
 
-  const addUser = (u: Omit<User, 'id'>) => {
-    setUsers([...users, { ...u, id: uuidv4() }]);
-  };
+  const addUser = async (u: Omit<User, 'id'>) => {
+    const res = await callInsforgeFunction<{ user: User }>('users_add', u)
+    setUsers(prev => [...prev, res.user])
+  }
 
-  const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers(users.map(u => u.id === id ? { ...u, ...updates } : u));
-    if (currentUser && currentUser.id === id) {
-       setCurrentUser({ ...currentUser, ...updates } as User);
+  const updateUser = async (id: string, updates: Partial<User>) => {
+    const payload = {
+      id,
+      updates: {
+        ...updates,
+      },
     }
-  };
+    const res = await callInsforgeFunction<{ user: User }>('users_update', payload)
+
+    setUsers(prev => prev.map(u => (u.id === id ? res.user : u)))
+    if (currentUser && currentUser.id === id) {
+      setCurrentUser(res.user)
+    }
+  }
 
   return (
     <AuthContext.Provider value={{ currentUser, users, login, logout, addUser, updateUser }}>

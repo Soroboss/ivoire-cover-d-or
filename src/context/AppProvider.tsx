@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { Client, Couvaison, Transaction, Machine, AuditLog } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
+import { callInsforgeFunction } from '../lib/insforgeApi';
 
 interface AppState {
   clients: Client[];
@@ -70,6 +72,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('ivoire_couvaisons', JSON.stringify(couvaisons));
   }, [couvaisons]);
 
+  // Charge les données depuis InsForge au démarrage.
+  useEffect(() => {
+    (async () => {
+      try {
+        const clientsRes = await callInsforgeFunction<{ clients: Client[] }>('clients_list', {})
+        setClients(clientsRes.clients)
+      } catch {
+        // fallback localStorage (déjà initialisé via useState)
+      }
+
+      try {
+        const couvRes = await callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {})
+        setCouvaisons(couvRes.couvaisons)
+      } catch {
+        // fallback localStorage
+      }
+    })()
+  }, [])
+
   useEffect(() => {
     localStorage.setItem('ivoire_transactions', JSON.stringify(transactions));
   }, [transactions]);
@@ -98,24 +119,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addCouvaison = (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => {
-    let client = clients.find(c => c.telephone === clientInfos.telephone);
-    if (!client) {
-      client = { id: uuidv4(), ...clientInfos };
-      setClients(prev => [...prev, client!]);
-    }
+    ;(async () => {
+      try {
+        const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
+          couv,
+          clientInfos,
+        })
+        if (res.couvaison) {
+          // On resynchronise depuis le backend pour éviter toute divergence d'ID client.
+          const [clientsRes, couvRes] = await Promise.all([
+            callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
+            callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
+          ])
+          setClients(clientsRes.clients)
+          setCouvaisons(couvRes.couvaisons)
 
-    const newCouvaison: Couvaison = {
-      ...couv,
-      id: uuidv4(),
-      clientId: client.id,
-    };
-    setCouvaisons(prev => [...prev, newCouvaison]);
-    addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${client.nom}.`);
+          addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
+        }
+      } catch {
+        // fallback local (au moins pour ne pas bloquer l'utilisateur)
+        let client = clients.find(c => c.telephone === clientInfos.telephone)
+        if (!client) {
+          client = { id: uuidv4(), ...clientInfos }
+          setClients(prev => [...prev, client!])
+        }
+        const newCouvaison: Couvaison = { ...couv, id: uuidv4(), clientId: client!.id }
+        setCouvaisons(prev => [...prev, newCouvaison])
+        addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
+      }
+    })()
   };
 
   const updateCouvaison = (id: string, updates: Partial<Couvaison>) => {
-    setCouvaisons(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    addLog('MODIFICATION', 'Couvaison', `Mise à jour d'étape (Statut/Résultats) pour le lot ID...${id.slice(-4)}`);
+    ;(async () => {
+      try {
+        const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_update', {
+          id,
+          updates,
+        })
+        if (res.couvaison) {
+          setCouvaisons(prev => prev.map(c => (c.id === id ? res.couvaison : c)))
+        } else {
+          // fallback local
+          setCouvaisons(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)))
+        }
+      } catch {
+        setCouvaisons(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)))
+      } finally {
+        addLog('MODIFICATION', 'Couvaison', `Mise à jour d'étape (Statut/Résultats) pour le lot ID...${id.slice(-4)}`)
+      }
+    })()
   };
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
@@ -130,7 +183,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateMachine = (id: string, updates: Partial<Machine>) => {
     setMachines(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    let text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`;
+    const text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`;
     addLog('MODIFICATION', 'Machine', `${text} (ID...${id.slice(-4)}).`);
   };
 
