@@ -9,6 +9,7 @@ export const Utilisateurs = () => {
   const [showModal, setShowModal] = useState(false);
   const [nom, setNom] = useState('');
   const [username, setUsername] = useState('');
+  const [telephone, setTelephone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('Technicien');
 
@@ -16,9 +17,9 @@ export const Utilisateurs = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addUser({ nom, username, passwordHash: password, role, actif: true });
+    await addUser({ nom, username, telephone, passwordHash: password, role, actif: true });
     setShowModal(false);
-    setNom(''); setUsername(''); setPassword(''); setRole('Technicien');
+    setNom(''); setUsername(''); setTelephone(''); setPassword(''); setRole('Technicien');
   };
 
   const toggleStatut = async (id: string, actif: boolean) => {
@@ -53,6 +54,7 @@ export const Utilisateurs = () => {
              <tr>
                <th className="px-6 py-4">Nom de la personne</th>
                <th className="px-6 py-4">Identifiant Secret</th>
+                <th className="px-6 py-4">Téléphone</th>
                <th className="px-6 py-4">Profil (Rôle)</th>
                <th className="px-6 py-4 text-center">Accès Actif</th>
                <th className="px-6 py-4 text-center">Actions</th>
@@ -63,6 +65,7 @@ export const Utilisateurs = () => {
                <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                  <td className="px-6 py-4 font-semibold text-brand-dark">{u.nom}</td>
                  <td className="px-6 py-4 font-mono text-gray-500">{u.username}</td>
+                 <td className="px-6 py-4 text-gray-500">{u.telephone || '-'}</td>
                  <td className="px-6 py-4">
                     <select 
                        value={u.role} 
@@ -113,6 +116,10 @@ export const Utilisateurs = () => {
                   <label className="block text-sm font-semibold text-brand-dark mb-1">Mot de passe temporaire</label>
                   <input required type="text" value={password} onChange={e => setPassword(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none" />
                </div>
+              <div>
+                 <label className="block text-sm font-semibold text-brand-dark mb-1">Téléphone de connexion</label>
+                 <input type="text" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="+225..." className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none" />
+              </div>
                <div>
                   <label className="block text-sm font-semibold text-brand-dark mb-1">Privilège initial</label>
                   <select value={role} onChange={e => setRole(e.target.value as Role)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none bg-white">

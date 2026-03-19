@@ -34,40 +34,45 @@ export default async function (req: Request): Promise<Response> {
 
     const updateValues: any = {}
     if (updates.nom !== undefined) updateValues.nom = updates.nom
-    if (updates.username !== undefined) updateValues.username = updates.username
-    if (updates.telephone !== undefined) updateValues.telephone = updates.telephone
-    if (updates.passwordHash !== undefined) updateValues.password_hash = updates.passwordHash
-    if (updates.role !== undefined) updateValues.role = updates.role
-    if (updates.actif !== undefined) updateValues.actif = updates.actif
+    if (updates.type !== undefined) updateValues.type = updates.type
+    if (updates.enService !== undefined) updateValues.en_service = updates.enService
+    if (updates.capacite !== undefined) updateValues.capacite = Number(updates.capacite) || 0
 
-    const { data, error } = await client.database
-      .from('users')
-      .update(updateValues)
-      .eq('id', id)
-      .select('id, nom, username, telephone, role, actif, password_hash')
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    const { error: machineErr } = await client.database.from('machines').update(updateValues).eq('id', id)
+    if (machineErr) {
+      return new Response(JSON.stringify({ error: machineErr.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const r = data?.[0]
-    const user = r
-      ? {
-          id: r.id,
-          nom: r.nom,
-          username: r.username,
-          telephone: r.telephone ?? undefined,
-          passwordHash: r.password_hash ?? '',
-          role: r.role,
-          actif: r.actif,
-        }
-      : null
+    if (updates.casiers !== undefined && Array.isArray(updates.casiers)) {
+      const { error: delErr } = await client.database.from('casiers').delete().eq('machine_id', id)
+      if (delErr) {
+        return new Response(JSON.stringify({ error: delErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
-    return new Response(JSON.stringify({ user }), {
-      status: user ? 200 : 500,
+      if (updates.casiers.length > 0) {
+        const casiersPayload = updates.casiers.map((c: any) => ({
+          machine_id: id,
+          nom: c.nom,
+          capacite: Number(c.capacite) || 0,
+        }))
+        const { error: insErr } = await client.database.from('casiers').insert(casiersPayload)
+        if (insErr) {
+          return new Response(JSON.stringify({ error: insErr.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, id }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

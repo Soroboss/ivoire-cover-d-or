@@ -1,12 +1,14 @@
 import { useState, useRef } from 'react';
 import { useAppContext } from '../context/AppProvider';
+import { useAuth } from '../context/AuthContext';
 import { InvoiceTemplate } from '../components/facturation/InvoiceTemplate';
 import { Download, FileText, Printer, CheckCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const Factures = () => {
-  const { clients, couvaisons, transactions } = useAppContext();
+  const { clients, couvaisons, transactions, addReceiptArchive } = useAppContext();
+  const { currentUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -16,6 +18,8 @@ const Factures = () => {
   const client = clients.find(c => c.id === selectedClient);
   const clientCouvaisons = couvaisons.filter(c => c.clientId === selectedClient);
   const clientTransactions = transactions.filter(t => t.clientId === selectedClient);
+
+  const invoiceNumber = client ? `FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}` : ''
 
   const generatePDF = async () => {
     if (!invoiceRef.current || !client) return;
@@ -32,7 +36,33 @@ const Factures = () => {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`);
+      const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`
+      pdf.save(fileName);
+
+      const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
+      const totalPaid = clientTransactions.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0)
+      const totalCredits = clientTransactions.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0)
+      const dueAmount = Math.max(0, totalAmount - totalPaid - totalCredits)
+
+      // Archive d'un reçu/facture généré côté backend.
+      await addReceiptArchive({
+        clientId: client.id,
+        invoiceNumber,
+        fileName,
+        totalAmount,
+        totalPaid,
+        totalCredits,
+        dueAmount,
+        couvaisonsCount: clientCouvaisons.length,
+        transactionsCount: clientTransactions.length,
+        generatedByUserId: currentUser?.id,
+        generatedByName: currentUser?.nom,
+        payload: {
+          clientNom: client.nom,
+          clientTelephone: client.telephone,
+        },
+      })
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
@@ -127,7 +157,7 @@ const Factures = () => {
            client={client} 
            couvaisons={clientCouvaisons} 
            transactions={clientTransactions} 
-           invoiceNumber={`FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}`}
+           invoiceNumber={invoiceNumber}
         />
       )}
     </div>

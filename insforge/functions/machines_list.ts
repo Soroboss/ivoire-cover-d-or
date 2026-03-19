@@ -21,30 +21,42 @@ export default async function (req: Request): Promise<Response> {
     const anonKey = Deno.env.get('ANON_KEY') || ''
     const client = createClient({ baseUrl, anonKey })
 
-    const { data, error } = await client.database
-      .from('users')
-      .select('id, nom, username, telephone, role, actif, password_hash')
+    const { data: machinesRows, error: machinesErr } = await client.database
+      .from('machines')
+      .select('*')
       .order('created_at', { ascending: true })
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (machinesErr) {
+      return new Response(JSON.stringify({ error: machinesErr.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Match app interface: {id, nom, username, passwordHash, role, actif}
-    const users = (data ?? []).map((r: any) => ({
-      id: r.id,
-      nom: r.nom,
-      username: r.username,
-      telephone: r.telephone ?? undefined,
-      passwordHash: r.password_hash ?? '',
-      role: r.role,
-      actif: r.actif,
+    const machineIds = (machinesRows ?? []).map((m: any) => m.id)
+    const { data: casiersRows, error: casiersErr } = machineIds.length
+      ? await client.database.from('casiers').select('*').in('machine_id', machineIds)
+      : ({ data: [], error: null } as any)
+
+    if (casiersErr) {
+      return new Response(JSON.stringify({ error: casiersErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const machines = (machinesRows ?? []).map((m: any) => ({
+      id: m.id,
+      nom: m.nom,
+      capacite: Number(m.capacite) || 0,
+      type: m.type,
+      enService: !!m.en_service,
+      casiers: (casiersRows ?? [])
+        .filter((c: any) => c.machine_id === m.id)
+        .map((c: any) => ({ id: c.id, nom: c.nom, capacite: Number(c.capacite) || 0 })),
     }))
 
-    return new Response(JSON.stringify({ users }), {
+    return new Response(JSON.stringify({ machines }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

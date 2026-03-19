@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
-import { Server, Activity, Thermometer, Edit2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Server, Activity, Thermometer, Pencil, Trash2 } from 'lucide-react';
 import type { Couvaison, Machine } from '../types';
 import { MachineForm } from '../components/machines/MachineForm';
 
-const MachineCard = ({ machine, activeBatches, onEdit }: { machine: Machine, activeBatches: Couvaison[], onEdit: (id: string) => void }) => {
+const MachineCard = ({ machine, activeBatches, onEdit, onDelete, canDelete }: { machine: Machine, activeBatches: Couvaison[], onEdit: (id: string) => void, onDelete: (id: string) => void, canDelete: boolean }) => {
   const currentEggs = activeBatches.reduce((sum, c) => sum + c.nombreOeufs, 0);
   const occupancyRate = machine.capacite > 0 ? (currentEggs / machine.capacite) * 100 : 0;
   
@@ -24,7 +25,7 @@ const MachineCard = ({ machine, activeBatches, onEdit }: { machine: Machine, act
             </span>
           </div>
         </div>
-        <div>
+        <div className="flex items-start gap-2">
            {machine.enService ? (
              <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-md">
                <Activity size={14} className="animate-pulse" /> En ligne
@@ -32,9 +33,16 @@ const MachineCard = ({ machine, activeBatches, onEdit }: { machine: Machine, act
            ) : (
              <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded-md">Hors Service</span>
            )}
-           <button onClick={() => onEdit(machine.id)} className="ml-3 p-1 text-gray-400 hover:text-brand-orange transition-colors" title="Modifier la machine">
-             <Edit2 size={16} />
-           </button>
+           <div className="flex gap-1">
+             <button onClick={() => onEdit(machine.id)} className="p-1 text-gray-500 hover:text-brand-orange transition-colors" title="Modifier la machine">
+               <Pencil size={16} />
+             </button>
+             {canDelete && (
+               <button onClick={() => onDelete(machine.id)} className="p-1 text-gray-500 hover:text-red-600 transition-colors" title="Supprimer la machine">
+                 <Trash2 size={16} />
+               </button>
+             )}
+           </div>
         </div>
       </div>
 
@@ -65,14 +73,42 @@ const MachineCard = ({ machine, activeBatches, onEdit }: { machine: Machine, act
            </ul>
         </div>
       )}
+      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
+        <button onClick={() => onEdit(machine.id)} className="px-3 py-1.5 text-xs rounded-md bg-brand-dark text-white hover:bg-gray-800 transition-colors">
+          Modifier
+        </button>
+        {canDelete && (
+          <button onClick={() => onDelete(machine.id)} className="px-3 py-1.5 text-xs rounded-md bg-red-50 text-red-700 hover:bg-red-100 transition-colors">
+            Supprimer
+          </button>
+        )}
+      </div>
     </div>
   );
 };
 
 export const Machines = () => {
-  const { machines, couvaisons } = useAppContext();
+  const { machines, couvaisons, deleteMachine } = useAppContext();
+  const { currentUser } = useAuth();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [activeMachineId, setActiveMachineId] = useState<string | null>(null);
+  const canDelete = currentUser?.role === 'Admin';
+
+  const handleDelete = async (id: string) => {
+    if (!canDelete) return;
+    const inUse = couvaisons.some(c => c.statut === 'En cours' && c.emplacements?.some(e => e.machineId === id));
+    if (inUse) {
+      alert('Impossible de supprimer: la machine est utilisée par des lots en cours.')
+      return;
+    }
+    const ok = window.confirm('Supprimer cette machine et ses casiers ?')
+    if (!ok) return;
+    try {
+      await deleteMachine(id)
+    } catch (e) {
+      alert((e as Error).message || 'Erreur lors de la suppression')
+    }
+  }
 
   if (view === 'form') {
     return (
@@ -100,7 +136,7 @@ export const Machines = () => {
           const activeBatches = couvaisons.filter(c => 
             c.statut === 'En cours' && c.emplacements?.some(emp => emp.machineId === m.id)
           );
-          return <MachineCard key={m.id} machine={m} activeBatches={activeBatches} onEdit={(id) => { setActiveMachineId(id); setView('form'); }} />;
+          return <MachineCard key={m.id} machine={m} activeBatches={activeBatches} onEdit={(id) => { setActiveMachineId(id); setView('form'); }} onDelete={handleDelete} canDelete={canDelete} />;
         })}
       </div>
     </div>

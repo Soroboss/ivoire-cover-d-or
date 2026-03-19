@@ -61,6 +61,7 @@ export const Historique = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray overflow-hidden">
         {filteredLogs.length > 0 ? (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
               <tr>
@@ -102,6 +103,7 @@ export const Historique = () => {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className="text-center py-12 text-brand-muted">
             <History size={48} className="mx-auto text-gray-300 mb-3" />

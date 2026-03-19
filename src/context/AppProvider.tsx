@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { Client, Couvaison, Transaction, Machine, AuditLog } from '../types';
+import type { Client, Couvaison, Transaction, Machine, AuditLog, ReceiptArchive } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callInsforgeFunction } from '../lib/insforgeApi';
@@ -11,12 +11,15 @@ interface AppState {
   transactions: Transaction[];
   machines: Machine[];
   logs: AuditLog[];
+  receiptArchives: ReceiptArchive[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => void;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => void;
   deleteCouvaison: (id: string) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   addMachine: (machine: Omit<Machine, 'id'>) => void;
   updateMachine: (id: string, updates: Partial<Machine>) => void;
+  deleteMachine: (id: string) => Promise<void>;
+  addReceiptArchive: (archive: Omit<ReceiptArchive, 'id' | 'createdAt'>) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
 }
 
@@ -29,6 +32,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('ivoire_logs');
     return saved ? JSON.parse(saved) : [];
   });
+  const [receiptArchives, setReceiptArchives] = useState<ReceiptArchive[]>([]);
 
   const [clients, setClients] = useState<Client[]>(() => {
     const saved = localStorage.getItem('ivoire_clients');
@@ -89,6 +93,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {
         // fallback localStorage
       }
+
+      try {
+        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+        if (machinesRes.machines.length > 0) {
+          setMachines(machinesRes.machines)
+        }
+      } catch {
+        // fallback localStorage
+      }
+
+      try {
+        const txRes = await callInsforgeFunction<{ transactions: Transaction[] }>('transactions_list', {})
+        setTransactions(txRes.transactions)
+      } catch {
+        // fallback localStorage
+      }
+
+      try {
+        const logsRes = await callInsforgeFunction<{ logs: AuditLog[] }>('logs_list', {})
+        setLogs(logsRes.logs)
+      } catch {
+        // fallback localStorage
+      }
+
+      try {
+        const receiptRes = await callInsforgeFunction<{ archives: ReceiptArchive[] }>('receipt_archives_list', {})
+        setReceiptArchives(receiptRes.archives)
+      } catch {
+        // no-op
+      }
     })()
   }, [])
 
@@ -117,6 +151,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     // Keep only last 1000 logs to prevent memory leaks
     setLogs(prev => [newLog, ...prev].slice(0, 1000));
+
+    // Persistance backend InsForge (non bloquante pour l'UX).
+    void callInsforgeFunction('log_create', newLog).catch(() => undefined);
   };
 
   const addCouvaison = (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => {
@@ -196,23 +233,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }]);
-    addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`);
+    ;(async () => {
+      try {
+        const res = await callInsforgeFunction<{ transaction: Transaction }>('transaction_create', transaction)
+        if (res.transaction) {
+          setTransactions(prev => [...prev, res.transaction])
+        } else {
+          setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }])
+        }
+      } catch {
+        setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }])
+      } finally {
+        addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`)
+      }
+    })()
   };
 
   const addMachine = (machine: Omit<Machine, 'id'>) => {
-    setMachines(prev => [...prev, { ...machine, id: uuidv4() }]);
-    addLog('CRÉATION', 'Machine', `Ajout de la machine de production: ${machine.nom}.`);
+    ;(async () => {
+      try {
+        await callInsforgeFunction('machine_create', machine)
+        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+        setMachines(machinesRes.machines)
+      } catch {
+        setMachines(prev => [...prev, { ...machine, id: uuidv4() }])
+      } finally {
+        addLog('CRÉATION', 'Machine', `Ajout de la machine de production: ${machine.nom}.`)
+      }
+    })()
   };
 
   const updateMachine = (id: string, updates: Partial<Machine>) => {
-    setMachines(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    const text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`;
-    addLog('MODIFICATION', 'Machine', `${text} (ID...${id.slice(-4)}).`);
+    ;(async () => {
+      try {
+        await callInsforgeFunction('machine_update', { id, updates })
+        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+        setMachines(machinesRes.machines)
+      } catch {
+        setMachines(prev => prev.map(m => (m.id === id ? { ...m, ...updates } : m)))
+      } finally {
+        const text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`
+        addLog('MODIFICATION', 'Machine', `${text} (ID...${id.slice(-4)}).`)
+      }
+    })()
   };
 
+  const deleteMachine = async (id: string) => {
+    try {
+      await callInsforgeFunction('machine_delete', { id })
+      setMachines(prev => prev.filter(m => m.id !== id))
+      addLog('SUPPRESSION', 'Machine', `Suppression de machine (ID...${id.slice(-4)}).`)
+    } catch {
+      throw new Error('Echec de suppression machine côté backend')
+    }
+  }
+
+  const addReceiptArchive = async (archive: Omit<ReceiptArchive, 'id' | 'createdAt'>) => {
+    try {
+      const createdAt = new Date().toISOString()
+      await callInsforgeFunction('receipt_archive_create', archive)
+      setReceiptArchives(prev => [
+        {
+          ...archive,
+          id: uuidv4(),
+          createdAt,
+        },
+        ...prev,
+      ])
+      addLog('CRÉATION', 'Archive Reçu', `Archivage du reçu ${archive.invoiceNumber} pour client ID...${archive.clientId.slice(-4)}.`)
+    } catch {
+      throw new Error('Echec d’archivage reçu côté backend')
+    }
+  }
+
   return (
-    <AppContext.Provider value={{ logs, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, addLog }}>
+    <AppContext.Provider value={{ logs, receiptArchives, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, deleteMachine, addReceiptArchive, addLog }}>
       {children}
     </AppContext.Provider>
   );

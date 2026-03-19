@@ -40,14 +40,14 @@ export const Login = () => {
             )}
             
             <div>
-              <label className="block text-sm font-semibold text-brand-dark mb-2">Nom d'utilisateur</label>
+              <label className="block text-sm font-semibold text-brand-dark mb-2">Identifiant ou Téléphone</label>
               <input 
                 required 
                 type="text" 
                 value={username} 
                 onChange={e => setUsername(e.target.value)} 
                 className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-brand-orange outline-none bg-gray-50 focus:bg-white transition-colors"
-                placeholder="Ex: admin"
+                placeholder="Ex: admin ou +225..."
               />
             </div>
 

@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, LogOut, BrainCircuit, Key, X, History } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppContext } from '../../context/AppProvider';
 
 const Sidebar = () => {
   const { currentUser, logout, updateUser } = useAuth();
+  const { addLog } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,6 +25,7 @@ const Sidebar = () => {
     }
     if(currentUser) {
       await updateUser(currentUser.id, { passwordHash: newPassword });
+      addLog('MODIFICATION', 'Sécurité', `Mot de passe modifié par ${currentUser.nom}.`);
       setAlertMsg('');
       setIsProfileOpen(false);
       setNewPassword('');

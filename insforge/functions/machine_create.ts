@@ -22,52 +22,49 @@ export default async function (req: Request): Promise<Response> {
     const client = createClient({ baseUrl, anonKey })
     const body = await req.json().catch(() => ({} as any))
 
-    const id = body?.id
-    const updates = body?.updates ?? {}
+    const nom = body?.nom
+    const type = body?.type
+    const enService = body?.enService ?? true
+    const casiers = Array.isArray(body?.casiers) ? body.casiers : []
+    const capacite = Number(body?.capacite ?? casiers.reduce((s: number, c: any) => s + (Number(c.capacite) || 0), 0))
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing id' }), {
+    if (!nom || !type) {
+      return new Response(JSON.stringify({ error: 'Missing machine data' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const updateValues: any = {}
-    if (updates.nom !== undefined) updateValues.nom = updates.nom
-    if (updates.username !== undefined) updateValues.username = updates.username
-    if (updates.telephone !== undefined) updateValues.telephone = updates.telephone
-    if (updates.passwordHash !== undefined) updateValues.password_hash = updates.passwordHash
-    if (updates.role !== undefined) updateValues.role = updates.role
-    if (updates.actif !== undefined) updateValues.actif = updates.actif
+    const { data: insertedMachine, error: machineErr } = await client.database
+      .from('machines')
+      .insert({ nom, type, en_service: enService, capacite })
+      .select('*')
 
-    const { data, error } = await client.database
-      .from('users')
-      .update(updateValues)
-      .eq('id', id)
-      .select('id, nom, username, telephone, role, actif, password_hash')
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (machineErr || !insertedMachine?.[0]) {
+      return new Response(JSON.stringify({ error: machineErr?.message || 'Machine insert failed' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const r = data?.[0]
-    const user = r
-      ? {
-          id: r.id,
-          nom: r.nom,
-          username: r.username,
-          telephone: r.telephone ?? undefined,
-          passwordHash: r.password_hash ?? '',
-          role: r.role,
-          actif: r.actif,
-        }
-      : null
+    const machineId = insertedMachine[0].id
+    if (casiers.length > 0) {
+      const casiersPayload = casiers.map((c: any) => ({
+        machine_id: machineId,
+        nom: c.nom,
+        capacite: Number(c.capacite) || 0,
+      }))
+      const { error: casiersErr } = await client.database.from('casiers').insert(casiersPayload)
+      if (casiersErr) {
+        return new Response(JSON.stringify({ error: casiersErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
 
-    return new Response(JSON.stringify({ user }), {
-      status: user ? 200 : 500,
+    return new Response(JSON.stringify({ success: true, id: machineId }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

@@ -23,8 +23,6 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({} as any))
 
     const id = body?.id
-    const updates = body?.updates ?? {}
-
     if (!id) {
       return new Response(JSON.stringify({ error: 'Missing id' }), {
         status: 400,
@@ -32,20 +30,7 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const updateValues: any = {}
-    if (updates.nom !== undefined) updateValues.nom = updates.nom
-    if (updates.username !== undefined) updateValues.username = updates.username
-    if (updates.telephone !== undefined) updateValues.telephone = updates.telephone
-    if (updates.passwordHash !== undefined) updateValues.password_hash = updates.passwordHash
-    if (updates.role !== undefined) updateValues.role = updates.role
-    if (updates.actif !== undefined) updateValues.actif = updates.actif
-
-    const { data, error } = await client.database
-      .from('users')
-      .update(updateValues)
-      .eq('id', id)
-      .select('id, nom, username, telephone, role, actif, password_hash')
-
+    const { error } = await client.database.from('machines').delete().eq('id', id)
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
@@ -53,21 +38,8 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const r = data?.[0]
-    const user = r
-      ? {
-          id: r.id,
-          nom: r.nom,
-          username: r.username,
-          telephone: r.telephone ?? undefined,
-          passwordHash: r.password_hash ?? '',
-          role: r.role,
-          actif: r.actif,
-        }
-      : null
-
-    return new Response(JSON.stringify({ user }), {
-      status: user ? 200 : 500,
+    return new Response(JSON.stringify({ success: true, id }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

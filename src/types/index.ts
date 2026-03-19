@@ -43,6 +43,7 @@ export interface User {
   id: string;
   nom: string;
   username: string;
+  telephone?: string;
   passwordHash: string;
   role: Role;
   actif: boolean;
@@ -90,4 +91,21 @@ export interface Transaction {
   dateTransaction: string;
   typeTransaction: 'Paiement' | 'Avoir';
   notes?: string;
+}
+
+export interface ReceiptArchive {
+  id: string;
+  clientId: string;
+  invoiceNumber: string;
+  fileName: string;
+  totalAmount: number;
+  totalPaid: number;
+  totalCredits: number;
+  dueAmount: number;
+  couvaisonsCount: number;
+  transactionsCount: number;
+  generatedByUserId?: string;
+  generatedByName?: string;
+  payload?: Record<string, unknown>;
+  createdAt: string;
 }

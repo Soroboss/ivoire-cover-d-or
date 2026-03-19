@@ -29,13 +29,24 @@ export default async function (req: Request): Promise<Response> {
 
     const client = createClient({ baseUrl, anonKey })
 
-    const { data, error } = await client.database
+    const { data: byUsername, error: errUsername } = await client.database
       .from('users')
       .select('*')
       .eq('username', username)
       .eq('password_hash', password)
       .eq('actif', true)
       .maybeSingle()
+
+    const { data: byPhone, error: errPhone } = await client.database
+      .from('users')
+      .select('*')
+      .eq('telephone', username)
+      .eq('password_hash', password)
+      .eq('actif', true)
+      .maybeSingle()
+
+    const error = errUsername || errPhone
+    const data = byUsername || byPhone
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -55,6 +66,7 @@ export default async function (req: Request): Promise<Response> {
       id: data.id,
       nom: data.nom,
       username: data.username,
+      telephone: (data as any).telephone ?? undefined,
       passwordHash: (data as any).password_hash ?? '',
       role: data.role,
       actif: data.actif,

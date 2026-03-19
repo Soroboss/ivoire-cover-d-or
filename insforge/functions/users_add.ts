@@ -24,6 +24,7 @@ export default async function (req: Request): Promise<Response> {
 
     const nom = body?.nom
     const username = body?.username
+    const telephone = body?.telephone ?? null
     const passwordHash = body?.passwordHash
     const role = body?.role
     const actif = body?.actif ?? true
@@ -40,11 +41,12 @@ export default async function (req: Request): Promise<Response> {
       .insert({
         nom,
         username,
+        telephone,
         password_hash: passwordHash,
         role,
         actif,
       })
-      .select('id, nom, username, role, actif, password_hash')
+      .select('id, nom, username, telephone, role, actif, password_hash')
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -59,6 +61,7 @@ export default async function (req: Request): Promise<Response> {
           id: r.id,
           nom: r.nom,
           username: r.username,
+          telephone: r.telephone ?? undefined,
           passwordHash: r.password_hash ?? '',
           role: r.role,
           actif: r.actif,
