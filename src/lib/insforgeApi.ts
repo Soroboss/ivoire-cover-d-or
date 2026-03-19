@@ -1,9 +1,9 @@
-const OSS_HOST = import.meta.env.VITE_INSFORGE_OSS_HOST as string | undefined
+const DEFAULT_OSS_HOST = 'https://bzna2rx5.eu-central.insforge.app'
+const OSS_HOST = (import.meta.env.VITE_INSFORGE_OSS_HOST as string | undefined) ?? DEFAULT_OSS_HOST
 
-if (!OSS_HOST) {
-  // Le message n'est affiché qu'au runtime.
-  // Si tu vois cette erreur, ajoute `VITE_INSFORGE_OSS_HOST` dans `.env.local` puis redémarre le dev server.
-  console.warn('VITE_INSFORGE_OSS_HOST manquant')
+// Si la variable Vercel/Vite n’est pas injectée, on fallback sur la valeur du projet.
+if (!import.meta.env.VITE_INSFORGE_OSS_HOST) {
+  console.warn('VITE_INSFORGE_OSS_HOST manquant (fallback utilisé)')
 }
 
 export async function callInsforgeFunction<T = unknown>(
