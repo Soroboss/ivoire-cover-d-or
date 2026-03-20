@@ -27,14 +27,20 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
 
   if (!couv) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCouvaison(couvaisonId, { 
-       oeufsClairs: clairs, 
-       oeufsPourris: pourris,
-       causeEchecMajeure: (clairs + pourris > 0) && cause !== 'Aucune' ? cause : undefined
-    });
-    onSuccess();
+
+    try {
+      await updateCouvaison(couvaisonId, {
+        oeufsClairs: clairs,
+        oeufsPourris: pourris,
+        causeEchecMajeure:
+          clairs + pourris > 0 && cause !== 'Aucune' ? cause : undefined,
+      });
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de la validation du mirage');
+    }
   };
 
   const oeufsRestants = couv.nombreOeufs - clairs - pourris;

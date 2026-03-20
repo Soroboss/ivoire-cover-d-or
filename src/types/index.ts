@@ -65,6 +65,9 @@ export interface Couvaison {
   dateMiseEnMachine?: string; // ISO string
   dateMiragePrevue?: string; // dateMiseEnMachine + 7 jours
   dateEclosionPrevue?: string; // dateMiseEnMachine + jours selon type
+  // Enregistrement du démarrage réel de l'éclosion
+  dateEclosionDemarrage?: string; // ISO string
+  nomDepart?: string;
   statut: StatutCouvaison;
   
   // Résultats mirage

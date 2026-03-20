@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X } from 'lucide-react';
+import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X, Database } from 'lucide-react';
 
 const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -12,6 +12,7 @@ const Layout = () => {
   const navItems = [
     { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['Admin', 'Réception/Caisse'] },
     { name: 'Couvaisons', path: '/couvaisons', icon: <Egg size={18} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
+    { name: 'Clients & Historique', path: '/clients', icon: <Database size={18} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
     { name: 'Parc Machines', path: '/machines', icon: <Server size={18} />, roles: ['Admin', 'Technicien'] },
     { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={18} />, roles: ['Admin', 'Technicien'] },
     { name: 'Finances', path: '/finances', icon: <DollarSign size={18} />, roles: ['Admin'] },

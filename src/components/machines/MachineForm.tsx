@@ -28,12 +28,12 @@ export const MachineForm = ({ machineId, onCancel, onSuccess }: { machineId?: st
 
   const capaciteTotale = casiers.reduce((sum, c) => sum + (Number(c.capacite) || 0), 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (machine) {
-      updateMachine(machine.id, { nom, type, enService, casiers, capacite: capaciteTotale });
+      await updateMachine(machine.id, { nom, type, enService, casiers, capacite: capaciteTotale })
     } else {
-      addMachine({ nom, type, enService, casiers, capacite: capaciteTotale });
+      await addMachine({ nom, type, enService, casiers, capacite: capaciteTotale })
     }
     onSuccess();
   };

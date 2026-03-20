@@ -12,12 +12,12 @@ interface AppState {
   machines: Machine[];
   logs: AuditLog[];
   receiptArchives: ReceiptArchive[];
-  addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => void;
-  updateCouvaison: (id: string, updates: Partial<Couvaison>) => void;
+  addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
+  updateCouvaison: (id: string, updates: Partial<Couvaison>) => Promise<void>;
   deleteCouvaison: (id: string) => Promise<void>;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  addMachine: (machine: Omit<Machine, 'id'>) => void;
-  updateMachine: (id: string, updates: Partial<Machine>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  addMachine: (machine: Omit<Machine, 'id'>) => Promise<void>;
+  updateMachine: (id: string, updates: Partial<Machine>) => Promise<void>;
   deleteMachine: (id: string) => Promise<void>;
   addReceiptArchive: (archive: Omit<ReceiptArchive, 'id' | 'createdAt'>) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
@@ -28,93 +28,83 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
   
-  const [logs, setLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('ivoire_logs');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [receiptArchives, setReceiptArchives] = useState<ReceiptArchive[]>([]);
 
-  const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('ivoire_clients');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [clients, setClients] = useState<Client[]>([]);
   
-  const [couvaisons, setCouvaisons] = useState<Couvaison[]>(() => {
-    const saved = localStorage.getItem('ivoire_couvaisons');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [couvaisons, setCouvaisons] = useState<Couvaison[]>([]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('ivoire_transactions');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const [machines, setMachines] = useState<Machine[]>(() => {
-    const saved = localStorage.getItem('ivoire_machines');
-    return saved ? JSON.parse(saved) : [
-      { 
-        id: 'm-1', nom: 'Couveuse Alpha-1000', capacite: 1000, type: 'Couveuse', enService: true,
-        casiers: [
-          { id: 'c-1-1', nom: 'Casier Haut', capacite: 500 },
-          { id: 'c-1-2', nom: 'Casier Bas', capacite: 500 }
-        ]
-      },
-      { 
-        id: 'm-2', nom: 'Éclosoir Beta-500', capacite: 500, type: 'Éclosoir', enService: true,
-        casiers: [
-          { id: 'c-2-1', nom: 'Panier 1', capacite: 250 },
-          { id: 'c-2-2', nom: 'Panier 2', capacite: 250 }
-        ]
-      }
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('ivoire_clients', JSON.stringify(clients));
-  }, [clients]);
-
-  useEffect(() => {
-    localStorage.setItem('ivoire_couvaisons', JSON.stringify(couvaisons));
-  }, [couvaisons]);
+  const [machines, setMachines] = useState<Machine[]>([]);
 
   // Charge les données depuis InsForge au démarrage.
   useEffect(() => {
     (async () => {
+      const seedMachines: Array<Omit<Machine, 'id'>> = [
+        {
+          nom: 'Couveuse Alpha-1000',
+          capacite: 1000,
+          type: 'Couveuse',
+          enService: true,
+          casiers: [
+            { id: uuidv4(), nom: 'Casier Haut', capacite: 500 },
+            { id: uuidv4(), nom: 'Casier Bas', capacite: 500 },
+          ],
+        },
+        {
+          nom: 'Éclosoir Beta-500',
+          capacite: 500,
+          type: 'Éclosoir',
+          enService: true,
+          casiers: [
+            { id: uuidv4(), nom: 'Panier 1', capacite: 250 },
+            { id: uuidv4(), nom: 'Panier 2', capacite: 250 },
+          ],
+        },
+      ]
+
       try {
         const clientsRes = await callInsforgeFunction<{ clients: Client[] }>('clients_list', {})
         setClients(clientsRes.clients)
       } catch {
-        // fallback localStorage (déjà initialisé via useState)
+        // no-op
       }
 
       try {
         const couvRes = await callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {})
         setCouvaisons(couvRes.couvaisons)
       } catch {
-        // fallback localStorage
+        // no-op
       }
 
       try {
         const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
-        if (machinesRes.machines.length > 0) {
+        if (machinesRes.machines.length === 0) {
+          // Seed uniquement si la table est vide.
+          await Promise.all(seedMachines.map(m => callInsforgeFunction('machine_create', m)))
+          const machinesRes2 = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+          setMachines(machinesRes2.machines)
+        } else {
           setMachines(machinesRes.machines)
         }
       } catch {
-        // fallback localStorage
+        // no-op
       }
 
       try {
         const txRes = await callInsforgeFunction<{ transactions: Transaction[] }>('transactions_list', {})
         setTransactions(txRes.transactions)
       } catch {
-        // fallback localStorage
+        // no-op
       }
 
       try {
         const logsRes = await callInsforgeFunction<{ logs: AuditLog[] }>('logs_list', {})
         setLogs(logsRes.logs)
       } catch {
-        // fallback localStorage
+        // no-op
       }
 
       try {
@@ -125,18 +115,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     })()
   }, [])
-
-  useEffect(() => {
-    localStorage.setItem('ivoire_transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('ivoire_machines', JSON.stringify(machines));
-  }, [machines]);
-
-  useEffect(() => {
-    localStorage.setItem('ivoire_logs', JSON.stringify(logs));
-  }, [logs]);
 
   const addLog = (action: AuditLog['action'], target: string, details: string) => {
     if (!currentUser) return;
@@ -156,58 +134,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     void callInsforgeFunction('log_create', newLog).catch(() => undefined);
   };
 
-  const addCouvaison = (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => {
-    ;(async () => {
-      try {
-        const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
-          couv,
-          clientInfos,
-        })
-        if (res.couvaison) {
-          // On resynchronise depuis le backend pour éviter toute divergence d'ID client.
-          const [clientsRes, couvRes] = await Promise.all([
-            callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
-            callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
-          ])
-          setClients(clientsRes.clients)
-          setCouvaisons(couvRes.couvaisons)
+  const addCouvaison = async (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => {
+    const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
+      couv,
+      clientInfos,
+    })
 
-          addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
-        }
-      } catch {
-        // fallback local (au moins pour ne pas bloquer l'utilisateur)
-        let client = clients.find(c => c.telephone === clientInfos.telephone)
-        if (!client) {
-          client = { id: uuidv4(), ...clientInfos }
-          setClients(prev => [...prev, client!])
-        }
-        const newCouvaison: Couvaison = { ...couv, id: uuidv4(), clientId: client!.id }
-        setCouvaisons(prev => [...prev, newCouvaison])
-        addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
-      }
-    })()
-  };
+    if (!res.couvaison) {
+      throw new Error('Echec de création côté backend (couvaison_create).')
+    }
 
-  const updateCouvaison = (id: string, updates: Partial<Couvaison>) => {
-    ;(async () => {
-      try {
-        const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_update', {
-          id,
-          updates,
-        })
-        if (res.couvaison) {
-          setCouvaisons(prev => prev.map(c => (c.id === id ? res.couvaison : c)))
-        } else {
-          // fallback local
-          setCouvaisons(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)))
-        }
-      } catch {
-        setCouvaisons(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)))
-      } finally {
-        addLog('MODIFICATION', 'Couvaison', `Mise à jour d'étape (Statut/Résultats) pour le lot ID...${id.slice(-4)}`)
-      }
-    })()
-  };
+    // On resynchronise depuis le backend pour éviter toute divergence d'ID client.
+    const [clientsRes, couvRes] = await Promise.all([
+      callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
+      callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
+    ])
+    setClients(clientsRes.clients)
+    setCouvaisons(couvRes.couvaisons)
+
+    addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
+  }
+
+  const updateCouvaison = async (id: string, updates: Partial<Couvaison>) => {
+    const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_update', {
+      id,
+      updates,
+    })
+
+    if (!res.couvaison) {
+      throw new Error('Echec de mise à jour côté backend (couvaison_update).')
+    }
+
+    setCouvaisons(prev => prev.map(c => (c.id === id ? res.couvaison : c)))
+    addLog('MODIFICATION', 'Couvaison', `Mise à jour d'étape (Statut/Résultats) pour le lot ID...${id.slice(-4)}`)
+  }
 
   const deleteCouvaison = async (id: string) => {
     try {
@@ -232,56 +192,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    ;(async () => {
-      try {
-        const res = await callInsforgeFunction<{ transaction: Transaction }>('transaction_create', transaction)
-        if (res.transaction) {
-          setTransactions(prev => [...prev, res.transaction])
-        } else {
-          setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }])
-        }
-      } catch {
-        setTransactions(prev => [...prev, { ...transaction, id: uuidv4() }])
-      } finally {
-        addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`)
-      }
-    })()
-  };
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    const res = await callInsforgeFunction<{ transaction: Transaction }>('transaction_create', transaction)
 
-  const addMachine = (machine: Omit<Machine, 'id'>) => {
-    ;(async () => {
-      try {
-        await callInsforgeFunction('machine_create', machine)
-        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
-        setMachines(machinesRes.machines)
-      } catch {
-        setMachines(prev => [...prev, { ...machine, id: uuidv4() }])
-      } finally {
-        addLog('CRÉATION', 'Machine', `Ajout de la machine de production: ${machine.nom}.`)
-      }
-    })()
-  };
+    if (!res.transaction) {
+      throw new Error('Echec de création côté backend (transaction_create).')
+    }
 
-  const updateMachine = (id: string, updates: Partial<Machine>) => {
-    ;(async () => {
-      try {
-        await callInsforgeFunction('machine_update', { id, updates })
-        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
-        setMachines(machinesRes.machines)
-      } catch {
-        setMachines(prev => prev.map(m => (m.id === id ? { ...m, ...updates } : m)))
-      } finally {
-        const text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`
-        addLog('MODIFICATION', 'Machine', `${text} (ID...${id.slice(-4)}).`)
-      }
-    })()
-  };
+    setTransactions(prev => [...prev, res.transaction])
+    addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`)
+  }
+
+  const addMachine = async (machine: Omit<Machine, 'id'>) => {
+    await callInsforgeFunction('machine_create', machine)
+    const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+    setMachines(machinesRes.machines)
+    addLog('CRÉATION', 'Machine', `Ajout de la machine de production: ${machine.nom}.`)
+  }
+
+  const updateMachine = async (id: string, updates: Partial<Machine>) => {
+    await callInsforgeFunction('machine_update', { id, updates })
+    const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+    setMachines(machinesRes.machines)
+    const text = updates.enService !== undefined ? `Etat de machine changé` : `Paramétrage machine modifié`
+    addLog('MODIFICATION', 'Machine', `${text} (ID...${id.slice(-4)}).`)
+  }
 
   const deleteMachine = async (id: string) => {
     try {
       await callInsforgeFunction('machine_delete', { id })
-      setMachines(prev => prev.filter(m => m.id !== id))
+      const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
+      setMachines(machinesRes.machines)
       addLog('SUPPRESSION', 'Machine', `Suppression de machine (ID...${id.slice(-4)}).`)
     } catch {
       throw new Error('Echec de suppression machine côté backend')

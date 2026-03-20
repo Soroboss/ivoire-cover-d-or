@@ -41,6 +41,8 @@ export default async function (req: Request): Promise<Response> {
     if (updates.dateMiseEnMachine !== undefined) updateValues.date_mise_en_machine = updates.dateMiseEnMachine ?? null
     if (updates.dateMiragePrevue !== undefined) updateValues.date_mirage_prevue = updates.dateMiragePrevue ?? null
     if (updates.dateEclosionPrevue !== undefined) updateValues.date_eclosion_prevue = updates.dateEclosionPrevue ?? null
+    if (updates.dateEclosionDemarrage !== undefined) updateValues.date_eclosion_demarrage = updates.dateEclosionDemarrage ?? null
+    if (updates.nomDepart !== undefined) updateValues.nom_depart = updates.nomDepart ?? null
     if (updates.causeEchecMajeure !== undefined) updateValues.cause_echec_majeure = updates.causeEchecMajeure ?? null
     if (updates.notesEchec !== undefined) updateValues.notes_echec = updates.notesEchec ?? null
     if (updates.emplacements !== undefined) updateValues.emplacements = updates.emplacements ?? null
@@ -70,6 +72,8 @@ export default async function (req: Request): Promise<Response> {
           dateMiseEnMachine: r.date_mise_en_machine ? new Date(r.date_mise_en_machine).toISOString() : undefined,
           dateMiragePrevue: r.date_mirage_prevue ? new Date(r.date_mirage_prevue).toISOString() : undefined,
           dateEclosionPrevue: r.date_eclosion_prevue ? new Date(r.date_eclosion_prevue).toISOString() : undefined,
+          dateEclosionDemarrage: r.date_eclosion_demarrage ? new Date(r.date_eclosion_demarrage).toISOString() : undefined,
+          nomDepart: r.nom_depart ?? undefined,
           statut: r.statut,
           oeufsClairs: r.oeufs_clairs ?? undefined,
           oeufsPourris: r.oeufs_pourris ?? undefined,

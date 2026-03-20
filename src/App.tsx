@@ -8,6 +8,7 @@ import Machines from './pages/Machines';
 import Analyses from './pages/Analyses';
 import Utilisateurs from './pages/Utilisateurs';
 import Historique from './pages/Historique';
+import ClientsDB from './pages/ClientsDB';
 import Login from './pages/Login';
 import { useAuth } from './context/AuthContext';
 
@@ -26,6 +27,7 @@ function App() {
           <Route path="dashboard" element={['Admin', 'Réception/Caisse'].includes(currentUser.role) ? <Dashboard /> : <Navigate to="/couvaisons" replace />} />
           <Route path="couvaisons" element={<Couvaisons />} />
           <Route path="machines" element={['Admin', 'Technicien'].includes(currentUser.role) ? <Machines /> : <Navigate to="/dashboard" replace />} />
+          <Route path="clients" element={['Admin', 'Technicien', 'Réception/Caisse'].includes(currentUser.role) ? <ClientsDB /> : <Navigate to="/dashboard" replace />} />
           <Route path="analyses" element={['Admin', 'Technicien'].includes(currentUser.role) ? <Analyses /> : <Navigate to="/dashboard" replace />} />
           <Route path="finances" element={currentUser.role === 'Admin' ? <Finances /> : <Navigate to="/dashboard" replace />} />
           <Route path="factures" element={['Admin', 'Réception/Caisse'].includes(currentUser.role) ? <Factures /> : <Navigate to="/couvaisons" replace />} />

@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { CouvaisonForm } from '../components/couvaisons/CouvaisonForm';
 import { MirageForm } from '../components/couvaisons/MirageForm';
 import { EclosionForm } from '../components/couvaisons/EclosionForm';
+import EclosionStartForm from '../components/couvaisons/EclosionStartForm';
 import { PlacementForm } from '../components/couvaisons/PlacementForm';
 import type { StatutCouvaison } from '../types';
 import { format, parseISO } from 'date-fns';
-import { Search, Filter, Plus, Calendar, CheckCircle, EggOff, Eye, MessageCircle, Trash2 } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, CheckCircle, EggOff, Eye, MessageCircle, Trash2, Play } from 'lucide-react';
 
 const formatWhatsAppNumber = (phone?: string) => {
   if (!phone) return '';
@@ -17,7 +18,7 @@ const formatWhatsAppNumber = (phone?: string) => {
   return cleaned;
 };
 
-type ViewState = 'list' | 'create' | 'mirage' | 'eclosion' | 'placement';
+type ViewState = 'list' | 'create' | 'mirage' | 'eclosion' | 'eclosionStart' | 'placement';
 
 const Couvaisons = () => {
   const { couvaisons, clients, deleteCouvaison } = useAppContext();
@@ -41,6 +42,7 @@ const Couvaisons = () => {
 
   const handleOpenMirage = (id: string) => { setActiveId(id); setView('mirage'); };
   const handleOpenEclosion = (id: string) => { setActiveId(id); setView('eclosion'); };
+  const handleOpenEclosionStart = (id: string) => { setActiveId(id); setView('eclosionStart'); };
 
   const handleDelete = async (id: string) => {
     if (!canDelete) return;
@@ -73,6 +75,18 @@ const Couvaisons = () => {
     return (
       <div className="animate-in slide-in-from-bottom-4 duration-300">
          <EclosionForm couvaisonId={activeId} onCancel={() => setView('list')} onSuccess={() => setView('list')} />
+      </div>
+    );
+  }
+
+  if (view === 'eclosionStart' && activeId) {
+    return (
+      <div className="animate-in slide-in-from-bottom-4 duration-300">
+        <EclosionStartForm
+          couvaisonId={activeId}
+          onCancel={() => setView('list')}
+          onSuccess={() => setView('list')}
+        />
       </div>
     );
   }
@@ -150,6 +164,16 @@ const Couvaisons = () => {
                        <p className="text-xs flex items-center gap-1 text-green-600 font-medium">
                          Éclosion: {c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}
                        </p>
+                       {c.dateEclosionDemarrage && (
+                         <p className="text-xs flex items-center gap-1 text-amber-700 font-medium">
+                           Démarrage éclosion: {format(parseISO(c.dateEclosionDemarrage), 'dd/MM/yyyy')}
+                         </p>
+                       )}
+                       {c.nomDepart && (
+                         <p className="text-xs flex items-center gap-1 text-brand-muted">
+                           Nom départ: {c.nomDepart}
+                         </p>
+                       )}
                      </td>
                      <td className="px-6 py-4">
                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -190,9 +214,23 @@ const Couvaisons = () => {
                            <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
                              <Eye size={18} />
                            </button>
-                           <button onClick={() => handleOpenEclosion(c.id)} title="Enregistrer Éclosion" className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors">
-                             <EggOff size={18} />
-                           </button>
+                           {!c.dateEclosionDemarrage ? (
+                             <button
+                               onClick={() => handleOpenEclosionStart(c.id)}
+                               title="Enregistrer Démarrage éclosion"
+                               className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
+                             >
+                               <Play size={18} />
+                             </button>
+                           ) : (
+                             <button
+                               onClick={() => handleOpenEclosion(c.id)}
+                               title="Clôturer Éclosion"
+                               className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
+                             >
+                               <EggOff size={18} />
+                             </button>
+                           )}
                            {canDelete && (
                              <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
                                <Trash2 size={18} />

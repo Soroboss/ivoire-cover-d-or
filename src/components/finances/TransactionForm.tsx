@@ -18,7 +18,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void,
   
   const resteAPayer = totalDue - totalPaye - totalAvoir;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCouv || montant === '') return;
 
@@ -26,18 +26,21 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void,
     const newAcomptes = totalPaye + (type === 'Paiement' ? valMontant : 0);
     const newReste = totalDue - newAcomptes - (type === 'Avoir' ? totalAvoir + valMontant : totalAvoir);
 
-    addTransaction({
-      couvaisonId,
-      clientId: selectedCouv.clientId,
-      montantTotal: valMontant,
-      acomptesVerses: newAcomptes,
-      resteAPayer: Math.max(0, newReste),
-      dateTransaction: new Date().toISOString(),
-      typeTransaction: type,
-      notes
-    });
-    
-    onSuccess();
+    try {
+      await addTransaction({
+        couvaisonId,
+        clientId: selectedCouv.clientId,
+        montantTotal: valMontant,
+        acomptesVerses: newAcomptes,
+        resteAPayer: Math.max(0, newReste),
+        dateTransaction: new Date().toISOString(),
+        typeTransaction: type,
+        notes,
+      });
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de l’enregistrement');
+    }
   };
 
   return (

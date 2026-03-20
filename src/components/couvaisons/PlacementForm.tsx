@@ -28,21 +28,25 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
 
   if (!couv) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const baseDate = parseISO(dateMiseEnMachine);
     const dateMirage = format(addDays(baseDate, 7), 'yyyy-MM-dd');
     const dateEclosion = format(addDays(baseDate, OEUF_CONFIG[couv.typeOeuf].jours), 'yyyy-MM-dd');
 
-    updateCouvaison(couvaisonId, {
-      dateMiseEnMachine: new Date(dateMiseEnMachine).toISOString(),
-      dateMiragePrevue: new Date(dateMirage).toISOString(),
-      dateEclosionPrevue: new Date(dateEclosion).toISOString(),
-      statut: 'En cours',
-      emplacements: emplacements.filter(emp => emp.machineId && emp.casierId && emp.quantite > 0)
-    });
-    
-    onSuccess();
+    try {
+      await updateCouvaison(couvaisonId, {
+        dateMiseEnMachine: new Date(dateMiseEnMachine).toISOString(),
+        dateMiragePrevue: new Date(dateMirage).toISOString(),
+        dateEclosionPrevue: new Date(dateEclosion).toISOString(),
+        statut: 'En cours',
+        emplacements: emplacements.filter(emp => emp.machineId && emp.casierId && emp.quantite > 0),
+      });
+
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de la mise en machine');
+    }
   };
 
   const handleDelete = async () => {

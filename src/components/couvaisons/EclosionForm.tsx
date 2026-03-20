@@ -26,15 +26,37 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
 
   if (!couv) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const canFinalize = Boolean(couv.dateEclosionDemarrage && couv.nomDepart && couv.nomDepart.trim());
+  if (!canFinalize) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray max-w-lg mx-auto mt-4">
+        <h2 className="text-xl font-bold text-brand-dark mb-2">Clôturer l'éclosion</h2>
+        <p className="text-sm text-brand-muted mb-4">
+          Le démarrage de l'éclosion n'a pas encore été enregistré (nom de départ manquant).
+          Veuillez d'abord cliquer sur <b>Démarrer l'éclosion</b>.
+        </p>
+        <button type="button" onClick={onCancel} className="px-4 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50 transition-colors">
+          Retour
+        </button>
+      </div>
+    );
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCouvaison(couvaisonId, { 
-      poussinsNes: nes, 
-      mortsEnCoque: morts, 
-      statut: 'Terminé',
-      causeEchecMajeure: (morts > 0 || nonEclos > 0) && cause !== 'Aucune' ? cause : couv.causeEchecMajeure
-    });
-    onSuccess();
+
+    try {
+      await updateCouvaison(couvaisonId, {
+        poussinsNes: nes,
+        mortsEnCoque: morts,
+        statut: 'Terminé',
+        causeEchecMajeure:
+          (morts > 0 || nonEclos > 0) && cause !== 'Aucune' ? cause : couv.causeEchecMajeure,
+      });
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de la clôture');
+    }
   };
 
   const clairs = couv.oeufsClairs || 0;

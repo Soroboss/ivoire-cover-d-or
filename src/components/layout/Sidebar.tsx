@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, LogOut, BrainCircuit, Key, X, History } from 'lucide-react';
+import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, LogOut, BrainCircuit, Key, X, History, Database } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppProvider';
 
@@ -37,6 +37,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Réception/Caisse'] },
     { name: 'Couvaisons', path: '/couvaisons', icon: <Egg size={20} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
+    { name: 'Clients & Historique', path: '/clients', icon: <Database size={20} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
     { name: 'Parc Machines', path: '/machines', icon: <Server size={20} />, roles: ['Admin', 'Technicien'] },
     { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={20} />, roles: ['Admin', 'Technicien'] },
     { name: 'Finances', path: '/finances', icon: <DollarSign size={20} />, roles: ['Admin'] },

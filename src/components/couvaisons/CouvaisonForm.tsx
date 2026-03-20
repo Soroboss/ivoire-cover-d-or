@@ -1,36 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { format } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
 
 export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, onSuccess: () => void }) => {
-  const { addCouvaison } = useAppContext();
+  const { addCouvaison, clients } = useAppContext();
+
+  const normalizeTelephone = (phone?: string) => {
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
+    // Cas classique: saisie locale (10 chiffres)
+    if (cleaned.length === 10) return '225' + cleaned;
+    return cleaned;
+  };
   
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
+  const [isClientRegistered, setIsClientRegistered] = useState(false);
   const [typeOeuf, setTypeOeuf] = useState<TypeOeuf>('Poule');
   const [nombreOeufs, setNombreOeufs] = useState(0);
   const [prixUnitaire, setPrixUnitaire] = useState(OEUF_CONFIG['Poule'].prix);
   const [dateReception, setDateReception] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const normalizedInput = normalizeTelephone(clientTel);
+    if (!normalizedInput) {
+      setIsClientRegistered(false);
+      return;
+    }
+
+    const found = clients.find(c => normalizeTelephone(c.telephone) === normalizedInput);
+    if (found) {
+      setClientNom(found.nom);
+      setIsClientRegistered(true);
+    } else {
+      setIsClientRegistered(false);
+    }
+  }, [clientTel, clients]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientNom || !clientTel || nombreOeufs <= 0) return;
 
-    addCouvaison({
-      typeOeuf,
-      nombreOeufs,
-      prixUnitaire,
-      dateReception: new Date(dateReception).toISOString(),
-      statut: 'En attente',
-      emplacements: []
-    }, {
-      nom: clientNom,
-      telephone: clientTel
-    });
-    
-    onSuccess();
+    try {
+      await addCouvaison(
+        {
+          typeOeuf,
+          nombreOeufs,
+          prixUnitaire,
+          dateReception: new Date(dateReception).toISOString(),
+          statut: 'En attente',
+          emplacements: [],
+        },
+        {
+          nom: clientNom,
+          telephone: clientTel,
+        },
+      );
+
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de la création de la réception');
+    }
   };
 
   return (
@@ -42,11 +75,28 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, o
             <h3 className="font-semibold text-brand-gray border-b pb-2">Informations Client</h3>
             <div>
               <label className="block text-sm font-medium text-brand-muted mb-1">Nom du client</label>
-              <input required type="text" value={clientNom} onChange={e => setClientNom(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all" />
+              <input
+                required
+                type="text"
+                value={clientNom}
+                onChange={(e) => setClientNom(e.target.value)}
+                readOnly={isClientRegistered}
+                className={`w-full rounded-md border p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all ${
+                  isClientRegistered
+                    ? 'border-gray-200 bg-gray-50 text-brand-dark cursor-not-allowed'
+                    : 'border-gray-300'
+                }`}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-brand-muted mb-1">Téléphone Whatsapp (+225...)</label>
-              <input required type="text" value={clientTel} onChange={e => setClientTel(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all" />
+              <input
+                required
+                type="text"
+                value={clientTel}
+                onChange={(e) => setClientTel(e.target.value)}
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all"
+              />
             </div>
           </div>
 
