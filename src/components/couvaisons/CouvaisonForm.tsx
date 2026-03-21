@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { format } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
@@ -19,10 +19,24 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, o
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
   const [isClientRegistered, setIsClientRegistered] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
   const [typeOeuf, setTypeOeuf] = useState<TypeOeuf>('Poule');
   const [nombreOeufs, setNombreOeufs] = useState(0);
   const [prixUnitaire, setPrixUnitaire] = useState(OEUF_CONFIG['Poule'].prix);
   const [dateReception, setDateReception] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  const matchingClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return [];
+    return clients
+      .filter(c => {
+        const nom = c.nom.toLowerCase();
+        const tel = normalizeTelephone(c.telephone);
+        const qTel = normalizeTelephone(q);
+        return nom.includes(q) || tel.includes(qTel);
+      })
+      .slice(0, 8);
+  }, [clientSearch, clients]);
 
   useEffect(() => {
     const normalizedInput = normalizeTelephone(clientTel);
@@ -39,6 +53,13 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, o
       setIsClientRegistered(false);
     }
   }, [clientTel, clients]);
+
+  const handleSelectClient = (nom: string, telephone: string) => {
+    setClientNom(nom);
+    setClientTel(telephone);
+    setClientSearch(`${nom} - ${telephone}`);
+    setIsClientRegistered(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,18 +95,38 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, o
           <div className="space-y-4">
             <h3 className="font-semibold text-brand-gray border-b pb-2">Informations Client</h3>
             <div>
+              <label className="block text-sm font-medium text-brand-muted mb-1">Recherche client existant (optionnel)</label>
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                placeholder="Nom ou téléphone..."
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all"
+              />
+              {matchingClients.length > 0 && (
+                <div className="mt-2 border border-gray-200 rounded-md overflow-hidden max-h-44 overflow-y-auto">
+                  {matchingClients.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleSelectClient(c.nom, c.telephone)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-brand-lightgray/50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <span className="font-medium text-brand-dark">{c.nom}</span>
+                      <span className="ml-2 text-brand-muted">{c.telephone}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
               <label className="block text-sm font-medium text-brand-muted mb-1">Nom du client</label>
               <input
                 required
                 type="text"
                 value={clientNom}
                 onChange={(e) => setClientNom(e.target.value)}
-                readOnly={isClientRegistered}
-                className={`w-full rounded-md border p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all ${
-                  isClientRegistered
-                    ? 'border-gray-200 bg-gray-50 text-brand-dark cursor-not-allowed'
-                    : 'border-gray-300'
-                }`}
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all"
               />
             </div>
             <div>
@@ -97,6 +138,9 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void, o
                 onChange={(e) => setClientTel(e.target.value)}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all"
               />
+              <p className={`mt-1 text-xs ${isClientRegistered ? 'text-green-700' : 'text-brand-muted'}`}>
+                {isClientRegistered ? 'Client existant détecté: la couvaison sera liée à ce client.' : 'Nouveau client: il sera créé à l’enregistrement.'}
+              </p>
             </div>
           </div>
 
