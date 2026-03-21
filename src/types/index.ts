@@ -112,3 +112,16 @@ export interface ReceiptArchive {
   payload?: Record<string, unknown>;
   createdAt: string;
 }
+
+export interface ClientMessage {
+  id: string;
+  clientId: string;
+  couvaisonId?: string;
+  canal: 'WhatsApp' | 'SMS' | 'Email' | 'Autre';
+  statut: 'Envoye' | 'Echec' | 'Planifie';
+  template?: string;
+  message: string;
+  sentByUserId?: string;
+  sentByName?: string;
+  sentAt: string;
+}

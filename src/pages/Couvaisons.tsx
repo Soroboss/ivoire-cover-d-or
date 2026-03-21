@@ -21,7 +21,7 @@ const formatWhatsAppNumber = (phone?: string) => {
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosion' | 'eclosionStart' | 'placement';
 
 const Couvaisons = () => {
-  const { couvaisons, clients, deleteCouvaison } = useAppContext();
+  const { couvaisons, clients, deleteCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -53,6 +53,32 @@ const Couvaisons = () => {
     } catch (e) {
       alert((e as Error).message || 'Erreur lors de la suppression');
     }
+  };
+
+  const sendClientWhatsApp = async (
+    clientId: string | undefined,
+    couvaisonId: string,
+    template: string,
+    message: string,
+    phone?: string,
+  ) => {
+    if (!phone || !clientId) return;
+    const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(message)}`;
+    try {
+      await addClientMessage({
+        clientId,
+        couvaisonId,
+        canal: 'WhatsApp',
+        statut: 'Envoye',
+        template,
+        message,
+        sentByUserId: currentUser?.id,
+        sentByName: currentUser?.nom,
+      });
+    } catch {
+      // No-op: on n'empêche pas l'envoi WhatsApp si le log échoue.
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   if (view === 'create') {
@@ -190,12 +216,19 @@ const Couvaisons = () => {
                            <button onClick={() => { setActiveId(c.id); setView('placement'); }} className="px-3 py-1 bg-brand-orange text-white text-xs font-semibold rounded hover:bg-brand-hover transition-colors whitespace-nowrap">
                              Placer en machine
                            </button>
-                           <a 
-                             href={`https://wa.me/${formatWhatsAppNumber(client?.telephone)}?text=${encodeURIComponent(`Bonjour ${client?.nom || ''},\n\nNous vous confirmons la bonne réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\nIls sont actuellement en salle d'attente et seront prochainement placés en machine par l'équipe technique.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`)}`} 
-                             target="_blank" rel="noopener noreferrer" title="WhatsApp: Reçu en attente" className="p-2 bg-yellow-50 text-yellow-600 rounded-md hover:bg-yellow-100 transition-colors"
+                           <button
+                             onClick={() => sendClientWhatsApp(
+                               client?.id,
+                               c.id,
+                               'reception_en_attente',
+                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la bonne réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\nIls sont actuellement en salle d'attente et seront prochainement placés en machine par l'équipe technique.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               client?.telephone,
+                             )}
+                             title="WhatsApp: Reçu en attente"
+                             className="p-2 bg-yellow-50 text-yellow-600 rounded-md hover:bg-yellow-100 transition-colors"
                            >
                              <MessageCircle size={18} />
-                           </a>
+                           </button>
                            {canDelete && (
                              <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
                                <Trash2 size={18} />
@@ -205,12 +238,19 @@ const Couvaisons = () => {
                        )}
                        {c.statut === 'En cours' && (
                          <div className="flex items-center justify-center gap-2">
-                           <a 
-                             href={`https://wa.me/${formatWhatsAppNumber(client?.telephone)}?text=${encodeURIComponent(`Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (J+7) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`)}`} 
-                             target="_blank" rel="noopener noreferrer" title="WhatsApp: Réception & Planning" className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                           <button
+                             onClick={() => sendClientWhatsApp(
+                               client?.id,
+                               c.id,
+                               'planning_incubation',
+                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (J+7) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               client?.telephone,
+                             )}
+                             title="WhatsApp: Réception & Planning"
+                             className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
                            >
                              <MessageCircle size={18} />
-                           </a>
+                           </button>
                            <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
                              <Eye size={18} />
                            </button>
@@ -244,12 +284,19 @@ const Couvaisons = () => {
                                <CheckCircle size={16} className="text-green-500 mb-1" />
                                {c.poussinsNes}/{c.nombreOeufs}
                              </div>
-                             <a 
-                               href={`https://wa.me/${formatWhatsAppNumber(client?.telephone)}?text=${encodeURIComponent(`Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🐥 Poussins viables (éclos) : ${c.poussinsNes}\n\nVous pouvez dès à présent passer retirer vos poussins. Merci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`)}`} 
-                               target="_blank" rel="noopener noreferrer" title="WhatsApp: Bilan Éclosion" className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                             <button
+                               onClick={() => sendClientWhatsApp(
+                                 client?.id,
+                                 c.id,
+                                 'bilan_eclosion',
+                                 `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🐥 Poussins viables (éclos) : ${c.poussinsNes}\n\nVous pouvez dès à présent passer retirer vos poussins. Merci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                 client?.telephone,
+                               )}
+                               title="WhatsApp: Bilan Éclosion"
+                               className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
                              >
                                <MessageCircle size={18} />
-                             </a>
+                             </button>
                              {canDelete && (
                                <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
                                  <Trash2 size={18} />

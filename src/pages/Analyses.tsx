@@ -10,7 +10,7 @@ interface Diagnostic {
 }
 
 const Analyses = () => {
-  const { couvaisons, clients } = useAppContext();
+  const { couvaisons, clients, machines } = useAppContext();
   
   const rules = useMemo(() => {
     const completed = couvaisons.filter(c => c.statut === 'Terminé');
@@ -100,6 +100,81 @@ const Analyses = () => {
     }).sort((a,b) => b.TauxReussite - a.TauxReussite).slice(0, 10);
   }, [couvaisons, clients]);
 
+  const machineStats = useMemo(() => {
+    const agg: Record<string, { eggs: number; hatchedApprox: number; lots: number }> = {};
+
+    couvaisons
+      .filter(c => c.statut === 'Terminé' && (c.emplacements?.length || 0) > 0)
+      .forEach(c => {
+        const emps = c.emplacements || [];
+        const totalAssigned = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+        if (totalAssigned <= 0) return;
+        emps.forEach(emp => {
+          const q = Number(emp.quantite) || 0;
+          if (q <= 0) return;
+          const machineId = emp.machineId;
+          if (!agg[machineId]) agg[machineId] = { eggs: 0, hatchedApprox: 0, lots: 0 };
+          agg[machineId].eggs += q;
+          agg[machineId].hatchedApprox += ((c.poussinsNes || 0) * q) / totalAssigned;
+          agg[machineId].lots += 1;
+        });
+      });
+
+    return Object.entries(agg)
+      .map(([machineId, data]) => {
+        const m = machines.find(mm => mm.id === machineId);
+        const successRate = data.eggs > 0 ? Math.round((data.hatchedApprox / data.eggs) * 100) : 0;
+        return {
+          machineId,
+          machineName: m?.nom || `Machine ${machineId.slice(-4)}`,
+          type: m?.type || 'N/A',
+          eggs: Math.round(data.eggs),
+          hatched: Math.round(data.hatchedApprox),
+          successRate,
+        };
+      })
+      .sort((a, b) => b.successRate - a.successRate);
+  }, [couvaisons, machines]);
+
+  const casierStats = useMemo(() => {
+    const agg: Record<string, { machineId: string; casierId: string; eggs: number; hatchedApprox: number }> = {};
+
+    couvaisons
+      .filter(c => c.statut === 'Terminé' && (c.emplacements?.length || 0) > 0)
+      .forEach(c => {
+        const emps = c.emplacements || [];
+        const totalAssigned = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+        if (totalAssigned <= 0) return;
+        emps.forEach(emp => {
+          const q = Number(emp.quantite) || 0;
+          if (q <= 0) return;
+          const key = `${emp.machineId}:${emp.casierId}`;
+          if (!agg[key]) {
+            agg[key] = { machineId: emp.machineId, casierId: emp.casierId, eggs: 0, hatchedApprox: 0 };
+          }
+          agg[key].eggs += q;
+          agg[key].hatchedApprox += ((c.poussinsNes || 0) * q) / totalAssigned;
+        });
+      });
+
+    return Object.values(agg)
+      .map((data) => {
+        const machine = machines.find(m => m.id === data.machineId);
+        const casier = machine?.casiers.find(c => c.id === data.casierId);
+        const successRate = data.eggs > 0 ? Math.round((data.hatchedApprox / data.eggs) * 100) : 0;
+        return {
+          key: `${data.machineId}:${data.casierId}`,
+          machineName: machine?.nom || `Machine ${data.machineId.slice(-4)}`,
+          casierName: casier?.nom || `Casier ${data.casierId.slice(-4)}`,
+          eggs: Math.round(data.eggs),
+          hatched: Math.round(data.hatchedApprox),
+          successRate,
+        };
+      })
+      .sort((a, b) => b.successRate - a.successRate)
+      .slice(0, 12);
+  }, [couvaisons, machines]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -170,6 +245,70 @@ const Analyses = () => {
               )}
            </ResponsiveContainer>
          </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
+          <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Machines</h2>
+          <p className="text-xs text-brand-muted mb-4">Taux d'éclosion estimé par machine (lots terminés avec placements).</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead className="text-left text-brand-gray border-b border-brand-lightgray">
+                <tr>
+                  <th className="py-2 pr-3">Machine</th>
+                  <th className="py-2 pr-3">Type</th>
+                  <th className="py-2 pr-3 text-right">Œufs</th>
+                  <th className="py-2 pr-3 text-right">Éclos</th>
+                  <th className="py-2 text-right">Taux</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-lightgray">
+                {machineStats.length > 0 ? machineStats.map((m) => (
+                  <tr key={m.machineId}>
+                    <td className="py-2 pr-3 font-medium text-brand-dark">{m.machineName}</td>
+                    <td className="py-2 pr-3 text-brand-muted">{m.type}</td>
+                    <td className="py-2 pr-3 text-right">{m.eggs}</td>
+                    <td className="py-2 pr-3 text-right">{m.hatched}</td>
+                    <td className="py-2 text-right font-semibold">{m.successRate}%</td>
+                  </tr>
+                )) : (
+                  <tr><td className="py-3 text-brand-muted" colSpan={5}>Données insuffisantes</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
+          <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Casiers</h2>
+          <p className="text-xs text-brand-muted mb-4">Top casiers selon performance d'éclosion estimée.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead className="text-left text-brand-gray border-b border-brand-lightgray">
+                <tr>
+                  <th className="py-2 pr-3">Machine</th>
+                  <th className="py-2 pr-3">Casier</th>
+                  <th className="py-2 pr-3 text-right">Œufs</th>
+                  <th className="py-2 pr-3 text-right">Éclos</th>
+                  <th className="py-2 text-right">Taux</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-lightgray">
+                {casierStats.length > 0 ? casierStats.map((c) => (
+                  <tr key={c.key}>
+                    <td className="py-2 pr-3 text-brand-dark">{c.machineName}</td>
+                    <td className="py-2 pr-3 text-brand-muted">{c.casierName}</td>
+                    <td className="py-2 pr-3 text-right">{c.eggs}</td>
+                    <td className="py-2 pr-3 text-right">{c.hatched}</td>
+                    <td className="py-2 text-right font-semibold">{c.successRate}%</td>
+                  </tr>
+                )) : (
+                  <tr><td className="py-3 text-brand-muted" colSpan={5}>Données insuffisantes</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

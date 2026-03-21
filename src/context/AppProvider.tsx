@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { Client, Couvaison, Transaction, Machine, AuditLog, ReceiptArchive } from '../types';
+import type { Client, Couvaison, Transaction, Machine, AuditLog, ReceiptArchive, ClientMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callInsforgeFunction } from '../lib/insforgeApi';
@@ -12,6 +12,7 @@ interface AppState {
   machines: Machine[];
   logs: AuditLog[];
   receiptArchives: ReceiptArchive[];
+  clientMessages: ClientMessage[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => Promise<void>;
   deleteCouvaison: (id: string) => Promise<void>;
@@ -20,6 +21,7 @@ interface AppState {
   updateMachine: (id: string, updates: Partial<Machine>) => Promise<void>;
   deleteMachine: (id: string) => Promise<void>;
   addReceiptArchive: (archive: Omit<ReceiptArchive, 'id' | 'createdAt'>) => Promise<void>;
+  addClientMessage: (message: Omit<ClientMessage, 'id' | 'sentAt'> & { sentAt?: string }) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
 }
 
@@ -30,6 +32,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [receiptArchives, setReceiptArchives] = useState<ReceiptArchive[]>([]);
+  const [clientMessages, setClientMessages] = useState<ClientMessage[]>([]);
 
   const [clients, setClients] = useState<Client[]>([]);
   
@@ -113,6 +116,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {
         // no-op
       }
+
+      try {
+        const messagesRes = await callInsforgeFunction<{ messages: ClientMessage[] }>('client_messages_list', {})
+        setClientMessages(messagesRes.messages)
+      } catch {
+        // no-op
+      }
     })()
   }, [])
 
@@ -156,6 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const updateCouvaison = async (id: string, updates: Partial<Couvaison>) => {
+    const before = couvaisons.find(c => c.id === id)
     const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_update', {
       id,
       updates,
@@ -166,7 +177,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCouvaisons(prev => prev.map(c => (c.id === id ? res.couvaison : c)))
-    addLog('MODIFICATION', 'Couvaison', `Mise à jour d'étape (Statut/Résultats) pour le lot ID...${id.slice(-4)}`)
+    const changes: string[] = []
+    if (updates.statut && updates.statut !== before?.statut) changes.push(`statut ${before?.statut ?? '-'} -> ${updates.statut}`)
+    if (updates.dateMiseEnMachine) changes.push('mise en machine enregistrée')
+    if (updates.oeufsClairs !== undefined || updates.oeufsPourris !== undefined) changes.push('résultat mirage enregistré')
+    if (updates.dateEclosionDemarrage) changes.push(`démarrage éclosion (${updates.nomDepart ?? 'nom départ non précisé'})`)
+    if (updates.poussinsNes !== undefined || updates.mortsEnCoque !== undefined) changes.push('bilan éclosion enregistré')
+    if (updates.emplacements) changes.push('assignation casiers mise à jour')
+    const details = changes.length > 0 ? changes.join(', ') : 'mise à jour des données du lot'
+    addLog('MODIFICATION', 'Couvaison', `Lot ID...${id.slice(-4)}: ${details}`)
   }
 
   const deleteCouvaison = async (id: string) => {
@@ -247,8 +266,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  const addClientMessage = async (message: Omit<ClientMessage, 'id' | 'sentAt'> & { sentAt?: string }) => {
+    const payload = {
+      ...message,
+      sentAt: message.sentAt ?? new Date().toISOString(),
+    }
+    const res = await callInsforgeFunction<{ message: ClientMessage }>('client_message_create', payload)
+    if (!res.message) {
+      throw new Error('Echec de création message client côté backend')
+    }
+    setClientMessages(prev => [res.message, ...prev].slice(0, 1000))
+  }
+
   return (
-    <AppContext.Provider value={{ logs, receiptArchives, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, deleteMachine, addReceiptArchive, addLog }}>
+    <AppContext.Provider value={{ logs, receiptArchives, clientMessages, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, deleteMachine, addReceiptArchive, addClientMessage, addLog }}>
       {children}
     </AppContext.Provider>
   );

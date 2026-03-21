@@ -22,7 +22,7 @@ const EclosionStartForm = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const { couvaisons, clients, updateCouvaison } = useAppContext();
+  const { couvaisons, clients, updateCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
 
   const couv = useMemo(
@@ -63,6 +63,22 @@ const EclosionStartForm = ({
         nomDepart: nomDepart.trim(),
         dateEclosionDemarrage: startedDate.toISOString(),
       });
+      if (client?.id) {
+        try {
+          await addClientMessage({
+            clientId: client.id,
+            couvaisonId: couv.id,
+            canal: 'WhatsApp',
+            statut: 'Envoye',
+            template: 'demarrage_eclosion',
+            message: whatsAppText,
+            sentByUserId: currentUser?.id,
+            sentByName: currentUser?.nom,
+          });
+        } catch {
+          // no-op: si le log échoue on laisse quand même l'utilisateur poursuivre
+        }
+      }
       if (whatsAppUrl) {
         window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
       }

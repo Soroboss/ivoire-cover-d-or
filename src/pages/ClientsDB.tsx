@@ -7,7 +7,7 @@ import type { StatutCouvaison } from '../types';
 type FilterState = StatutCouvaison | 'Tous';
 
 const ClientsDB = () => {
-  const { clients, couvaisons } = useAppContext();
+  const { clients, couvaisons, clientMessages } = useAppContext();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +35,14 @@ const ClientsDB = () => {
       .filter(c => (statusFilter === 'Tous' ? true : c.statut === statusFilter))
       .sort((a, b) => new Date(a.dateReception).getTime() - new Date(b.dateReception).getTime());
   }, [couvaisons, selectedClientId, statusFilter]);
+
+  const clientMessageHistory = useMemo(() => {
+    if (!selectedClientId) return [];
+    return clientMessages
+      .filter(m => m.clientId === selectedClientId)
+      .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
+      .slice(0, 8);
+  }, [clientMessages, selectedClientId]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -155,6 +163,7 @@ const ClientsDB = () => {
                 Aucune couvaison pour ce client (avec ce filtre).
               </div>
             ) : (
+              <div className="space-y-4">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
@@ -202,6 +211,25 @@ const ClientsDB = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                <h3 className="text-sm font-semibold text-brand-dark mb-2">Historique messages client</h3>
+                {clientMessageHistory.length === 0 ? (
+                  <p className="text-xs text-brand-muted">Aucun message enregistré.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {clientMessageHistory.map((m) => (
+                      <div key={m.id} className="bg-white border border-gray-200 rounded-md p-2">
+                        <div className="flex items-center justify-between text-xs text-brand-muted">
+                          <span>{m.canal} - {m.template || 'manuel'}</span>
+                          <span>{format(parseISO(m.sentAt), 'dd/MM/yyyy HH:mm')}</span>
+                        </div>
+                        <p className="text-xs text-brand-dark mt-1 line-clamp-2">{m.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               </div>
             )}
           </div>
