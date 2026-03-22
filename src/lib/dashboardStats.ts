@@ -136,15 +136,16 @@ export function buildEggTypePercentByPeriod(
   return { rows, types };
 }
 
-/** Revenus (paiements) agrégés par mois pour courbe — clés yyyy-MM */
+/** Net encaissé par mois (paiements − déductions sur encaisse) */
 export function buildMonthlyPaymentSeries(transactions: Transaction[]): { name: string; value: number }[] {
   const map = new Map<string, number>();
   for (const t of transactions) {
-    if (t.typeTransaction !== 'Paiement') continue;
+    if (t.typeTransaction !== 'Paiement' && t.typeTransaction !== 'Deduction') continue;
     const d = parseISO(t.dateTransaction);
     if (Number.isNaN(d.getTime())) continue;
     const m = format(d, 'yyyy-MM');
-    map.set(m, (map.get(m) || 0) + t.montantTotal);
+    const delta = t.typeTransaction === 'Paiement' ? t.montantTotal : -t.montantTotal;
+    map.set(m, (map.get(m) || 0) + delta);
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))

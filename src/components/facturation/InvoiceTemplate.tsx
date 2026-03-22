@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import type { Couvaison, Client, Transaction } from '../../types';
+import { netEncaisseByClient, totalAvoirRemiseByClient } from '../../lib/financeCalculations';
 import { format, parseISO } from 'date-fns';
 import { Egg } from 'lucide-react';
 
@@ -12,8 +13,8 @@ interface InvoiceProps {
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(({ client, couvaisons, transactions, invoiceNumber }, ref) => {
   const totalAmount = couvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0);
-  const totalPaid = transactions.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
-  const totalCredits = transactions.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0);
+  const totalPaid = netEncaisseByClient(transactions, client.id);
+  const totalCredits = totalAvoirRemiseByClient(transactions, client.id);
   const due = totalAmount - totalPaid - totalCredits;
 
   return (
@@ -87,12 +88,12 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(({ clien
              <span className="font-semibold">{totalAmount.toLocaleString()} FCFA</span>
            </div>
            <div className="flex justify-between mb-2 border-t pt-2 border-gray-300">
-             <span className="text-sm text-brand-gray">Déjà Réglé :</span>
+             <span className="text-sm text-brand-gray">Net encaissé (paiements − déductions) :</span>
              <span className="font-medium text-green-700">-{totalPaid.toLocaleString()} FCFA</span>
            </div>
            {totalCredits > 0 && (
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-brand-gray">Avoirs Accordés :</span>
+                <span className="text-sm text-brand-gray">Avoirs + remises :</span>
                 <span className="font-medium text-purple-700">-{totalCredits.toLocaleString()} FCFA</span>
               </div>
            )}

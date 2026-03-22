@@ -3,19 +3,26 @@ import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { TransactionForm } from '../components/finances/TransactionForm';
 import { format, parseISO } from 'date-fns';
-import { Plus, ArrowDownRight, ArrowUpRight, Download, MessageCircle } from 'lucide-react';
+import { Plus, ArrowDownRight, ArrowUpRight, Download, MessageCircle, MinusCircle, Percent } from 'lucide-react';
+import {
+  netEncaisseGlobal,
+  netPayeLot,
+  resteLot,
+  sumAvoirsRemisesLot,
+  totalAvoirsRemisesGlobal,
+} from '../lib/financeCalculations';
 
 const Finances = () => {
   const { transactions, couvaisons, clients, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const [showForm, setShowForm] = useState(false);
 
-  const totalEncaisse = transactions.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
-  const totalAvoirs = transactions.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0);
-  
+  const totalEncaisse = netEncaisseGlobal(transactions);
+  const totalAvoirsRemises = totalAvoirsRemisesGlobal(transactions);
+
   // Total expected revenue from complete process (excluding cancelled)
   const expectedTotal = couvaisons.filter(c => c.statut !== 'Annulé').reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0);
-  const enAttente = expectedTotal - totalEncaisse - totalAvoirs;
+  const enAttente = expectedTotal - totalEncaisse - totalAvoirsRemises;
 
   // Sorting transactions descending by date
   const sortedTransactions = [...transactions].sort((a,b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime());
@@ -25,11 +32,10 @@ const Finances = () => {
       .filter(c => c.statut !== 'Annulé')
       .map(c => {
         const client = clients.find(cl => cl.id === c.clientId);
-        const related = transactions.filter(t => t.couvaisonId === c.id);
         const totalDue = c.nombreOeufs * c.prixUnitaire;
-        const totalPaid = related.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
-        const totalCredit = related.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0);
-        const remain = Math.max(0, totalDue - totalPaid - totalCredit);
+        const totalPaid = netPayeLot(transactions, c.id);
+        const totalCredit = sumAvoirsRemisesLot(transactions, c.id);
+        const remain = resteLot(transactions, c.id, totalDue);
         return {
           couvaison: c,
           client,
@@ -126,14 +132,14 @@ const Finances = () => {
             onClick={() => setShowForm(true)}
             className="bg-brand-orange text-white px-4 py-2 rounded-md font-medium hover:bg-brand-hover shadow-sm transition-all flex items-center gap-2"
           >
-            <Plus size={20} /> Encaisser / Avoir
+            <Plus size={20} /> Nouvelle opération
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-          <p className="text-sm font-medium text-brand-muted mb-1">Chiffre d'Affaires Encaissé</p>
+          <p className="text-sm font-medium text-brand-muted mb-1">Net encaissé (paiements − déductions)</p>
           <h3 className="text-3xl font-bold text-green-600">{totalEncaisse.toLocaleString()} FCFA</h3>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
@@ -141,8 +147,8 @@ const Finances = () => {
           <h3 className="text-3xl font-bold text-amber-600">{Math.max(0, enAttente).toLocaleString()} FCFA</h3>
         </div>
         <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-          <p className="text-sm font-medium text-brand-muted mb-1">Total Avoirs Accordés</p>
-          <h3 className="text-3xl font-bold text-purple-600">{totalAvoirs.toLocaleString()} FCFA</h3>
+          <p className="text-sm font-medium text-brand-muted mb-1">Avoirs + remises</p>
+          <h3 className="text-3xl font-bold text-purple-600">{totalAvoirsRemises.toLocaleString()} FCFA</h3>
         </div>
       </div>
 
@@ -158,7 +164,7 @@ const Finances = () => {
                 <th className="px-6 py-3">Lot</th>
                 <th className="px-6 py-3 text-right">Total</th>
                 <th className="px-6 py-3 text-right">Payé</th>
-                <th className="px-6 py-3 text-right">Avoir</th>
+                <th className="px-6 py-3 text-right">Avoir / remise</th>
                 <th className="px-6 py-3 text-right">Reste</th>
                 <th className="px-6 py-3 text-center">Action</th>
               </tr>
@@ -210,7 +216,24 @@ const Finances = () => {
                {sortedTransactions.length > 0 ? sortedTransactions.map(t => {
                  const client = clients.find(cl => cl.id === t.clientId);
                  const couv = couvaisons.find(c => c.id === t.couvaisonId);
-                 const isPaiement = t.typeTransaction === 'Paiement';
+                 const tt = t.typeTransaction;
+                 const badge =
+                   tt === 'Paiement'
+                     ? { cls: 'bg-green-100 text-green-800', icon: <ArrowDownRight size={14} /> }
+                     : tt === 'Deduction'
+                       ? { cls: 'bg-red-100 text-red-800', icon: <MinusCircle size={14} /> }
+                       : tt === 'Remise'
+                         ? { cls: 'bg-orange-100 text-orange-800', icon: <Percent size={14} /> }
+                         : { cls: 'bg-purple-100 text-purple-800', icon: <ArrowUpRight size={14} /> };
+                 const amountCls =
+                   tt === 'Paiement'
+                     ? 'text-green-600'
+                     : tt === 'Deduction'
+                       ? 'text-red-600'
+                       : tt === 'Remise'
+                         ? 'text-orange-600'
+                         : 'text-purple-600';
+                 const amountPrefix = tt === 'Paiement' ? '+' : '−';
 
                  return (
                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
@@ -218,15 +241,13 @@ const Finances = () => {
                      <td className="px-6 py-4 font-medium text-brand-dark">{client?.nom || 'Inconnu'}</td>
                      <td className="px-6 py-4 text-brand-muted">{couv ? `${couv.nombreOeufs} ${couv.typeOeuf}s` : 'Lot inconnu'}</td>
                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                          isPaiement ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {isPaiement ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />} {t.typeTransaction}
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${badge.cls}`}>
+                          {badge.icon} {t.typeTransaction}
                         </span>
                         {t.notes && <p className="text-[10px] text-gray-400 mt-1 truncate max-w-[120px]" title={t.notes}>{t.notes}</p>}
                      </td>
-                     <td className={`px-6 py-4 text-right font-bold ${isPaiement ? 'text-green-600' : 'text-purple-600'}`}>
-                        {isPaiement ? '+' : '-'} {t.montantTotal.toLocaleString()} FCFA
+                     <td className={`px-6 py-4 text-right font-bold ${amountCls}`}>
+                        {amountPrefix} {t.montantTotal.toLocaleString()} FCFA
                      </td>
                      <td className="px-6 py-4 text-right font-medium text-brand-dark">
                         {t.resteAPayer.toLocaleString()} FCFA

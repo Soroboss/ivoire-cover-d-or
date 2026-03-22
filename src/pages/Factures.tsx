@@ -3,6 +3,7 @@ import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { InvoiceTemplate } from '../components/facturation/InvoiceTemplate';
 import { Download, FileText, Printer, CheckCircle } from 'lucide-react';
+import { netEncaisseByClient, totalAvoirRemiseByClient } from '../lib/financeCalculations';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -40,8 +41,8 @@ const Factures = () => {
       pdf.save(fileName);
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
-      const totalPaid = clientTransactions.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0)
-      const totalCredits = clientTransactions.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0)
+      const totalPaid = netEncaisseByClient(clientTransactions, client.id)
+      const totalCredits = totalAvoirRemiseByClient(clientTransactions, client.id)
       const dueAmount = Math.max(0, totalAmount - totalPaid - totalCredits)
 
       // Archive d'un reçu/facture généré côté backend.

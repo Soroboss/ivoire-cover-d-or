@@ -100,6 +100,8 @@ export interface Couvaison {
   notesEchec?: string;
 }
 
+export type TypeTransaction = 'Paiement' | 'Avoir' | 'Remise' | 'Deduction';
+
 export interface Transaction {
   id: string;
   couvaisonId: string;
@@ -108,7 +110,7 @@ export interface Transaction {
   acomptesVerses: number;
   resteAPayer: number;
   dateTransaction: string;
-  typeTransaction: 'Paiement' | 'Avoir';
+  typeTransaction: TypeTransaction;
   notes?: string;
 }
 

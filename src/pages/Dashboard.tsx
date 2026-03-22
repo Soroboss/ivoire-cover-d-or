@@ -367,7 +367,7 @@ const Dashboard = () => {
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray hover:shadow-md transition-shadow">
             <h2 className="text-lg font-semibold text-brand-dark mb-1">Évolution des paiements (FCFA)</h2>
-            <p className="text-xs text-brand-muted mb-4">Somme des transactions de type Paiement par mois</p>
+            <p className="text-xs text-brand-muted mb-4">Net encaissé par mois (paiements − déductions)</p>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 {revenueSeries.length > 0 ? (
