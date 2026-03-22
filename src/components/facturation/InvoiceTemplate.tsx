@@ -45,7 +45,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(({ clien
           <p className="font-semibold text-lg">IVOIRE COUVÉE D'OR</p>
           <p className="text-sm mt-1">123 Rue de l'Incubation</p>
           <p className="text-sm">Abidjan, Côte d'Ivoire</p>
-          <p className="text-sm mt-2"><strong>Tél:</strong> +225 00 00 00 00 00</p>
+          <p className="text-sm mt-2"><strong>Tél:</strong> 0103036462</p>
         </div>
         <div className="text-right">
           <h3 className="text-sm font-bold text-brand-gray mb-2 uppercase bg-gray-100 inline-block px-2 py-1 rounded">Destinataire</h3>

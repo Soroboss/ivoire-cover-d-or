@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
+import { useAuth } from '../context/AuthContext';
 import { TransactionForm } from '../components/finances/TransactionForm';
 import { format, parseISO } from 'date-fns';
-import { Plus, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { Plus, ArrowDownRight, ArrowUpRight, Download, MessageCircle } from 'lucide-react';
 
 const Finances = () => {
-  const { transactions, couvaisons, clients } = useAppContext();
+  const { transactions, couvaisons, clients, addClientMessage } = useAppContext();
+  const { currentUser } = useAuth();
   const [showForm, setShowForm] = useState(false);
 
   const totalEncaisse = transactions.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
@@ -17,6 +19,89 @@ const Finances = () => {
 
   // Sorting transactions descending by date
   const sortedTransactions = [...transactions].sort((a,b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime());
+
+  const unpaidLots = useMemo(() => {
+    return couvaisons
+      .filter(c => c.statut !== 'Annulé')
+      .map(c => {
+        const client = clients.find(cl => cl.id === c.clientId);
+        const related = transactions.filter(t => t.couvaisonId === c.id);
+        const totalDue = c.nombreOeufs * c.prixUnitaire;
+        const totalPaid = related.filter(t => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
+        const totalCredit = related.filter(t => t.typeTransaction === 'Avoir').reduce((acc, t) => acc + t.montantTotal, 0);
+        const remain = Math.max(0, totalDue - totalPaid - totalCredit);
+        return {
+          couvaison: c,
+          client,
+          totalDue,
+          totalPaid,
+          totalCredit,
+          remain,
+        };
+      })
+      .filter(x => x.remain > 0)
+      .sort((a, b) => b.remain - a.remain);
+  }, [couvaisons, clients, transactions]);
+
+  const normalizeWhatsappNumber = (phone?: string) => {
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
+    if (cleaned.length === 10) return '225' + cleaned;
+    return cleaned;
+  };
+
+  const sendPaymentReminder = async (clientId: string | undefined, couvaisonId: string, clientName: string | undefined, phone: string | undefined, remain: number) => {
+    if (!clientId || !phone) return;
+    const text = `Bonjour ${clientName || ''},\n\nPetit rappel concernant le solde de votre couvaison: ${remain.toLocaleString()} FCFA restant a regler.\nMerci de passer au couvoir pour regulariser.\n\nL'equipe Ivoire Couvee d'Or.`;
+    const url = `https://wa.me/${normalizeWhatsappNumber(phone)}?text=${encodeURIComponent(text)}`;
+    try {
+      await addClientMessage({
+        clientId,
+        couvaisonId,
+        canal: 'WhatsApp',
+        statut: 'Envoye',
+        template: 'relance_impaye',
+        message: text,
+        sentByUserId: currentUser?.id,
+        sentByName: currentUser?.nom,
+      });
+    } catch {
+      // No-op: ne pas bloquer l'action utilisateur.
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const exportAccountingCsv = () => {
+    const headers = ['Date', 'Client', 'Lot', 'TypeTransaction', 'Montant', 'AcomptesVerses', 'ResteAPayer', 'Notes'];
+    const rows = sortedTransactions.map(t => {
+      const client = clients.find(c => c.id === t.clientId);
+      const lot = couvaisons.find(c => c.id === t.couvaisonId);
+      return [
+        format(parseISO(t.dateTransaction), 'yyyy-MM-dd HH:mm:ss'),
+        client?.nom || 'Inconnu',
+        lot ? `${lot.nombreOeufs} ${lot.typeOeuf}s` : 'Lot inconnu',
+        t.typeTransaction,
+        String(t.montantTotal),
+        String(t.acomptesVerses),
+        String(t.resteAPayer),
+        (t.notes || '').replace(/[\r\n,;]/g, ' '),
+      ];
+    });
+
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const period = format(new Date(), 'yyyy-MM');
+    a.href = url;
+    a.download = `comptabilite_transactions_${period}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (showForm) {
     return (
@@ -30,12 +115,20 @@ const Finances = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-brand-dark">Suivi Financier</h1>
-        <button 
-          onClick={() => setShowForm(true)}
-          className="bg-brand-orange text-white px-4 py-2 rounded-md font-medium hover:bg-brand-hover shadow-sm transition-all flex items-center gap-2"
-        >
-          <Plus size={20} /> Encaisser / Avoir
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportAccountingCsv}
+            className="bg-gray-100 text-brand-dark px-4 py-2 rounded-md font-medium hover:bg-gray-200 transition-all flex items-center gap-2 border border-gray-200"
+          >
+            <Download size={18} /> Export comptable CSV
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-brand-orange text-white px-4 py-2 rounded-md font-medium hover:bg-brand-hover shadow-sm transition-all flex items-center gap-2"
+          >
+            <Plus size={20} /> Encaisser / Avoir
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -54,6 +147,50 @@ const Finances = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray overflow-hidden">
+        <div className="p-4 border-b border-brand-lightgray bg-red-50/40">
+          <h2 className="font-semibold text-brand-dark">Impayés clients (action de relance)</h2>
+        </div>
+        <div className="overflow-x-auto border-b border-brand-lightgray">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="text-brand-gray font-semibold border-b border-brand-lightgray">
+              <tr>
+                <th className="px-6 py-3">Client</th>
+                <th className="px-6 py-3">Lot</th>
+                <th className="px-6 py-3 text-right">Total</th>
+                <th className="px-6 py-3 text-right">Payé</th>
+                <th className="px-6 py-3 text-right">Avoir</th>
+                <th className="px-6 py-3 text-right">Reste</th>
+                <th className="px-6 py-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-brand-lightgray">
+              {unpaidLots.length > 0 ? unpaidLots.map((u) => (
+                <tr key={u.couvaison.id}>
+                  <td className="px-6 py-3 font-medium text-brand-dark">{u.client?.nom || 'Inconnu'}</td>
+                  <td className="px-6 py-3 text-brand-muted">{u.couvaison.nombreOeufs} {u.couvaison.typeOeuf}s</td>
+                  <td className="px-6 py-3 text-right">{u.totalDue.toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 text-right text-green-700">{u.totalPaid.toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 text-right text-purple-700">{u.totalCredit.toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 text-right font-semibold text-red-700">{u.remain.toLocaleString()} FCFA</td>
+                  <td className="px-6 py-3 text-center">
+                    <button
+                      onClick={() => sendPaymentReminder(u.client?.id, u.couvaison.id, u.client?.nom, u.client?.telephone, u.remain)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                      title="Envoyer une relance WhatsApp"
+                    >
+                      <MessageCircle size={14} /> Relancer
+                    </button>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-brand-muted">Aucun impayé en cours.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
         <div className="p-4 border-b border-brand-lightgray bg-gray-50">
            <h2 className="font-semibold text-brand-dark">Historique des Transactions</h2>
         </div>

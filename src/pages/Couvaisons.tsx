@@ -3,12 +3,11 @@ import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { CouvaisonForm } from '../components/couvaisons/CouvaisonForm';
 import { MirageForm } from '../components/couvaisons/MirageForm';
-import { EclosionForm } from '../components/couvaisons/EclosionForm';
-import EclosionStartForm from '../components/couvaisons/EclosionStartForm';
+import { EclosionHub } from '../components/couvaisons/EclosionHub';
 import { PlacementForm } from '../components/couvaisons/PlacementForm';
 import type { StatutCouvaison } from '../types';
 import { format, parseISO } from 'date-fns';
-import { Search, Filter, Plus, Calendar, CheckCircle, EggOff, Eye, MessageCircle, Trash2, Play } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2 } from 'lucide-react';
 
 const formatWhatsAppNumber = (phone?: string) => {
   if (!phone) return '';
@@ -18,7 +17,7 @@ const formatWhatsAppNumber = (phone?: string) => {
   return cleaned;
 };
 
-type ViewState = 'list' | 'create' | 'mirage' | 'eclosion' | 'eclosionStart' | 'placement';
+type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
 const Couvaisons = () => {
   const { couvaisons, clients, deleteCouvaison, addClientMessage } = useAppContext();
@@ -41,8 +40,7 @@ const Couvaisons = () => {
   }, [couvaisons, clients, statusFilter, searchTerm]);
 
   const handleOpenMirage = (id: string) => { setActiveId(id); setView('mirage'); };
-  const handleOpenEclosion = (id: string) => { setActiveId(id); setView('eclosion'); };
-  const handleOpenEclosionStart = (id: string) => { setActiveId(id); setView('eclosionStart'); };
+  const handleOpenEclosionHub = (id: string) => { setActiveId(id); setView('eclosionHub'); };
 
   const handleDelete = async (id: string) => {
     if (!canDelete) return;
@@ -97,22 +95,10 @@ const Couvaisons = () => {
     );
   }
 
-  if (view === 'eclosion' && activeId) {
+  if (view === 'eclosionHub' && activeId) {
     return (
       <div className="animate-in slide-in-from-bottom-4 duration-300">
-         <EclosionForm couvaisonId={activeId} onCancel={() => setView('list')} onSuccess={() => setView('list')} />
-      </div>
-    );
-  }
-
-  if (view === 'eclosionStart' && activeId) {
-    return (
-      <div className="animate-in slide-in-from-bottom-4 duration-300">
-        <EclosionStartForm
-          couvaisonId={activeId}
-          onCancel={() => setView('list')}
-          onSuccess={() => setView('list')}
-        />
+        <EclosionHub couvaisonId={activeId} onCancel={() => setView('list')} onSuccess={() => setView('list')} />
       </div>
     );
   }
@@ -243,7 +229,7 @@ const Couvaisons = () => {
                                client?.id,
                                c.id,
                                'planning_incubation',
-                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (J+7) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (réception +14 j.) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
                                client?.telephone,
                              )}
                              title="WhatsApp: Réception & Planning"
@@ -254,23 +240,13 @@ const Couvaisons = () => {
                            <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
                              <Eye size={18} />
                            </button>
-                           {!c.dateEclosionDemarrage ? (
-                             <button
-                               onClick={() => handleOpenEclosionStart(c.id)}
-                               title="Enregistrer Démarrage éclosion"
-                               className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
-                             >
-                               <Play size={18} />
-                             </button>
-                           ) : (
-                             <button
-                               onClick={() => handleOpenEclosion(c.id)}
-                               title="Clôturer Éclosion"
-                               className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
-                             >
-                               <EggOff size={18} />
-                             </button>
-                           )}
+                           <button
+                             onClick={() => handleOpenEclosionHub(c.id)}
+                             title="Éclosion : démarrage ou clôture (onglets)"
+                             className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
+                           >
+                             <Egg size={18} />
+                           </button>
                            {canDelete && (
                              <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
                                <Trash2 size={18} />

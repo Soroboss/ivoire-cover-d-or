@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
-import { addDays, format, parseISO } from 'date-fns';
-import { OEUF_CONFIG } from '../../types';
+import { format, parseISO } from 'date-fns';
+import {
+  computeEclosionDateFromReception,
+  computeMirageDateFromReception,
+  getEclosionDaysFromReception,
+  MIRAGE_DAYS_FROM_RECEPTION,
+} from '../../lib/couvaisonPlanning';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
   const { couvaisons, machines, updateCouvaison, deleteCouvaison } = useAppContext();
@@ -30,15 +35,15 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const baseDate = parseISO(dateMiseEnMachine);
-    const dateMirage = format(addDays(baseDate, 7), 'yyyy-MM-dd');
-    const dateEclosion = format(addDays(baseDate, OEUF_CONFIG[couv.typeOeuf].jours), 'yyyy-MM-dd');
+    /** Mirage et éclosion prévus à partir de la date de réception du lot (règle métier) */
+    const dateMirageIso = computeMirageDateFromReception(couv.dateReception);
+    const dateEclosionIso = computeEclosionDateFromReception(couv.dateReception, couv.typeOeuf);
 
     try {
       await updateCouvaison(couvaisonId, {
         dateMiseEnMachine: new Date(dateMiseEnMachine).toISOString(),
-        dateMiragePrevue: new Date(dateMirage).toISOString(),
-        dateEclosionPrevue: new Date(dateEclosion).toISOString(),
+        dateMiragePrevue: dateMirageIso,
+        dateEclosionPrevue: dateEclosionIso,
         statut: 'En cours',
         emplacements: emplacements.filter(emp => emp.machineId && emp.casierId && emp.quantite > 0),
       });
@@ -74,6 +79,14 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
 
   const totalPlaque = emplacements.reduce((sum, emp) => sum + (Number(emp.quantite) || 0), 0);
 
+  const joursEclosionReception = getEclosionDaysFromReception(couv.typeOeuf);
+  const dateMiragePreview = couv.dateReception
+    ? format(parseISO(computeMirageDateFromReception(couv.dateReception)), 'dd/MM/yyyy')
+    : '—';
+  const dateEclosionPreview = couv.dateReception
+    ? format(parseISO(computeEclosionDateFromReception(couv.dateReception, couv.typeOeuf)), 'dd/MM/yyyy')
+    : '—';
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray max-w-2xl mx-auto mt-4">
       <h2 className="text-xl font-bold text-brand-dark mb-2">Mise en Machine (Placement)</h2>
@@ -86,12 +99,14 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
               <input type="date" value={dateMiseEnMachine} onChange={e => setDateMiseEnMachine(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none" />
            </div>
            <div className="flex flex-col justify-center">
-              <span className="text-xs text-blue-600 font-semibold mb-1">Mirage Prévu</span>
-              <span className="text-sm font-medium text-blue-900">{format(addDays(parseISO(dateMiseEnMachine), 7), 'dd/MM/yyyy')}</span>
+              <span className="text-xs text-blue-600 font-semibold mb-1">Mirage prévu</span>
+              <span className="text-sm font-medium text-blue-900">{dateMiragePreview}</span>
+              <span className="text-[10px] text-brand-muted mt-0.5">Réception + {MIRAGE_DAYS_FROM_RECEPTION} j.</span>
            </div>
            <div className="flex flex-col justify-center">
-              <span className="text-xs text-green-600 font-semibold mb-1">Éclosion Prévue</span>
-              <span className="text-sm font-medium text-green-900">{format(addDays(parseISO(dateMiseEnMachine), OEUF_CONFIG[couv.typeOeuf].jours), 'dd/MM/yyyy')}</span>
+              <span className="text-xs text-green-600 font-semibold mb-1">Éclosion prévue</span>
+              <span className="text-sm font-medium text-green-900">{dateEclosionPreview}</span>
+              <span className="text-[10px] text-brand-muted mt-0.5">Réception + {joursEclosionReception} j. ({couv.typeOeuf})</span>
            </div>
         </div>
 
