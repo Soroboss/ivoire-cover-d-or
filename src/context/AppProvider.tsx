@@ -14,6 +14,11 @@ interface AppState {
   receiptArchives: ReceiptArchive[];
   clientMessages: ClientMessage[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
+  /** Plusieurs lots (types d’œufs différents) pour une même réception client — une synchro API à la fin */
+  addCouvaisonsBatch: (
+    lines: Omit<Couvaison, 'id' | 'clientId'>[],
+    clientInfos: Omit<Client, 'id'>,
+  ) => Promise<void>;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => Promise<void>;
   deleteCouvaison: (id: string) => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
@@ -165,6 +170,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
   }
 
+  const addCouvaisonsBatch = async (
+    lines: Omit<Couvaison, 'id' | 'clientId'>[],
+    clientInfos: Omit<Client, 'id'>,
+  ) => {
+    const valid = lines.filter((l) => l.nombreOeufs > 0);
+    if (valid.length === 0) {
+      throw new Error('Ajoutez au moins un lot avec une quantité > 0.')
+    }
+    for (const couv of valid) {
+      const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
+        couv,
+        clientInfos,
+      })
+      if (!res.couvaison) {
+        throw new Error('Echec de création côté backend (couvaison_create).')
+      }
+    }
+    const [clientsRes, couvRes] = await Promise.all([
+      callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
+      callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
+    ])
+    setClients(clientsRes.clients)
+    setCouvaisons(couvRes.couvaisons)
+    const summary = valid.map((c) => `${c.nombreOeufs} ${c.typeOeuf}`).join(', ')
+    addLog('CRÉATION', 'Couvaison', `Réception multiple (${valid.length} lot(s)): ${summary} pour ${clientInfos.nom}.`)
+  }
+
   const updateCouvaison = async (id: string, updates: Partial<Couvaison>) => {
     const before = couvaisons.find(c => c.id === id)
     const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_update', {
@@ -279,7 +311,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   return (
-    <AppContext.Provider value={{ logs, receiptArchives, clientMessages, clients, couvaisons, transactions, machines, addCouvaison, updateCouvaison, deleteCouvaison, addTransaction, addMachine, updateMachine, deleteMachine, addReceiptArchive, addClientMessage, addLog }}>
+    <AppContext.Provider
+      value={{
+        logs,
+        receiptArchives,
+        clientMessages,
+        clients,
+        couvaisons,
+        transactions,
+        machines,
+        addCouvaison,
+        addCouvaisonsBatch,
+        updateCouvaison,
+        deleteCouvaison,
+        addTransaction,
+        addMachine,
+        updateMachine,
+        deleteMachine,
+        addReceiptArchive,
+        addClientMessage,
+        addLog,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
