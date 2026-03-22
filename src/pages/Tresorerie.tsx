@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -12,6 +13,7 @@ import {
   Scale,
   CalendarRange,
   ShieldCheck,
+  Wallet,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppProvider';
 import {
@@ -36,7 +38,7 @@ function endOfDayIso(ymd: string): string {
 }
 
 const Tresorerie = () => {
-  const { transactions, clients, couvaisons } = useAppContext();
+  const { transactions, clients, couvaisons, depenses } = useAppContext();
 
   const defaultTo = format(new Date(), 'yyyy-MM-dd');
   const defaultFrom = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
@@ -75,6 +77,21 @@ const Tresorerie = () => {
     const ajust = movementsFiltered.reduce((s, m) => s + m.ajustementCreance, 0);
     return { entrees, sorties, net, ajust, n: movementsFiltered.length };
   }, [movementsFiltered]);
+
+  const totalDepensesPeriode = useMemo(() => {
+    const t0 = new Date(startOfDayIso(dateFrom)).getTime();
+    const t1 = new Date(endOfDayIso(dateTo)).getTime();
+    return depenses.reduce((s, d) => {
+      const t = new Date(d.dateDepense).getTime();
+      if (t >= t0 && t <= t1) return s + d.montant;
+      return s;
+    }, 0);
+  }, [depenses, dateFrom, dateTo]);
+
+  const resultatNetEncaissementsMoinsCharges = useMemo(
+    () => kpis.net - totalDepensesPeriode,
+    [kpis.net, totalDepensesPeriode],
+  );
 
   const globalNet = useMemo(() => netEncaisseGlobal(transactions), [transactions]);
   const globalAvoirs = useMemo(() => totalAvoirsRemisesGlobal(transactions), [transactions]);
@@ -348,6 +365,41 @@ const Tresorerie = () => {
           </div>
           <p className="mt-2 font-display text-2xl font-bold text-brand-dark">{kpis.ajust.toLocaleString()} FCFA</p>
           <p className="text-xs text-slate-500">Avoirs + remises (hors caisse)</p>
+        </div>
+      </div>
+
+      {/* Charges d&apos;exploitation (hors flux clients) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 to-white p-5 shadow-soft">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/80">Charges enregistrées</p>
+              <p className="mt-1 font-display text-2xl font-bold text-brand-dark">{totalDepensesPeriode.toLocaleString()} FCFA</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Loyer, énergie, salaires, etc. — même période que ci-dessus (module Dépenses).
+              </p>
+            </div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
+              <Wallet className="h-6 w-6" />
+            </div>
+          </div>
+          <Link
+            to="/depenses"
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-orange hover:underline"
+          >
+            Gérer les dépenses →
+          </Link>
+        </div>
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Résultat période (indicatif)</p>
+          <p className="mt-1 font-display text-2xl font-bold text-brand-dark">
+            {resultatNetEncaissementsMoinsCharges.toLocaleString()} FCFA
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-600">
+            <strong>Net trésorerie client</strong> ({kpis.net.toLocaleString()} F) <strong>− charges</strong> (
+            {totalDepensesPeriode.toLocaleString()} F). Vue simplifiée pour le pilotage ; la compta officielle peut
+            intégrer d&apos;autres postes.
+          </p>
         </div>
       </div>
 

@@ -1,6 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { Client, Couvaison, Transaction, Machine, AuditLog, ReceiptArchive, ClientMessage } from '../types';
+import type {
+  Client,
+  Couvaison,
+  Transaction,
+  Machine,
+  AuditLog,
+  ReceiptArchive,
+  ClientMessage,
+  Depense,
+} from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callInsforgeFunction } from '../lib/insforgeApi';
@@ -13,6 +22,7 @@ interface AppState {
   logs: AuditLog[];
   receiptArchives: ReceiptArchive[];
   clientMessages: ClientMessage[];
+  depenses: Depense[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
   /** Plusieurs lots (types d’œufs différents) pour une même réception client — une synchro API à la fin */
   addCouvaisonsBatch: (
@@ -27,6 +37,9 @@ interface AppState {
   deleteMachine: (id: string) => Promise<void>;
   addReceiptArchive: (archive: Omit<ReceiptArchive, 'id' | 'createdAt'>) => Promise<void>;
   addClientMessage: (message: Omit<ClientMessage, 'id' | 'sentAt'> & { sentAt?: string }) => Promise<void>;
+  addDepense: (d: Omit<Depense, 'id' | 'createdAt'>) => Promise<void>;
+  updateDepense: (id: string, updates: Partial<Omit<Depense, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteDepense: (id: string) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
 }
 
@@ -46,6 +59,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const [machines, setMachines] = useState<Machine[]>([]);
+
+  const [depenses, setDepenses] = useState<Depense[]>([]);
 
   // Charge les données depuis InsForge au démarrage.
   useEffect(() => {
@@ -125,6 +140,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const messagesRes = await callInsforgeFunction<{ messages: ClientMessage[] }>('client_messages_list', {})
         setClientMessages(messagesRes.messages)
+      } catch {
+        // no-op
+      }
+
+      try {
+        const depRes = await callInsforgeFunction<{ depenses: Depense[] }>('depenses_list', {})
+        setDepenses(depRes.depenses)
       } catch {
         // no-op
       }
@@ -310,12 +332,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setClientMessages(prev => [res.message, ...prev].slice(0, 1000))
   }
 
+  const addDepense = async (d: Omit<Depense, 'id' | 'createdAt'>) => {
+    const res = await callInsforgeFunction<{ depense: Depense }>('depense_create', d)
+    if (!res.depense) {
+      throw new Error('Echec de création dépense (depense_create).')
+    }
+    setDepenses(prev => [res.depense, ...prev])
+    addLog('CRÉATION', 'Dépense', `${d.libelle} — ${d.montant.toLocaleString()} F (${d.categorie}).`)
+  }
+
+  const updateDepense = async (id: string, updates: Partial<Omit<Depense, 'id' | 'createdAt'>>) => {
+    const res = await callInsforgeFunction<{ depense: Depense }>('depense_update', { id, updates })
+    if (!res.depense) {
+      throw new Error('Echec de mise à jour dépense (depense_update).')
+    }
+    setDepenses(prev => prev.map(x => (x.id === id ? res.depense : x)))
+    addLog('MODIFICATION', 'Dépense', `Mise à jour ${res.depense.libelle} (ID…${id.slice(-4)}).`)
+  }
+
+  const deleteDepense = async (id: string) => {
+    try {
+      await callInsforgeFunction<{ success: boolean }>('depense_delete', { id })
+      setDepenses(prev => prev.filter(d => d.id !== id))
+      addLog('SUPPRESSION', 'Dépense', `Suppression dépense ID…${id.slice(-4)}.`)
+    } catch {
+      throw new Error('Echec de suppression dépense côté backend')
+    }
+  }
+
   return (
     <AppContext.Provider
       value={{
         logs,
         receiptArchives,
         clientMessages,
+        depenses,
         clients,
         couvaisons,
         transactions,
@@ -330,6 +381,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteMachine,
         addReceiptArchive,
         addClientMessage,
+        addDepense,
+        updateDepense,
+        deleteDepense,
         addLog,
       }}
     >

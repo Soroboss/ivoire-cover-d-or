@@ -148,3 +148,49 @@ export interface ClientMessage {
   sentByName?: string;
   sentAt: string;
 }
+
+/** Catégories de charges (hors flux clients) — loyer, énergie, masse salariale, etc. */
+export type CategorieDepense =
+  | 'Loyer'
+  | 'Electricite'
+  | 'Eau'
+  | 'Salaires'
+  | 'Fournitures'
+  | 'Transport'
+  | 'Maintenance'
+  | 'Quotidien'
+  | 'Autre';
+
+export const CATEGORIE_DEPENSE_LABELS: Record<CategorieDepense, string> = {
+  Loyer: 'Loyer & locaux',
+  Electricite: 'Électricité',
+  Eau: 'Eau',
+  Salaires: 'Salaires & charges sociales',
+  Fournitures: 'Fournitures & alimentation',
+  Transport: 'Transport & carburant',
+  Maintenance: 'Maintenance & équipement',
+  Quotidien: 'Dépenses courantes',
+  Autre: 'Autres charges',
+};
+
+export const CATEGORIES_DEPENSE_ORDER: CategorieDepense[] = [
+  'Loyer',
+  'Electricite',
+  'Eau',
+  'Salaires',
+  'Fournitures',
+  'Transport',
+  'Maintenance',
+  'Quotidien',
+  'Autre',
+];
+
+export interface Depense {
+  id: string;
+  dateDepense: string;
+  categorie: CategorieDepense | string;
+  libelle: string;
+  montant: number;
+  notes?: string;
+  createdAt: string;
+}
