@@ -16,14 +16,15 @@ export type PermissionKey =
   | 'administration';
 export type CauseEchec = 'Infertilité' | 'Coupure Électrique' | 'Température/Humidité' | 'Infection' | 'Manutention' | 'Autre' | 'Aucune';
 
+/** prix : FCFA / œuf ; jours : réception → éclosion prévue (aligné sur couvaisonPlanning) */
 export const OEUF_CONFIG: Record<TypeOeuf, { prix: number, jours: number }> = {
-  'Poule': { prix: 50, jours: 21 },
-  'Pintade': { prix: 50, jours: 26 },
-  'Caille': { prix: 50, jours: 18 },
-  'Dinde': { prix: 100, jours: 28 },
-  'Oie': { prix: 100, jours: 28 },
-  'Canard': { prix: 100, jours: 28 },
-  'Autre': { prix: 50, jours: 21 }
+  'Poule': { prix: 50, jours: 20 },
+  'Pintade': { prix: 50, jours: 25 },
+  'Caille': { prix: 50, jours: 17 },
+  'Dinde': { prix: 100, jours: 26 },
+  'Oie': { prix: 100, jours: 26 },
+  'Canard': { prix: 100, jours: 26 },
+  'Autre': { prix: 50, jours: 26 },
 };
 
 export interface AuditLog {
@@ -79,8 +80,8 @@ export interface Couvaison {
   prixUnitaire: number;
   dateReception: string; // ISO string
   dateMiseEnMachine?: string; // ISO string
-  dateMiragePrevue?: string; // dateMiseEnMachine + 7 jours
-  dateEclosionPrevue?: string; // dateMiseEnMachine + jours selon type
+  dateMiragePrevue?: string; // jour réception + 14 j. (calcul au placement)
+  dateEclosionPrevue?: string; // jour réception + jours selon type (calcul au placement)
   // Enregistrement du démarrage réel de l'éclosion
   dateEclosionDemarrage?: string; // ISO string
   nomDepart?: string;

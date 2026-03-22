@@ -7,6 +7,7 @@ import {
   computeMirageDateFromReception,
   getEclosionDaysFromReception,
   MIRAGE_DAYS_FROM_RECEPTION,
+  receptionDateInputToIso,
 } from '../../lib/couvaisonPlanning';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
@@ -41,7 +42,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
 
     try {
       await updateCouvaison(couvaisonId, {
-        dateMiseEnMachine: new Date(dateMiseEnMachine).toISOString(),
+        dateMiseEnMachine: receptionDateInputToIso(dateMiseEnMachine),
         dateMiragePrevue: dateMirageIso,
         dateEclosionPrevue: dateEclosionIso,
         statut: 'En cours',

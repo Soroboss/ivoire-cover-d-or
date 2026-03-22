@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppProvider';
 import { format } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
+import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
 
 type LotLine = {
   id: string;
@@ -105,7 +106,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           typeOeuf: l.typeOeuf,
           nombreOeufs: l.nombreOeufs,
           prixUnitaire: l.prixUnitaire,
-          dateReception: new Date(dateReception).toISOString(),
+          dateReception: receptionDateInputToIso(dateReception),
           statut: 'En attente' as const,
           emplacements: [],
         })),
