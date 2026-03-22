@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from 'npm:@insforge/sdk'
+import { normalizeRole, resolvePermissions } from '../lib/permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +29,7 @@ export default async function (req: Request): Promise<Response> {
     const passwordHash = body?.passwordHash
     const role = body?.role
     const actif = body?.actif ?? true
+    const permissions = body?.permissions
 
     if (!nom || !username || !passwordHash || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -35,6 +37,9 @@ export default async function (req: Request): Promise<Response> {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    const profile =
+      Array.isArray(permissions) && permissions.length > 0 ? { permissions } : undefined
 
     const { data, error } = await client.database
       .from('users')
@@ -45,8 +50,9 @@ export default async function (req: Request): Promise<Response> {
         password_hash: passwordHash,
         role,
         actif,
+        ...(profile ? { profile } : {}),
       })
-      .select('id, nom, username, telephone, role, actif, password_hash')
+      .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -55,17 +61,26 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const r = data?.[0]
+    const r = data?.[0] as any
     const user = r
-      ? {
-          id: r.id,
-          nom: r.nom,
-          username: r.username,
-          telephone: r.telephone ?? undefined,
-          passwordHash: r.password_hash ?? '',
-          role: r.role,
-          actif: r.actif,
-        }
+      ? (() => {
+          const isProjectAdmin = Boolean(r.is_project_admin)
+          const prof = r.profile ?? {}
+          const fromProfile = Array.isArray(prof.permissions) ? prof.permissions : undefined
+          const roleNorm = normalizeRole(r.role, isProjectAdmin)
+          const perms = resolvePermissions(roleNorm, fromProfile, isProjectAdmin)
+          return {
+            id: r.id,
+            nom: r.nom,
+            username: r.username,
+            telephone: r.telephone ?? undefined,
+            passwordHash: r.password_hash ?? '',
+            role: roleNorm,
+            actif: r.actif,
+            isProjectAdmin,
+            permissions: perms,
+          }
+        })()
       : null
 
     return new Response(JSON.stringify({ user }), {

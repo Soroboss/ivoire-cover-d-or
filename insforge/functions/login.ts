@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from 'npm:@insforge/sdk'
+import { normalizeRole, resolvePermissions } from '../lib/permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,14 +63,23 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
+    const row = data as any
+    const isProjectAdmin = Boolean(row.is_project_admin)
+    const profile = row.profile ?? {}
+    const fromProfile = Array.isArray(profile.permissions) ? profile.permissions : undefined
+    const role = normalizeRole(row.role, isProjectAdmin)
+    const permissions = resolvePermissions(role, fromProfile, isProjectAdmin)
+
     const user = {
-      id: data.id,
-      nom: data.nom,
-      username: data.username,
-      telephone: (data as any).telephone ?? undefined,
-      passwordHash: (data as any).password_hash ?? '',
-      role: data.role,
-      actif: data.actif,
+      id: row.id,
+      nom: row.nom,
+      username: row.username,
+      telephone: row.telephone ?? undefined,
+      passwordHash: row.password_hash ?? '',
+      role,
+      actif: row.actif,
+      isProjectAdmin,
+      permissions,
     }
 
     return new Response(JSON.stringify({ user }), {

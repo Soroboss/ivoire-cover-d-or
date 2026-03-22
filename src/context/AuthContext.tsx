@@ -2,11 +2,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../types';
 import { callInsforgeFunction } from '../lib/insforgeApi';
+import { enrichUserFromApi, defaultPermissionsForRole } from '../lib/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AuthState {
   currentUser: User | null;
   users: User[];
+  /** True jusqu’à la fin du premier chargement users_list (InsForge) */
+  usersLoading: boolean;
+  /** Si la liste ne peut pas être chargée depuis le serveur */
+  usersError: string | null;
   login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
   addUser: (u: Omit<User, 'id'>) => Promise<void>;
@@ -16,7 +21,15 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const DEFAULT_USERS: User[] = [
-  { id: uuidv4(), nom: 'Administrateur', username: 'admin', passwordHash: 'admin', role: 'Admin', actif: true }
+  {
+    id: uuidv4(),
+    nom: 'Administrateur',
+    username: 'admin',
+    passwordHash: 'admin',
+    role: 'Admin',
+    actif: true,
+    permissions: defaultPermissionsForRole('Admin'),
+  },
 ];
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -24,6 +37,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const saved = localStorage.getItem('ivoire_users');
     return saved ? JSON.parse(saved) : DEFAULT_USERS;
   });
+
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('ivoire_current_user');
@@ -39,14 +55,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Récupère la liste des utilisateurs depuis InsForge.
     // Si ça échoue, on garde le cache local.
     (async () => {
+      setUsersLoading(true);
+      setUsersError(null);
       try {
-        const res = await callInsforgeFunction<{ users: User[] }>('users_list', {})
-        setUsers(res.users)
-      } catch {
-        // no-op (fallback localStorage)
+        const res = await callInsforgeFunction<{ users: Record<string, unknown>[] }>('users_list', {});
+        setUsers(res.users.map((u) => enrichUserFromApi(u as never)));
+      } catch (e) {
+        setUsersError((e as Error).message || 'Impossible de charger les utilisateurs depuis le serveur.');
+        // Garde le cache local déjà affiché
+      } finally {
+        setUsersLoading(false);
       }
-    })()
-  }, [])
+    })();
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -58,25 +79,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (username: string, pass: string) => {
     try {
-      const res = await callInsforgeFunction<{ user: User }>('login', { username, password: pass })
+      const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('login', {
+        username,
+        password: pass,
+      });
       if (res.user && res.user.actif) {
-        setCurrentUser(res.user)
-        return true
+        const u = enrichUserFromApi(res.user as never);
+        setCurrentUser(u);
+        return true;
       }
-      return false
+      return false;
     } catch {
-      return false
+      return false;
     }
-  }
+  };
 
   const logout = () => {
     setCurrentUser(null);
   };
 
   const addUser = async (u: Omit<User, 'id'>) => {
-    const res = await callInsforgeFunction<{ user: User }>('users_add', u)
-    setUsers(prev => [...prev, res.user])
-  }
+    const payload = {
+      nom: u.nom,
+      username: u.username,
+      telephone: u.telephone,
+      passwordHash: u.passwordHash,
+      role: u.role,
+      actif: u.actif ?? true,
+      permissions: u.permissions ?? defaultPermissionsForRole(u.role),
+    };
+    const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('users_add', payload);
+    const nu = enrichUserFromApi(res.user as never);
+    setUsers((prev) => [...prev, nu]);
+  };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     const payload = {
@@ -84,17 +119,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       updates: {
         ...updates,
       },
-    }
-    const res = await callInsforgeFunction<{ user: User }>('users_update', payload)
+    };
+    const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('users_update', payload);
+    const nu = enrichUserFromApi(res.user as never);
 
-    setUsers(prev => prev.map(u => (u.id === id ? res.user : u)))
+    setUsers((prev) => prev.map((u) => (u.id === id ? nu : u)));
     if (currentUser && currentUser.id === id) {
-      setCurrentUser(res.user)
+      setCurrentUser(nu);
     }
-  }
+  };
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, login, logout, addUser, updateUser }}>
+    <AuthContext.Provider
+      value={{ currentUser, users, usersLoading, usersError, login, logout, addUser, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

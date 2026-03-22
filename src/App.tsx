@@ -11,6 +11,7 @@ import Historique from './pages/Historique';
 import ClientsDB from './pages/ClientsDB';
 import Login from './pages/Login';
 import { useAuth } from './context/AuthContext';
+import { hasPermission } from './lib/permissions';
 
 function App() {
   const { currentUser } = useAuth();
@@ -19,20 +20,82 @@ function App() {
     return <Login />;
   }
 
+  const homePath = hasPermission(currentUser, 'dashboard') ? '/dashboard' : '/couvaisons';
+  const fallbackPath = '/couvaisons';
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to={currentUser.role === 'Technicien' ? "/couvaisons" : "/dashboard"} replace />} />
-          <Route path="dashboard" element={['Admin', 'Réception/Caisse'].includes(currentUser.role) ? <Dashboard /> : <Navigate to="/couvaisons" replace />} />
-          <Route path="couvaisons" element={<Couvaisons />} />
-          <Route path="machines" element={['Admin', 'Technicien'].includes(currentUser.role) ? <Machines /> : <Navigate to="/dashboard" replace />} />
-          <Route path="clients" element={['Admin', 'Technicien', 'Réception/Caisse'].includes(currentUser.role) ? <ClientsDB /> : <Navigate to="/dashboard" replace />} />
-          <Route path="analyses" element={['Admin', 'Technicien'].includes(currentUser.role) ? <Analyses /> : <Navigate to="/dashboard" replace />} />
-          <Route path="finances" element={currentUser.role === 'Admin' ? <Finances /> : <Navigate to="/dashboard" replace />} />
-          <Route path="factures" element={['Admin', 'Réception/Caisse'].includes(currentUser.role) ? <Factures /> : <Navigate to="/couvaisons" replace />} />
-          <Route path="historique" element={currentUser.role === 'Admin' ? <Historique /> : <Navigate to="/dashboard" replace />} />
-          <Route path="utilisateurs" element={currentUser.role === 'Admin' ? <Utilisateurs /> : <Navigate to="/couvaisons" replace />} />
+          <Route index element={<Navigate to={homePath} replace />} />
+          <Route
+            path="dashboard"
+            element={
+              hasPermission(currentUser, 'dashboard') ? <Dashboard /> : <Navigate to={fallbackPath} replace />
+            }
+          />
+          <Route
+            path="couvaisons"
+            element={
+              hasPermission(currentUser, 'couvaisons') ? <Couvaisons /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="machines"
+            element={
+              hasPermission(currentUser, 'machines') ? <Machines /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="clients"
+            element={
+              hasPermission(currentUser, 'clients') ? <ClientsDB /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="analyses"
+            element={
+              hasPermission(currentUser, 'analyses') ? <Analyses /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="finances"
+            element={
+              hasPermission(currentUser, 'finances') ? <Finances /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="factures"
+            element={
+              hasPermission(currentUser, 'factures') ? <Factures /> : <Navigate to={fallbackPath} replace />
+            }
+          />
+          <Route
+            path="historique"
+            element={
+              hasPermission(currentUser, 'historique') ? <Historique /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="utilisateurs"
+            element={
+              hasPermission(currentUser, 'administration') ? (
+                <Utilisateurs />
+              ) : (
+                <Navigate to={fallbackPath} replace />
+              )
+            }
+          />
+          <Route
+            path="admin"
+            element={
+              hasPermission(currentUser, 'administration') ? (
+                <Navigate to="/utilisateurs" replace />
+              ) : (
+                <Navigate to={homePath} replace />
+              )
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

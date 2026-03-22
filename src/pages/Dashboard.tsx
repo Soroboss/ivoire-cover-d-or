@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
-import { Egg, CheckCircle, TrendingUp, AlertTriangle, CalendarDays, Users } from 'lucide-react';
+import { Egg, CheckCircle, TrendingUp, AlertTriangle, CalendarDays, Users, Shield } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -25,6 +26,7 @@ import {
   buildMonthlyPaymentSeries,
   clientEclosionSummary,
 } from '../lib/dashboardStats';
+import { hasPermission } from '../lib/permissions';
 
 const StatCard = ({ title, value, icon, colorClass }: { title: string, value: string | number, icon: React.ReactNode, colorClass: string }) => (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray flex items-center justify-between hover:shadow-md transition-shadow">
@@ -125,6 +127,26 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {currentUser && hasPermission(currentUser, 'administration') && (
+        <Link
+          to="/utilisateurs"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border-2 border-dashed border-brand-orange/50 bg-brand-orange/5 p-4 hover:bg-brand-orange/10 transition-colors"
+        >
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-brand-orange p-2 text-white">
+              <Shield size={22} />
+            </div>
+            <div>
+              <p className="font-bold text-brand-dark">Administration</p>
+              <p className="text-sm text-brand-muted">
+                Gérer les comptes utilisateurs, rôles et accès — ouvrir le module dédié
+              </p>
+            </div>
+          </div>
+          <span className="text-brand-orange font-semibold text-sm shrink-0">Ouvrir →</span>
+        </Link>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-brand-dark">Tableau de Bord</h1>
         {!isCaisse && (
@@ -202,7 +224,7 @@ const Dashboard = () => {
             <StatCard title="Taux de réussite" value={`${successRate}%`} icon={<CheckCircle size={24} className="text-green-600" />} colorClass="bg-green-100" />
             <StatCard title="Chiffre d'Affaires Global" value={`${totalRevenue.toLocaleString()} FCFA`} icon={<TrendingUp size={24} className="text-purple-600" />} colorClass="bg-purple-100" />
           </div>
-          {currentUser?.role === 'Admin' && (
+          {currentUser && hasPermission(currentUser, 'finances') && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 border-t border-brand-lightgray pt-6">
                <StatCard title="Recettes du Jour" value={`${todayRevenue.toLocaleString()} F`} icon={<TrendingUp size={20} className="text-green-600" />} colorClass="bg-green-100" />
                <StatCard title="Recettes Semaine" value={`${weekRevenue.toLocaleString()} F`} icon={<TrendingUp size={20} className="text-blue-600" />} colorClass="bg-blue-100" />

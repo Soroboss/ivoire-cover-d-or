@@ -2,6 +2,18 @@ export type StatutCouvaison = 'En attente' | 'En cours' | 'Terminé' | 'Annulé'
 export type TypeOeuf = 'Poule' | 'Canard' | 'Dinde' | 'Caille' | 'Pintade' | 'Oie' | 'Autre';
 export type TypeMachine = 'Couveuse' | 'Éclosoir' | 'Mixte';
 export type Role = 'Admin' | 'Technicien' | 'Réception/Caisse';
+
+/** Droits d’accès (menu / routes), modifiables par cases à cocher (stockés dans profile.permissions côté InsForge) */
+export type PermissionKey =
+  | 'dashboard'
+  | 'couvaisons'
+  | 'clients'
+  | 'machines'
+  | 'analyses'
+  | 'finances'
+  | 'factures'
+  | 'historique'
+  | 'administration';
 export type CauseEchec = 'Infertilité' | 'Coupure Électrique' | 'Température/Humidité' | 'Infection' | 'Manutention' | 'Autre' | 'Aucune';
 
 export const OEUF_CONFIG: Record<TypeOeuf, { prix: number, jours: number }> = {
@@ -47,6 +59,10 @@ export interface User {
   passwordHash: string;
   role: Role;
   actif: boolean;
+  /** Liste effective après résolution (profil + rôle). Absent = recalcul côté client. */
+  permissions?: PermissionKey[];
+  /** Compte admin projet InsForge → accès total */
+  isProjectAdmin?: boolean;
 }
 
 export interface Client {

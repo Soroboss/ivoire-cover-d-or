@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from 'npm:@insforge/sdk'
+import { normalizeRole, resolvePermissions } from '../lib/permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +24,7 @@ export default async function (req: Request): Promise<Response> {
 
     const { data, error } = await client.database
       .from('users')
-      .select('id, nom, username, telephone, role, actif, password_hash')
+      .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -34,15 +35,24 @@ export default async function (req: Request): Promise<Response> {
     }
 
     // Match app interface: {id, nom, username, passwordHash, role, actif}
-    const users = (data ?? []).map((r: any) => ({
-      id: r.id,
-      nom: r.nom,
-      username: r.username,
-      telephone: r.telephone ?? undefined,
-      passwordHash: r.password_hash ?? '',
-      role: r.role,
-      actif: r.actif,
-    }))
+    const users = (data ?? []).map((r: any) => {
+      const isProjectAdmin = Boolean(r.is_project_admin)
+      const profile = r.profile ?? {}
+      const fromProfile = Array.isArray(profile.permissions) ? profile.permissions : undefined
+      const role = normalizeRole(r.role, isProjectAdmin)
+      const permissions = resolvePermissions(role, fromProfile, isProjectAdmin)
+      return {
+        id: r.id,
+        nom: r.nom,
+        username: r.username,
+        telephone: r.telephone ?? undefined,
+        passwordHash: r.password_hash ?? '',
+        role,
+        actif: r.actif,
+        isProjectAdmin,
+        permissions,
+      }
+    })
 
     return new Response(JSON.stringify({ users }), {
       status: 200,

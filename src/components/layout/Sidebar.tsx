@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, LogOut, BrainCircuit, Key, X, History, Database } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppProvider';
+import { hasPermission } from '../../lib/permissions';
+import type { PermissionKey } from '../../types';
 
 const Sidebar = () => {
   const { currentUser, logout, updateUser } = useAuth();
@@ -34,19 +36,24 @@ const Sidebar = () => {
     }
   };
   
-  const navItems = [
-    { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Réception/Caisse'] },
-    { name: 'Couvaisons', path: '/couvaisons', icon: <Egg size={20} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
-    { name: 'Clients & Historique', path: '/clients', icon: <Database size={20} />, roles: ['Admin', 'Technicien', 'Réception/Caisse'] },
-    { name: 'Parc Machines', path: '/machines', icon: <Server size={20} />, roles: ['Admin', 'Technicien'] },
-    { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={20} />, roles: ['Admin', 'Technicien'] },
-    { name: 'Finances', path: '/finances', icon: <DollarSign size={20} />, roles: ['Admin'] },
-    { name: 'Factures', path: '/factures', icon: <FileText size={20} />, roles: ['Admin', 'Réception/Caisse'] },
-    { name: 'Historique', path: '/historique', icon: <History size={20} />, roles: ['Admin'] },
-    { name: 'Équipe & Accès', path: '/utilisateurs', icon: <Shield size={20} />, roles: ['Admin'] },
+  const navItems: {
+    name: string;
+    path: string;
+    icon: ReactNode;
+    permission: PermissionKey;
+  }[] = [
+    { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={20} />, permission: 'dashboard' },
+    { name: 'Couvaisons', path: '/couvaisons', icon: <Egg size={20} />, permission: 'couvaisons' },
+    { name: 'Clients & Historique', path: '/clients', icon: <Database size={20} />, permission: 'clients' },
+    { name: 'Parc Machines', path: '/machines', icon: <Server size={20} />, permission: 'machines' },
+    { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={20} />, permission: 'analyses' },
+    { name: 'Finances', path: '/finances', icon: <DollarSign size={20} />, permission: 'finances' },
+    { name: 'Factures', path: '/factures', icon: <FileText size={20} />, permission: 'factures' },
+    { name: 'Historique', path: '/historique', icon: <History size={20} />, permission: 'historique' },
+    { name: 'Administration', path: '/utilisateurs', icon: <Shield size={20} />, permission: 'administration' },
   ];
 
-  const visibleNav = navItems.filter(item => item.roles.includes(currentUser?.role || 'Admin'));
+  const visibleNav = navItems.filter((item) => hasPermission(currentUser, item.permission));
 
   return (
     <aside className="w-64 bg-brand-dark text-white flex flex-col h-full hidden md:flex shadow-xl z-20">
