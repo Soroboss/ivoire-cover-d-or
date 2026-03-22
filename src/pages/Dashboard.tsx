@@ -1,9 +1,30 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
-import { Egg, CheckCircle, TrendingUp, AlertTriangle, CalendarDays } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Egg, CheckCircle, TrendingUp, AlertTriangle, CalendarDays, Users } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
 import { isToday, isThisWeek, isThisMonth, isThisYear, isPast, parseISO } from 'date-fns';
+import type { Granularity } from '../lib/dashboardStats';
+import {
+  buildEclosionRateSeries,
+  buildEggTypePercentByPeriod,
+  buildMonthlyPaymentSeries,
+  clientEclosionSummary,
+} from '../lib/dashboardStats';
 
 const StatCard = ({ title, value, icon, colorClass }: { title: string, value: string | number, icon: React.ReactNode, colorClass: string }) => (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray flex items-center justify-between hover:shadow-md transition-shadow">
@@ -17,34 +38,68 @@ const StatCard = ({ title, value, icon, colorClass }: { title: string, value: st
   </div>
 );
 
+const TYPE_COLORS: Record<string, string> = {
+  Poule: '#ea580c',
+  Caille: '#ca8a04',
+  Pintade: '#7c3aed',
+  Canard: '#2563eb',
+  Dinde: '#db2777',
+  Oie: '#0d9488',
+  Autre: '#64748b',
+};
+
 const Dashboard = () => {
-  const { couvaisons, transactions } = useAppContext();
+  const { couvaisons, transactions, clients } = useAppContext();
   const { currentUser } = useAuth();
   const isCaisse = currentUser?.role === 'Réception/Caisse';
 
-  const activeCouvaisons = couvaisons.filter(c => c.statut === 'En cours').length;
-  const totalEggs = couvaisons.filter(c => c.statut === 'En cours').reduce((acc, c) => acc + c.nombreOeufs, 0);
+  const [clientFilter, setClientFilter] = useState<string>('all');
+  const [granularity, setGranularity] = useState<Granularity>('month');
 
-  const completed = couvaisons.filter(c => c.statut === 'Terminé');
+  const filteredCouvaisons = useMemo(() => {
+    if (clientFilter === 'all') return couvaisons;
+    return couvaisons.filter((c) => c.clientId === clientFilter);
+  }, [couvaisons, clientFilter]);
+
+  const activeCouvaisons = filteredCouvaisons.filter((c) => c.statut === 'En cours').length;
+  const totalEggs = filteredCouvaisons.filter((c) => c.statut === 'En cours').reduce((acc, c) => acc + c.nombreOeufs, 0);
+
+  const completed = filteredCouvaisons.filter((c) => c.statut === 'Terminé');
   const totalCompletedEggs = completed.reduce((acc, c) => acc + c.nombreOeufs, 0);
   const totalChicks = completed.reduce((acc, c) => acc + (c.poussinsNes || 0), 0);
   const successRate = totalCompletedEggs > 0 ? Math.round((totalChicks / totalCompletedEggs) * 100) : 0;
 
-  const totalRevenue = transactions.reduce((acc, t) => acc + t.montantTotal, 0); // Assuming transaction total includes all sales
-  const todayRevenue = transactions.filter(t => isToday(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
-  const weekRevenue = transactions.filter(t => isThisWeek(parseISO(t.dateTransaction), { weekStartsOn: 1 })).reduce((acc, t) => acc + t.montantTotal, 0);
-  const monthRevenue = transactions.filter(t => isThisMonth(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
-  const yearRevenue = transactions.filter(t => isThisYear(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
+  const clientSummary = useMemo(() => clientEclosionSummary(filteredCouvaisons), [filteredCouvaisons]);
+  const eclosionRateSeries = useMemo(
+    () => buildEclosionRateSeries(filteredCouvaisons, granularity),
+    [filteredCouvaisons, granularity],
+  );
+  const { rows: eggTypePctRows, types: eggTypesForChart } = useMemo(
+    () => buildEggTypePercentByPeriod(filteredCouvaisons, granularity),
+    [filteredCouvaisons, granularity],
+  );
+  const scopedTransactions = useMemo(() => {
+    if (clientFilter === 'all') return transactions;
+    return transactions.filter((t) => t.clientId === clientFilter);
+  }, [transactions, clientFilter]);
+
+  const revenueSeries = useMemo(() => buildMonthlyPaymentSeries(scopedTransactions), [scopedTransactions]);
+
+  const totalRevenue = scopedTransactions.reduce((acc, t) => acc + t.montantTotal, 0); // Assuming transaction total includes all sales
+  const todayRevenue = scopedTransactions.filter((t) => isToday(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
+  const weekRevenue = scopedTransactions.filter((t) => isThisWeek(parseISO(t.dateTransaction), { weekStartsOn: 1 })).reduce((acc, t) => acc + t.montantTotal, 0);
+  const monthRevenue = scopedTransactions.filter((t) => isThisMonth(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
+  const yearRevenue = scopedTransactions.filter((t) => isThisYear(parseISO(t.dateTransaction))).reduce((acc, t) => acc + t.montantTotal, 0);
 
   const eggsByType = useMemo(() => {
     const counts: Record<string, number> = {};
-    couvaisons.forEach(c => {
+    filteredCouvaisons.forEach((c) => {
       counts[c.typeOeuf] = (counts[c.typeOeuf] || 0) + c.nombreOeufs;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [couvaisons]);
+  }, [filteredCouvaisons]);
 
-  const todayAlerts = couvaisons.filter(c => c.statut === 'En cours').map(c => {
+  const todayAlerts = couvaisons.filter((c) => c.statut === 'En cours').map((c) => {
     if (!c.dateMiragePrevue || !c.dateEclosionPrevue) return null;
     try {
       const isMirageDay = isToday(parseISO(c.dateMiragePrevue)) || (isPast(parseISO(c.dateMiragePrevue)) && c.oeufsClairs === undefined);
@@ -56,31 +111,81 @@ const Dashboard = () => {
     return null;
   }).filter(Boolean);
 
-  const mockRevenueData = [
-    { name: 'Jan', value: 120000 },
-    { name: 'Fév', value: 150000 },
-    { name: 'Mar', value: 200000 },
-    { name: 'Avr', value: 180000 },
-    { name: 'Mai', value: 250000 },
-  ];
-
   const failureCauses = useMemo(() => {
     const counts: Record<string, number> = {};
-    couvaisons.forEach(c => {
+    filteredCouvaisons.forEach((c) => {
       if (c.causeEchecMajeure && c.causeEchecMajeure !== 'Aucune') {
         counts[c.causeEchecMajeure] = (counts[c.causeEchecMajeure] || 0) + 1;
       }
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [couvaisons]);
+  }, [filteredCouvaisons]);
   
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#8b5cf6', '#3b82f6', '#64748b'];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-brand-dark">Tableau de Bord</h1>
+        {!isCaisse && (
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div className="flex items-center gap-2">
+              <Users size={18} className="text-brand-muted shrink-0" />
+              <label htmlFor="dash-client" className="text-sm text-brand-muted whitespace-nowrap">
+                Client
+              </label>
+              <select
+                id="dash-client"
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="text-sm rounded-md border border-gray-300 py-2 px-3 focus:ring-2 focus:ring-brand-orange outline-none bg-white min-w-[200px]"
+              >
+                <option value="all">Tous les clients</option>
+                {clients
+                  .slice()
+                  .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
+                  .map((cl) => (
+                    <option key={cl.id} value={cl.id}>
+                      {cl.nom}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="flex rounded-md border border-gray-200 overflow-hidden">
+              {(['week', 'month', 'year'] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGranularity(g)}
+                  className={`px-3 py-2 text-xs font-semibold transition-colors ${
+                    granularity === g
+                      ? 'bg-brand-orange text-white'
+                      : 'bg-white text-brand-gray hover:bg-gray-50'
+                  }`}
+                >
+                  {g === 'week' ? 'Semaine' : g === 'month' ? 'Mois' : 'Année'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {!isCaisse && clientFilter !== 'all' && (
+        <div className="bg-white rounded-xl border border-brand-lightgray p-4 flex flex-wrap gap-6 items-center">
+          <div>
+            <p className="text-xs text-brand-muted uppercase font-semibold">Performance (client sélectionné)</p>
+            <p className="text-lg font-bold text-brand-dark">
+              Taux d&apos;éclosion global :{' '}
+              <span className="text-brand-orange">{clientSummary.taux}%</span>
+            </p>
+            <p className="text-sm text-brand-gray mt-1">
+              {clientSummary.lotsTermines} lot(s) terminé(s) · {clientSummary.poussins.toLocaleString()} poussins /{' '}
+              {clientSummary.oeufs.toLocaleString()} œufs
+            </p>
+          </div>
+        </div>
+      )}
 
       {isCaisse ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -113,6 +218,87 @@ const Dashboard = () => {
           {!isCaisse && (
             <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray hover:shadow-md transition-shadow md:col-span-2">
+               <h2 className="text-lg font-semibold text-brand-dark mb-1">
+                 Taux d&apos;éclosion par période
+               </h2>
+               <p className="text-xs text-brand-muted mb-4">
+                 Lots terminés, regroupés par date d&apos;éclosion prévue · pondéré œufs / poussins
+               </p>
+               <div className="h-72">
+                 <ResponsiveContainer width="100%" height="100%">
+                   {eclosionRateSeries.length > 0 ? (
+                     <LineChart data={eclosionRateSeries}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                       <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                       <YAxis
+                         domain={[0, 100]}
+                         axisLine={false}
+                         tickLine={false}
+                         tick={{ fill: '#9CA3AF' }}
+                         unit="%"
+                       />
+                       <Tooltip
+                         formatter={(value) => [`${Number(value ?? 0)}%`, 'Taux']}
+                         labelFormatter={(label) => `Période : ${label}`}
+                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                       />
+                       <Line
+                         type="monotone"
+                         dataKey="rate"
+                         name="Taux d'éclosion"
+                         stroke="#16a34a"
+                         strokeWidth={2}
+                         dot={{ r: 3 }}
+                       />
+                     </LineChart>
+                   ) : (
+                     <div className="flex bg-brand-lightgray/50 rounded-lg h-full items-center justify-center text-brand-muted text-sm">
+                       Pas assez de lots terminés pour cette vue
+                     </div>
+                   )}
+                 </ResponsiveContainer>
+               </div>
+             </div>
+
+             <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray hover:shadow-md transition-shadow md:col-span-2">
+               <h2 className="text-lg font-semibold text-brand-dark mb-1">
+                 Types d&apos;œufs (lots) — % par période
+               </h2>
+               <p className="text-xs text-brand-muted mb-4">
+                 Répartition des lots reçus par date de réception (empilé = 100 % par barre)
+               </p>
+               <div className="h-72">
+                 <ResponsiveContainer width="100%" height="100%">
+                   {eggTypePctRows.length > 0 && eggTypesForChart.length > 0 ? (
+                     <BarChart data={eggTypePctRows}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                       <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} unit="%" domain={[0, 100]} />
+                       <Tooltip
+                         formatter={(value) => [`${Number(value ?? 0)}%`, '']}
+                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                       />
+                       <Legend />
+                       {eggTypesForChart.map((t) => (
+                         <Bar
+                           key={t}
+                           dataKey={t}
+                           stackId="types"
+                           fill={TYPE_COLORS[t] || '#94a3b8'}
+                           name={t}
+                         />
+                       ))}
+                     </BarChart>
+                   ) : (
+                     <div className="flex bg-brand-lightgray/50 rounded-lg h-full items-center justify-center text-brand-muted text-sm">
+                       Aucune donnée pour cette période
+                     </div>
+                   )}
+                 </ResponsiveContainer>
+               </div>
+             </div>
+
              <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray hover:shadow-md transition-shadow">
                <h2 className="text-lg font-semibold text-brand-dark mb-4">Types d'œufs incubés (Lots)</h2>
                <div className="h-64">
@@ -158,18 +344,33 @@ const Dashboard = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray hover:shadow-md transition-shadow">
-            <h2 className="text-lg font-semibold text-brand-dark mb-4">Évolution des Revenus (FCFA)</h2>
+            <h2 className="text-lg font-semibold text-brand-dark mb-1">Évolution des paiements (FCFA)</h2>
+            <p className="text-xs text-brand-muted mb-4">Somme des transactions de type Paiement par mois</p>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockRevenueData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} width={80} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#EA580C" strokeWidth={3} dot={{r: 4, strokeWidth: 2}} activeDot={{r: 6}} />
-                </LineChart>
+                {revenueSeries.length > 0 ? (
+                  <LineChart data={revenueSeries}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} width={80} />
+                    <Tooltip
+                      formatter={(value) => [`${Number(value ?? 0).toLocaleString()} FCFA`, 'Paiements']}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#EA580C"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <div className="flex bg-brand-lightgray/50 rounded-lg h-full items-center justify-center text-brand-muted text-sm">
+                    Aucun paiement enregistré
+                  </div>
+                )}
               </ResponsiveContainer>
             </div>
           </div>
