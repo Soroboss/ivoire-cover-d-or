@@ -82,6 +82,8 @@ export default async function (req: Request): Promise<Response> {
         poussins_nes: couv.poussinsNes ?? null,
         morts_en_coque: couv.mortsEnCoque ?? null,
         emplacements: couv.emplacements ?? null,
+        emplacements_avant_mirage: couv.emplacementsAvantMirage ?? null,
+        emplacements_apres_mirage: couv.emplacementsApresMirage ?? null,
         cause_echec_majeure: couv.causeEchecMajeure ?? null,
         notes_echec: couv.notesEchec ?? null,
       })
@@ -114,6 +116,8 @@ export default async function (req: Request): Promise<Response> {
           poussinsNes: r.poussins_nes ?? undefined,
           mortsEnCoque: r.morts_en_coque ?? undefined,
           emplacements: r.emplacements ?? undefined,
+          emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
+          emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
           causeEchecMajeure: r.cause_echec_majeure ?? undefined,
           notesEchec: r.notes_echec ?? undefined,
         }

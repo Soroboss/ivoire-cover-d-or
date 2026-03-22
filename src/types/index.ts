@@ -97,6 +97,10 @@ export interface Couvaison {
   
   // V3: Placements en casiers
   emplacements?: { machineId: string, casierId: string, quantite: number }[];
+  /** Snapshot au moment du 1er enregistrement mirage (tiroirs avant) */
+  emplacementsAvantMirage?: { machineId: string, casierId: string, quantite: number }[];
+  /** Tiroirs après mirage (maj si repositionnement) */
+  emplacementsApresMirage?: { machineId: string, casierId: string, quantite: number }[];
   causeEchecMajeure?: CauseEchec;
   notesEchec?: string;
 }

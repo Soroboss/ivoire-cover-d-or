@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Couvaisons from './pages/Couvaisons';
 import Finances from './pages/Finances';
+import Tresorerie from './pages/Tresorerie';
 import Factures from './pages/Factures';
 import Machines from './pages/Machines';
 import Analyses from './pages/Analyses';
@@ -62,6 +63,12 @@ function App() {
             path="finances"
             element={
               hasPermission(currentUser, 'finances') ? <Finances /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="tresorerie"
+            element={
+              hasPermission(currentUser, 'finances') ? <Tresorerie /> : <Navigate to={homePath} replace />
             }
           />
           <Route

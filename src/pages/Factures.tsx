@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const Factures = () => {
-  const { clients, couvaisons, transactions, addReceiptArchive } = useAppContext();
+  const { clients, couvaisons, transactions, machines, addReceiptArchive } = useAppContext();
   const { currentUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -153,12 +153,13 @@ const Factures = () => {
 
       {/* Hidden Offscreen Template */}
       {client && clientCouvaisons.length > 0 && (
-        <InvoiceTemplate 
-           ref={invoiceRef} 
-           client={client} 
-           couvaisons={clientCouvaisons} 
-           transactions={clientTransactions} 
-           invoiceNumber={invoiceNumber}
+        <InvoiceTemplate
+          ref={invoiceRef}
+          client={client}
+          couvaisons={clientCouvaisons}
+          transactions={clientTransactions}
+          invoiceNumber={invoiceNumber}
+          machines={machines}
         />
       )}
     </div>

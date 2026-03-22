@@ -51,6 +51,8 @@ export default async function (req: Request): Promise<Response> {
       poussinsNes: r.poussins_nes ?? undefined,
       mortsEnCoque: r.morts_en_coque ?? undefined,
       emplacements: r.emplacements ?? undefined,
+      emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
+      emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
       causeEchecMajeure: r.cause_echec_majeure ?? undefined,
       notesEchec: r.notes_echec ?? undefined,
     }))

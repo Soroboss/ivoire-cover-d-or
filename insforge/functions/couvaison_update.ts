@@ -46,6 +46,10 @@ export default async function (req: Request): Promise<Response> {
     if (updates.causeEchecMajeure !== undefined) updateValues.cause_echec_majeure = updates.causeEchecMajeure ?? null
     if (updates.notesEchec !== undefined) updateValues.notes_echec = updates.notesEchec ?? null
     if (updates.emplacements !== undefined) updateValues.emplacements = updates.emplacements ?? null
+    if (updates.emplacementsAvantMirage !== undefined)
+      updateValues.emplacements_avant_mirage = updates.emplacementsAvantMirage ?? null
+    if (updates.emplacementsApresMirage !== undefined)
+      updateValues.emplacements_apres_mirage = updates.emplacementsApresMirage ?? null
 
     const { data: updated, error } = await client.database
       .from('couvaisons')
@@ -80,6 +84,8 @@ export default async function (req: Request): Promise<Response> {
           poussinsNes: r.poussins_nes ?? undefined,
           mortsEnCoque: r.morts_en_coque ?? undefined,
           emplacements: r.emplacements ?? undefined,
+          emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
+          emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
           causeEchecMajeure: r.cause_echec_majeure ?? undefined,
           notesEchec: r.notes_echec ?? undefined,
         }

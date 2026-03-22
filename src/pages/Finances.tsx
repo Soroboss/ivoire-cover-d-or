@@ -1,9 +1,22 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { TransactionForm } from '../components/finances/TransactionForm';
 import { format, parseISO } from 'date-fns';
-import { Plus, ArrowDownRight, ArrowUpRight, Download, MessageCircle, MinusCircle, Percent } from 'lucide-react';
+import {
+  Plus,
+  ArrowDownRight,
+  ArrowUpRight,
+  Download,
+  MessageCircle,
+  MinusCircle,
+  Percent,
+  Landmark,
+  ArrowRight,
+  Calendar,
+} from 'lucide-react';
+import { isIsoDateInRange } from '../lib/dateRangeFilter';
 import {
   netEncaisseGlobal,
   netPayeLot,
@@ -16,22 +29,42 @@ const Finances = () => {
   const { transactions, couvaisons, clients, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const [showForm, setShowForm] = useState(false);
+  const [receptionFrom, setReceptionFrom] = useState('');
+  const [receptionTo, setReceptionTo] = useState('');
 
-  const totalEncaisse = netEncaisseGlobal(transactions);
-  const totalAvoirsRemises = totalAvoirsRemisesGlobal(transactions);
+  /** Lots dont la date de réception est dans l’intervalle (ou tout si pas de filtre). */
+  const couvaisonsScoped = useMemo(() => {
+    if (!receptionFrom && !receptionTo) return couvaisons;
+    return couvaisons.filter((c) => isIsoDateInRange(c.dateReception, receptionFrom, receptionTo));
+  }, [couvaisons, receptionFrom, receptionTo]);
 
-  // Total expected revenue from complete process (excluding cancelled)
-  const expectedTotal = couvaisons.filter(c => c.statut !== 'Annulé').reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0);
+  /** Transactions dont le lot a une réception dans l’intervalle. */
+  const transactionsScoped = useMemo(() => {
+    if (!receptionFrom && !receptionTo) return transactions;
+    return transactions.filter((t) => {
+      const lot = couvaisons.find((c) => c.id === t.couvaisonId);
+      if (!lot) return false;
+      return isIsoDateInRange(lot.dateReception, receptionFrom, receptionTo);
+    });
+  }, [transactions, couvaisons, receptionFrom, receptionTo]);
+
+  const totalEncaisse = netEncaisseGlobal(transactionsScoped);
+  const totalAvoirsRemises = totalAvoirsRemisesGlobal(transactionsScoped);
+
+  const expectedTotal = couvaisonsScoped
+    .filter((c) => c.statut !== 'Annulé')
+    .reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
   const enAttente = expectedTotal - totalEncaisse - totalAvoirsRemises;
 
-  // Sorting transactions descending by date
-  const sortedTransactions = [...transactions].sort((a,b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime());
+  const sortedTransactions = [...transactionsScoped].sort(
+    (a, b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime(),
+  );
 
   const unpaidLots = useMemo(() => {
-    return couvaisons
-      .filter(c => c.statut !== 'Annulé')
-      .map(c => {
-        const client = clients.find(cl => cl.id === c.clientId);
+    return couvaisonsScoped
+      .filter((c) => c.statut !== 'Annulé')
+      .map((c) => {
+        const client = clients.find((cl) => cl.id === c.clientId);
         const totalDue = c.nombreOeufs * c.prixUnitaire;
         const totalPaid = netPayeLot(transactions, c.id);
         const totalCredit = sumAvoirsRemisesLot(transactions, c.id);
@@ -45,9 +78,9 @@ const Finances = () => {
           remain,
         };
       })
-      .filter(x => x.remain > 0)
+      .filter((x) => x.remain > 0)
       .sort((a, b) => b.remain - a.remain);
-  }, [couvaisons, clients, transactions]);
+  }, [couvaisonsScoped, clients, transactions]);
 
   const normalizeWhatsappNumber = (phone?: string) => {
     if (!phone) return '';
@@ -79,12 +112,23 @@ const Finances = () => {
   };
 
   const exportAccountingCsv = () => {
-    const headers = ['Date', 'Client', 'Lot', 'TypeTransaction', 'Montant', 'AcomptesVerses', 'ResteAPayer', 'Notes'];
-    const rows = sortedTransactions.map(t => {
+    const headers = [
+      'DateOperation',
+      'DateReceptionLot',
+      'Client',
+      'Lot',
+      'TypeTransaction',
+      'Montant',
+      'AcomptesVerses',
+      'ResteAPayer',
+      'Notes',
+    ];
+    const rows = sortedTransactions.map((t) => {
       const client = clients.find(c => c.id === t.clientId);
       const lot = couvaisons.find(c => c.id === t.couvaisonId);
       return [
         format(parseISO(t.dateTransaction), 'yyyy-MM-dd HH:mm:ss'),
+        lot ? format(parseISO(lot.dateReception), 'yyyy-MM-dd') : '',
         client?.nom || 'Inconnu',
         lot ? `${lot.nombreOeufs} ${lot.typeOeuf}s` : 'Lot inconnu',
         t.typeTransaction,
@@ -102,7 +146,14 @@ const Finances = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const period = format(new Date(), 'yyyy-MM');
+    const period =
+      receptionFrom && receptionTo
+        ? `${receptionFrom}_${receptionTo}`
+        : receptionFrom
+          ? `depuis_${receptionFrom}`
+          : receptionTo
+            ? `jusque_${receptionTo}`
+            : format(new Date(), 'yyyy-MM');
     a.href = url;
     a.download = `comptabilite_transactions_${period}.csv`;
     a.click();
@@ -137,6 +188,59 @@ const Finances = () => {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-dark">
+          <Calendar className="h-4 w-4 text-brand-orange" />
+          Filtrer par date de réception du lot
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="sr-only">Réception du</label>
+          <input
+            type="date"
+            value={receptionFrom}
+            onChange={(e) => setReceptionFrom(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none"
+          />
+          <span className="text-xs text-brand-muted">au</span>
+          <label className="sr-only">Réception au</label>
+          <input
+            type="date"
+            value={receptionTo}
+            onChange={(e) => setReceptionTo(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none"
+          />
+          {(receptionFrom || receptionTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setReceptionFrom('');
+                setReceptionTo('');
+              }}
+              className="text-sm font-semibold text-brand-orange hover:underline"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-brand-muted">
+          Les totaux, impayés et historique ci-dessous suivent ce filtre (lots reçus dans la période). Un seul jour : même
+          date en « du » et « au ».
+        </p>
+      </div>
+
+      <Link
+        to="/tresorerie"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-brand-orange/[0.08] px-4 py-3 text-sm shadow-sm transition-colors hover:border-brand-orange/40"
+      >
+        <span className="flex items-center gap-2 font-semibold text-brand-dark">
+          <Landmark className="h-5 w-5 text-brand-orange" />
+          Trésorerie &amp; banque — journal des flux, soldes et exports pour votre partenaire bancaire
+        </span>
+        <span className="inline-flex items-center gap-1 font-medium text-brand-orange">
+          Ouvrir <ArrowRight size={16} />
+        </span>
+      </Link>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
           <p className="text-sm font-medium text-brand-muted mb-1">Net encaissé (paiements − déductions)</p>
@@ -161,6 +265,7 @@ const Finances = () => {
             <thead className="text-brand-gray font-semibold border-b border-brand-lightgray">
               <tr>
                 <th className="px-6 py-3">Client</th>
+                <th className="px-6 py-3">Réception</th>
                 <th className="px-6 py-3">Lot</th>
                 <th className="px-6 py-3 text-right">Total</th>
                 <th className="px-6 py-3 text-right">Payé</th>
@@ -173,6 +278,9 @@ const Finances = () => {
               {unpaidLots.length > 0 ? unpaidLots.map((u) => (
                 <tr key={u.couvaison.id}>
                   <td className="px-6 py-3 font-medium text-brand-dark">{u.client?.nom || 'Inconnu'}</td>
+                  <td className="px-6 py-3 text-sm text-brand-dark">
+                    {format(parseISO(u.couvaison.dateReception), 'dd/MM/yyyy')}
+                  </td>
                   <td className="px-6 py-3 text-brand-muted">{u.couvaison.nombreOeufs} {u.couvaison.typeOeuf}s</td>
                   <td className="px-6 py-3 text-right">{u.totalDue.toLocaleString()} FCFA</td>
                   <td className="px-6 py-3 text-right text-green-700">{u.totalPaid.toLocaleString()} FCFA</td>
@@ -190,7 +298,7 @@ const Finances = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-brand-muted">Aucun impayé en cours.</td>
+                  <td colSpan={8} className="px-6 py-8 text-center text-brand-muted">Aucun impayé en cours.</td>
                 </tr>
               )}
             </tbody>
@@ -204,8 +312,9 @@ const Finances = () => {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="text-brand-gray font-semibold border-b border-brand-lightgray">
                <tr>
-                 <th className="px-6 py-4">Date</th>
+                 <th className="px-6 py-4">Date opération</th>
                  <th className="px-6 py-4">Client</th>
+                 <th className="px-6 py-4">Réception lot</th>
                  <th className="px-6 py-4">Lot Concerné</th>
                  <th className="px-6 py-4">Type</th>
                  <th className="px-6 py-4 text-right">Montant</th>
@@ -239,6 +348,9 @@ const Finances = () => {
                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
                      <td className="px-6 py-4 text-brand-muted">{format(parseISO(t.dateTransaction), 'dd/MM/yyyy HH:mm')}</td>
                      <td className="px-6 py-4 font-medium text-brand-dark">{client?.nom || 'Inconnu'}</td>
+                     <td className="px-6 py-4 text-sm text-brand-muted">
+                       {couv ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '—'}
+                     </td>
                      <td className="px-6 py-4 text-brand-muted">{couv ? `${couv.nombreOeufs} ${couv.typeOeuf}s` : 'Lot inconnu'}</td>
                      <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${badge.cls}`}>
@@ -254,9 +366,9 @@ const Finances = () => {
                      </td>
                    </tr>
                  );
-               }) : (
+               }               ) : (
                  <tr>
-                   <td colSpan={6} className="px-6 py-12 text-center text-brand-muted">
+                   <td colSpan={7} className="px-6 py-12 text-center text-brand-muted">
                      Aucune transaction enregistrée.
                    </td>
                  </tr>

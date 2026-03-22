@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X, Database } from 'lucide-react';
+import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X, Database, Landmark } from 'lucide-react';
 
 const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -16,6 +16,7 @@ const Layout = () => {
     { name: 'Parc Machines', path: '/machines', icon: <Server size={18} />, roles: ['Admin', 'Technicien'] },
     { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={18} />, roles: ['Admin', 'Technicien'] },
     { name: 'Finances', path: '/finances', icon: <DollarSign size={18} />, roles: ['Admin'] },
+    { name: 'Trésorerie', path: '/tresorerie', icon: <Landmark size={18} />, roles: ['Admin'] },
     { name: 'Factures', path: '/factures', icon: <FileText size={18} />, roles: ['Admin', 'Réception/Caisse'] },
     { name: 'Historique', path: '/historique', icon: <History size={18} />, roles: ['Admin'] },
     { name: 'Équipe & Accès', path: '/utilisateurs', icon: <Shield size={18} />, roles: ['Admin'] },

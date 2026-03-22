@@ -31,11 +31,23 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
     e.preventDefault();
 
     try {
+      const premierEnregistrementMirage = couv.oeufsClairs == null && couv.oeufsPourris == null;
+      const snapEmplacements =
+        couv.emplacements && couv.emplacements.length > 0
+          ? couv.emplacements.map((x) => ({ ...x }))
+          : [];
+
       await updateCouvaison(couvaisonId, {
         oeufsClairs: clairs,
         oeufsPourris: pourris,
         causeEchecMajeure:
           clairs + pourris > 0 && cause !== 'Aucune' ? cause : undefined,
+        ...(premierEnregistrementMirage
+          ? {
+              emplacementsAvantMirage: snapEmplacements,
+              emplacementsApresMirage: snapEmplacements,
+            }
+          : {}),
       });
       onSuccess();
     } catch (err) {
