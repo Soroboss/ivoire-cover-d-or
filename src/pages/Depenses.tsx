@@ -13,6 +13,7 @@ import {
   CalendarRange,
   X,
   Sparkles,
+  ScrollText,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppProvider';
 import type { CategorieDepense, Depense } from '../types';
@@ -203,6 +204,13 @@ const Depenses = () => {
             >
               <Landmark size={18} className="text-brand-orange" />
               Voir la trésorerie
+            </Link>
+            <Link
+              to="/bulletin-salaire"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-4 py-2.5 text-sm font-semibold text-brand-dark shadow-sm hover:bg-slate-50"
+            >
+              <ScrollText size={18} className="text-brand-orange" />
+              Bulletins de paie (CI)
             </Link>
             <button type="button" onClick={openCreate} className="btn-primary inline-flex items-center gap-2 py-2.5">
               <Plus size={18} />

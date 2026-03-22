@@ -5,6 +5,7 @@ import Couvaisons from './pages/Couvaisons';
 import Finances from './pages/Finances';
 import Tresorerie from './pages/Tresorerie';
 import Depenses from './pages/Depenses';
+import BulletinSalaire from './pages/BulletinSalaire';
 import Factures from './pages/Factures';
 import Machines from './pages/Machines';
 import Analyses from './pages/Analyses';
@@ -76,6 +77,12 @@ function App() {
             path="depenses"
             element={
               hasPermission(currentUser, 'finances') ? <Depenses /> : <Navigate to={homePath} replace />
+            }
+          />
+          <Route
+            path="bulletin-salaire"
+            element={
+              hasPermission(currentUser, 'finances') ? <BulletinSalaire /> : <Navigate to={homePath} replace />
             }
           />
           <Route

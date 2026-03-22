@@ -9,6 +9,7 @@ import type {
   ReceiptArchive,
   ClientMessage,
   Depense,
+  SalarieAgent,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
@@ -40,6 +41,10 @@ interface AppState {
   addDepense: (d: Omit<Depense, 'id' | 'createdAt'>) => Promise<void>;
   updateDepense: (id: string, updates: Partial<Omit<Depense, 'id' | 'createdAt'>>) => Promise<void>;
   deleteDepense: (id: string) => Promise<void>;
+  salaireAgents: SalarieAgent[];
+  addSalaireAgent: (a: Omit<SalarieAgent, 'id' | 'createdAt'>) => Promise<void>;
+  updateSalaireAgent: (id: string, updates: Partial<Omit<SalarieAgent, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteSalaireAgent: (id: string) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
 }
 
@@ -61,6 +66,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [machines, setMachines] = useState<Machine[]>([]);
 
   const [depenses, setDepenses] = useState<Depense[]>([]);
+
+  const [salaireAgents, setSalaireAgents] = useState<SalarieAgent[]>([]);
 
   // Charge les données depuis InsForge au démarrage.
   useEffect(() => {
@@ -147,6 +154,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const depRes = await callInsforgeFunction<{ depenses: Depense[] }>('depenses_list', {})
         setDepenses(depRes.depenses)
+      } catch {
+        // no-op
+      }
+
+      try {
+        const agRes = await callInsforgeFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {})
+        setSalaireAgents(agRes.agents)
       } catch {
         // no-op
       }
@@ -360,6 +374,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  const addSalaireAgent = async (a: Omit<SalarieAgent, 'id' | 'createdAt'>) => {
+    const res = await callInsforgeFunction<{ agent: SalarieAgent }>('salaire_agent_create', a)
+    if (!res.agent) {
+      throw new Error('Echec de création fiche salarié (salaire_agent_create).')
+    }
+    setSalaireAgents(prev => [...prev, res.agent].sort((x, y) => x.nom.localeCompare(y.nom, 'fr')))
+    addLog('CRÉATION', 'Salarié', `Fiche ${a.nom} — salaire brut ${a.salaireMensuelBrut.toLocaleString()} F.`)
+  }
+
+  const updateSalaireAgent = async (id: string, updates: Partial<Omit<SalarieAgent, 'id' | 'createdAt'>>) => {
+    const res = await callInsforgeFunction<{ agent: SalarieAgent }>('salaire_agent_update', { id, updates })
+    if (!res.agent) {
+      throw new Error('Echec de mise à jour fiche salarié (salaire_agent_update).')
+    }
+    setSalaireAgents(prev =>
+      prev.map(x => (x.id === id ? res.agent : x)).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')),
+    )
+    addLog('MODIFICATION', 'Salarié', `Mise à jour fiche ${res.agent.nom} (ID…${id.slice(-4)}).`)
+  }
+
+  const deleteSalaireAgent = async (id: string) => {
+    try {
+      await callInsforgeFunction<{ success: boolean }>('salaire_agent_delete', { id })
+      setSalaireAgents(prev => prev.filter(x => x.id !== id))
+      addLog('SUPPRESSION', 'Salarié', `Suppression fiche salarié ID…${id.slice(-4)}.`)
+    } catch {
+      throw new Error('Echec de suppression fiche salarié côté backend')
+    }
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -384,6 +428,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addDepense,
         updateDepense,
         deleteDepense,
+        salaireAgents,
+        addSalaireAgent,
+        updateSalaireAgent,
+        deleteSalaireAgent,
         addLog,
       }}
     >

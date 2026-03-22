@@ -194,3 +194,22 @@ export interface Depense {
   notes?: string;
   createdAt: string;
 }
+
+/**
+ * Fiche salarié : rémunération fixée par l’entrepreneur (préremplit le bulletin de paie).
+ * Le salaire mensuel est le brut contractuel convenu.
+ */
+export interface SalarieAgent {
+  id: string;
+  nom: string;
+  fonction?: string;
+  matricule?: string;
+  numeroCnps?: string;
+  salaireMensuelBrut: number;
+  primesDefaut: number;
+  autresGainsDefaut: number;
+  retenuesDiversesDefaut: number;
+  reductionChargesFamilleDefaut: number;
+  notes?: string;
+  createdAt: string;
+}
