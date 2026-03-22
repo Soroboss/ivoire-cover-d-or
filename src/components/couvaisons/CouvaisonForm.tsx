@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
+import { normalizeTelephone } from '../../lib/phoneNormalize';
 
 type LotLine = {
   id: string;
@@ -23,14 +24,6 @@ const emptyLine = (): LotLine => ({
 
 export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
   const { addCouvaisonsBatch, clients } = useAppContext();
-
-  const normalizeTelephone = (phone?: string) => {
-    if (!phone) return '';
-    let cleaned = phone.replace(/[^\d+]/g, '');
-    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
-    if (cleaned.length === 10) return '225' + cleaned;
-    return cleaned;
-  };
 
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
