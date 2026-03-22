@@ -1,26 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400..700;1,400..700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply scroll-smooth;
+  }
   body {
-    @apply bg-brand-lightgray text-brand-dark font-sans antialiased;
+    @apply bg-brand-lightgray text-brand-dark font-sans antialiased text-[15px] leading-relaxed;
+  }
+  ::selection {
+    @apply bg-brand-orange/20 text-brand-dark;
   }
 }
 
-/* Custom Webkit scrollbar for elegant modern look */
+@layer components {
+  .app-card {
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-soft;
+  }
+  .input-modern {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-brand-dark shadow-sm transition-all
+      placeholder:text-slate-400
+      focus:border-brand-orange/50 focus:outline-none focus:ring-4 focus:ring-brand-orange/15;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-brand-orange px-5 py-3 font-semibold text-white shadow-md
+      transition-all hover:bg-brand-hover hover:shadow-lg active:scale-[0.98]
+      focus:outline-none focus:ring-4 focus:ring-brand-orange/30;
+  }
+}
+
+@keyframes login-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-login-in {
+  animation: login-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Scrollbar discret, ton logo */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-brand-muted rounded-full;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-brand-gray;
+  @apply rounded-full bg-slate-300/80 hover:bg-brand-orange/35;
 }

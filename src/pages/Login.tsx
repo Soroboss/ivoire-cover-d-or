@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Lock, UserRound } from 'lucide-react';
 
 export const Login = () => {
   const { login } = useAuth();
@@ -10,70 +11,104 @@ export const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = await login(username, password)
+    const ok = await login(username, password);
     if (!ok) {
       setError('Identifiants incorrects ou compte désactivé.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-brand-lightgray flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-700">
-        <div className="bg-brand-dark p-8 text-center flex flex-col items-center">
-           <img
-             src={logoUrl}
-             alt="Logo Ivoire Couvée d’Or"
-             className="h-14 w-14 rounded-full bg-white/90 object-cover shadow-sm mb-3"
-             loading="eager"
-             decoding="async"
-           />
-           <h1 className="text-2xl font-bold text-white tracking-wide">IVOIRE COUVÉE D'OR</h1>
-           <p className="text-brand-gray text-sm mt-1 uppercase tracking-widest font-semibold">Système de Gestion</p>
-        </div>
-        
-        <div className="p-8">
-          <form onSubmit={handleLogin} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200 font-medium">
-                {error}
+    <div className="relative min-h-screen overflow-hidden bg-mesh-dark">
+      {/* Halos décoratifs (orange logo) */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-brand-orange/15 blur-3xl" />
+        <div className="absolute -right-20 bottom-1/4 h-96 w-96 rounded-full bg-brand-orange-glow/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.03%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-40" />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
+        <div className="animate-login-in w-full max-w-[440px]">
+          {/* Carte glass */}
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.07] shadow-glow-orange backdrop-blur-xl">
+            <div className="border-b border-white/10 px-8 pb-8 pt-10 text-center">
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-soft ring-4 ring-brand-orange/20">
+                <img
+                  src={logoUrl}
+                  alt="Logo Ivoire Couvée d’Or"
+                  className="h-16 w-16 rounded-xl object-cover"
+                  loading="eager"
+                  decoding="async"
+                />
               </div>
-            )}
-            
-            <div>
-              <label className="block text-sm font-semibold text-brand-dark mb-2">Identifiant ou Téléphone</label>
-              <input 
-                required 
-                type="text" 
-                value={username} 
-                onChange={e => setUsername(e.target.value)} 
-                className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-brand-orange outline-none bg-gray-50 focus:bg-white transition-colors"
-                placeholder="Ex: admin ou +225..."
-              />
+              <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
+                Ivoire Couvée d&apos;Or
+              </h1>
+              <p className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-white/55">
+                Espace professionnel
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-brand-dark mb-2">Mot de passe</label>
-              <input 
-                required 
-                type="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-brand-orange outline-none bg-gray-50 focus:bg-white transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
+            <div className="bg-white/95 px-8 py-8 backdrop-blur-sm sm:px-10">
+              <p className="mb-6 text-center text-sm text-slate-600">
+                Connectez-vous pour accéder à la gestion du couvoir.
+              </p>
 
-            <button 
-              type="submit" 
-              className="w-full py-3 bg-brand-orange text-white font-bold rounded-md hover:bg-brand-hover transition-colors shadow-sm"
-            >
-              Se Connecter
-            </button>
-          </form>
-          
-          <div className="mt-8 text-center">
-             <p className="text-xs text-brand-muted">Utilisez <strong>admin</strong> / <strong>admin</strong> lors du premier lancement, puis sécurisez votre espace.</p>
+              <form onSubmit={handleLogin} className="space-y-5">
+                {error && (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <UserRound className="h-4 w-4 text-brand-orange" aria-hidden />
+                    Identifiant ou téléphone
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="input-modern"
+                    placeholder="Nom d’utilisateur ou +225…"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <Lock className="h-4 w-4 text-brand-orange" aria-hidden />
+                    Mot de passe
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-modern"
+                    placeholder="Votre mot de passe"
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary mt-2 w-full py-3.5 text-base">
+                  Se connecter
+                </button>
+              </form>
+
+              <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
+                Connexion sécurisée · Données hébergées pour votre activité
+              </p>
+            </div>
           </div>
+
+          <p className="mt-8 text-center text-xs text-white/40">
+            © {new Date().getFullYear()} Ivoire Couvée d&apos;Or
+          </p>
         </div>
       </div>
     </div>

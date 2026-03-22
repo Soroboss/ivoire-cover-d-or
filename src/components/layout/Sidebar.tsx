@@ -1,6 +1,19 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, LogOut, BrainCircuit, Key, X, History, Database } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Egg,
+  DollarSign,
+  FileText,
+  Server,
+  Shield,
+  LogOut,
+  BrainCircuit,
+  Key,
+  X,
+  History,
+  Database,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppProvider';
 import { hasPermission } from '../../lib/permissions';
@@ -17,25 +30,25 @@ const Sidebar = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(newPassword !== confirmPassword) {
-      setAlertMsg("Les mots de passe ne correspondent pas.");
+    if (newPassword !== confirmPassword) {
+      setAlertMsg('Les mots de passe ne correspondent pas.');
       return;
     }
-    if(newPassword.length < 4) {
-      setAlertMsg("Le mot de passe doit faire au moins 4 caractères.");
+    if (newPassword.length < 4) {
+      setAlertMsg('Le mot de passe doit faire au moins 4 caractères.');
       return;
     }
-    if(currentUser) {
+    if (currentUser) {
       await updateUser(currentUser.id, { passwordHash: newPassword });
       addLog('MODIFICATION', 'Sécurité', `Mot de passe modifié par ${currentUser.nom}.`);
       setAlertMsg('');
       setIsProfileOpen(false);
       setNewPassword('');
       setConfirmPassword('');
-      alert("Votre mot de passe a été mis à jour avec succès.");
+      alert('Votre mot de passe a été mis à jour avec succès.');
     }
   };
-  
+
   const navItems: {
     name: string;
     path: string;
@@ -56,82 +69,124 @@ const Sidebar = () => {
   const visibleNav = navItems.filter((item) => hasPermission(currentUser, item.permission));
 
   return (
-    <aside className="w-64 bg-brand-dark text-white flex flex-col h-full hidden md:flex shadow-xl z-20">
-      <div className="h-16 flex items-center justify-center border-b border-brand-gray/30">
-        <div className="flex items-center gap-3">
+    <aside className="z-20 hidden h-screen min-h-0 w-64 shrink-0 flex-col border-r border-white/10 bg-gradient-to-b from-brand-dark via-brand-dark-mid to-brand-dark text-white shadow-xl md:flex">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md ring-2 ring-brand-orange/30">
           <img
             src={logoUrl}
             alt="Logo Ivoire Couvée d’Or"
-            className="h-9 w-9 rounded-full bg-white/90 object-cover shadow-sm"
+            className="h-full w-full object-cover"
             loading="eager"
             decoding="async"
           />
-          <h1 className="text-xl font-bold text-brand-orange uppercase tracking-wider leading-none">
+        </div>
+        <div className="min-w-0">
+          <h1 className="font-display truncate text-base font-bold uppercase tracking-wide text-white">
             Ivoire Couvée
           </h1>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-brand-orange/90">d&apos;Or</p>
         </div>
       </div>
-      <nav className="flex-1 py-6 space-y-2">
+
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {visibleNav.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center px-6 py-3 text-sm font-medium transition-all duration-200 ${
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-brand-gray text-brand-orange border-r-4 border-brand-orange shadow-inner'
-                  : 'text-brand-muted hover:bg-brand-gray/50 hover:text-white'
+                  ? 'bg-brand-orange/20 text-brand-orange shadow-inner ring-1 ring-brand-orange/35'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
               }`
             }
           >
-            <span className="mr-3">{item.icon}</span>
-            {item.name}
+            <span className="shrink-0 opacity-90">{item.icon}</span>
+            <span className="truncate">{item.name}</span>
           </NavLink>
         ))}
       </nav>
-      <div className="absolute bottom-0 w-full p-4 border-t border-brand-lightgray bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold uppercase">
+
+      <div className="shrink-0 border-t border-white/10 bg-gradient-to-t from-black/25 to-transparent p-3 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 shadow-inner ring-1 ring-white/5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-orange to-brand-hover text-sm font-bold uppercase text-white shadow-md ring-2 ring-white/10">
               {currentUser?.nom.charAt(0)}
             </div>
-            <div>
-              <p className="font-medium text-brand-dark truncate max-w-[120px]">{currentUser?.nom}</p>
-              <p className="text-xs text-brand-muted">{currentUser?.role}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold leading-tight text-white">{currentUser?.nom}</p>
+              <p className="mt-0.5 truncate text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                {currentUser?.role}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-0.5 rounded-xl bg-black/25 p-1 ring-1 ring-white/10">
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(true)}
+                className="rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-brand-orange"
+                title="Modifier le mot de passe"
+                aria-label="Modifier le mot de passe"
+              >
+                <Key size={17} strokeWidth={2} />
+              </button>
+              <span className="h-5 w-px shrink-0 bg-white/15" aria-hidden />
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-500/20 hover:text-red-200"
+                title="Se déconnecter"
+                aria-label="Se déconnecter"
+              >
+                <LogOut size={17} strokeWidth={2} />
+              </button>
             </div>
           </div>
-          <button onClick={() => setIsProfileOpen(true)} className="p-2 text-gray-400 hover:text-brand-orange hover:bg-orange-50 rounded-full transition-colors" title="Modifier mon mot de passe">
-            <Key size={18} />
-          </button>
         </div>
-        <button 
-          onClick={logout}
-          className="w-full flex items-center justify-center space-x-2 p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-        >
-          <LogOut size={20} />
-          <span>Déconnexion</span>
-        </button>
       </div>
 
       {isProfileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
-              <h3 className="font-bold text-brand-dark flex items-center gap-2"><Key size={18} className="text-brand-orange"/> Mon Profil</h3>
-              <button onClick={() => setIsProfileOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4">
+              <h3 className="flex items-center gap-2 font-display text-lg font-bold text-brand-dark">
+                <Key size={18} className="text-brand-orange" /> Mon profil
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-200 hover:text-red-600"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
-              {alertMsg && <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md">{alertMsg}</div>}
+            <form onSubmit={handlePasswordChange} className="space-y-4 p-6">
+              {alertMsg && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                  {alertMsg}
+                </div>
+              )}
               <div>
-                 <label className="block text-sm font-semibold text-brand-dark mb-1">Nouveau mot de passe</label>
-                 <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none" />
+                <label className="mb-1 block text-sm font-semibold text-brand-dark">Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-modern"
+                />
               </div>
               <div>
-                 <label className="block text-sm font-semibold text-brand-dark mb-1">Confirmer mot de passe</label>
-                 <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none" />
+                <label className="mb-1 block text-sm font-semibold text-brand-dark">Confirmer le mot de passe</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-modern"
+                />
               </div>
-              <button type="submit" className="w-full py-2 bg-brand-orange text-white rounded-md font-bold hover:bg-brand-hover transition-colors shadow-sm">
-                 Mettre à jour
+              <button type="submit" className="btn-primary w-full py-2.5">
+                Mettre à jour
               </button>
             </form>
           </div>

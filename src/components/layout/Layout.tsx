@@ -23,27 +23,33 @@ const Layout = () => {
   const visibleNav = navItems.filter(item => item.roles.includes(currentUser?.role || 'Admin'));
 
   return (
-    <div className="flex h-screen bg-brand-lightgray overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-mesh-app">
       <Sidebar />
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute left-0 top-0 h-full w-72 bg-brand-dark text-white shadow-xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-brand-orange">Navigation</h3>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 rounded hover:bg-brand-gray/50">
-                <X size={20} />
+          <div className="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-[min(20rem,92vw)] border-r border-white/10 bg-gradient-to-b from-brand-dark to-brand-dark-mid p-4 text-white shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="font-display text-lg font-bold text-brand-orange">Menu</h3>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="rounded-lg p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X size={22} />
               </button>
             </div>
-            <nav className="space-y-2">
+            <nav className="space-y-1">
               {visibleNav.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
-                      isActive ? 'bg-brand-gray text-brand-orange' : 'text-brand-muted hover:bg-brand-gray/50 hover:text-white'
+                    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-brand-orange/20 text-brand-orange ring-1 ring-brand-orange/30'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     }`
                   }
                 >
@@ -55,10 +61,12 @@ const Layout = () => {
           </div>
         </div>
       )}
-      <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-        <main className="w-full flex-grow p-3 sm:p-4 md:p-6">
-          <Outlet />
+        <main className="w-full flex-grow p-3 sm:p-5 md:p-8">
+          <div className="mx-auto max-w-[1600px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
