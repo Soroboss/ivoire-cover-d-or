@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Client, Couvaison, Transaction } from '../types';
+import type { Client, Couvaison, Depense, Transaction } from '../types';
 import { TYPE_TX_LABEL } from './financeCalculations';
 
 export type TreasuryMovement = {
@@ -34,39 +34,63 @@ export function buildTreasuryMovements(
   transactions: Transaction[],
   clients: Client[],
   couvaisons: Couvaison[],
+  depenses: Depense[] = [],
 ): TreasuryMovement[] {
   const clientName = (id: string) => clients.find((c) => c.id === id)?.nom ?? '—';
 
-  return transactions
-    .map((t) => {
-      const entree = t.typeTransaction === 'Paiement' ? t.montantTotal : 0;
-      const sortie = t.typeTransaction === 'Deduction' ? t.montantTotal : 0;
-      const ajust =
-        t.typeTransaction === 'Avoir' || t.typeTransaction === 'Remise' ? t.montantTotal : 0;
-      const impact = entree - sortie;
+  const txMovements = transactions.map((t) => {
+    const entree = t.typeTransaction === 'Paiement' ? t.montantTotal : 0;
+    const sortie = t.typeTransaction === 'Deduction' ? t.montantTotal : 0;
+    const ajust =
+      t.typeTransaction === 'Avoir' || t.typeTransaction === 'Remise' ? t.montantTotal : 0;
+    const impact = entree - sortie;
 
-      return {
-        id: t.id,
-        dateIso: t.dateTransaction,
-        reference: `TX-${t.id.slice(0, 8).toUpperCase()}`,
-        clientId: t.clientId,
-        clientName: clientName(t.clientId),
-        couvaisonId: t.couvaisonId,
-        lotLabel: lotLabel(couvaisons, t.couvaisonId),
-        typeTransaction: t.typeTransaction,
-        typeLabel: TYPE_TX_LABEL[t.typeTransaction],
-        entreeCaisse: entree,
-        sortieCaisse: sortie,
-        ajustementCreance: ajust,
-        impactCaisseNet: impact,
-        notes: t.notes,
-      } satisfies TreasuryMovement;
-    })
-    .sort((a, b) => new Date(a.dateIso).getTime() - new Date(b.dateIso).getTime());
+    return {
+      id: t.id,
+      dateIso: t.dateTransaction,
+      reference: `TX-${t.id.slice(0, 8).toUpperCase()}`,
+      clientId: t.clientId,
+      clientName: clientName(t.clientId),
+      couvaisonId: t.couvaisonId,
+      lotLabel: lotLabel(couvaisons, t.couvaisonId),
+      typeTransaction: t.typeTransaction,
+      typeLabel: TYPE_TX_LABEL[t.typeTransaction],
+      entreeCaisse: entree,
+      sortieCaisse: sortie,
+      ajustementCreance: ajust,
+      impactCaisseNet: impact,
+      notes: t.notes,
+    } satisfies TreasuryMovement;
+  });
+
+  const depMovements = depenses.map((d) => ({
+    id: d.id,
+    dateIso: d.dateDepense,
+    reference: `DEP-${d.id.slice(0, 8).toUpperCase()}`,
+    clientId: 'INTERNAL',
+    clientName: '—',
+    couvaisonId: 'INTERNAL',
+    lotLabel: `Dépense: ${d.categorie}`,
+    typeTransaction: 'Deduction' as Transaction['typeTransaction'],
+    typeLabel: 'Charge / Dépense',
+    entreeCaisse: 0,
+    sortieCaisse: d.montant,
+    ajustementCreance: 0,
+    impactCaisseNet: -d.montant,
+    notes: d.libelle + (d.notes ? ` (${d.notes})` : ''),
+  }) satisfies TreasuryMovement);
+
+  return [...txMovements, ...depMovements].sort(
+    (a, b) => new Date(a.dateIso).getTime() - new Date(b.dateIso).getTime(),
+  );
 }
 
 /** Solde caisse cumulé avant une date (flux réels uniquement : paiements − déductions). */
-export function soldeCaisseAvantDate(transactions: Transaction[], beforeIso: string): number {
+export function soldeCaisseAvantDate(
+  transactions: Transaction[],
+  beforeIso: string,
+  depenses: Depense[] = [],
+): number {
   const t0 = new Date(beforeIso).getTime();
   let s = 0;
   for (const t of transactions) {
@@ -74,7 +98,11 @@ export function soldeCaisseAvantDate(transactions: Transaction[], beforeIso: str
     if (t.typeTransaction === 'Paiement') s += t.montantTotal;
     else if (t.typeTransaction === 'Deduction') s -= t.montantTotal;
   }
-  return Math.max(0, s);
+  for (const d of depenses) {
+    if (new Date(d.dateDepense).getTime() >= t0) continue;
+    s -= d.montant;
+  }
+  return s;
 }
 
 export type TreasuryLineWithBalance = TreasuryMovement & { soldeCaisseCumule: number };

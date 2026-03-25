@@ -47,8 +47,8 @@ const Tresorerie = () => {
   const [dateTo, setDateTo] = useState(defaultTo);
 
   const movementsAll = useMemo(
-    () => buildTreasuryMovements(transactions, clients, couvaisons),
-    [transactions, clients, couvaisons],
+    () => buildTreasuryMovements(transactions, clients, couvaisons, depenses),
+    [transactions, clients, couvaisons, depenses],
   );
 
   const movementsFiltered = useMemo(() => {
@@ -61,8 +61,8 @@ const Tresorerie = () => {
   }, [movementsAll, dateFrom, dateTo]);
 
   const soldeInitial = useMemo(
-    () => soldeCaisseAvantDate(transactions, startOfDayIso(dateFrom)),
-    [transactions, dateFrom],
+    () => soldeCaisseAvantDate(transactions, startOfDayIso(dateFrom), depenses),
+    [transactions, depenses, dateFrom],
   );
 
   const linesWithBalance = useMemo(

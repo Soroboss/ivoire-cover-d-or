@@ -120,8 +120,18 @@ const Depenses = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const montant = Number(String(form.montant).replace(/\s/g, '').replace(',', '.'));
-    if (!form.libelle.trim() || Number.isNaN(montant) || montant < 0) return;
+    const cleanMontant = String(form.montant).replace(/\s/g, '').replace(',', '.');
+    const montant = Number(cleanMontant);
+    
+    if (!form.libelle.trim()) {
+      alert('Le libellé est requis.');
+      return;
+    }
+    if (Number.isNaN(montant) || montant < 0) {
+      alert('Montant invalide.');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -138,6 +148,9 @@ const Depenses = () => {
       }
       setModalOpen(false);
       setForm(emptyForm());
+    } catch (err) {
+      console.error('Erreur lors de l’enregistrement:', err);
+      alert(err instanceof Error ? err.message : 'Une erreur est survenue lors de l’enregistrement.');
     } finally {
       setSaving(false);
     }
