@@ -16,6 +16,8 @@ import {
   Sparkles,
   Wallet,
   Target,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +33,7 @@ import {
   Pie,
   Cell,
   Legend,
+  ComposedChart,
 } from 'recharts';
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, isPast, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -39,6 +42,8 @@ import {
   buildEclosionRateSeries,
   buildEggTypePercentByPeriod,
   buildMonthlyPaymentSeries,
+  buildMonthlyExpenseSeries,
+  buildComparisonSeries,
   clientEclosionSummary,
 } from '../lib/dashboardStats';
 import { hasPermission } from '../lib/permissions';
@@ -116,7 +121,7 @@ const EmptyChart = ({ children }: { children: React.ReactNode }) => (
 );
 
 const Dashboard = () => {
-  const { couvaisons, transactions, clients, machines } = useAppContext();
+  const { couvaisons, transactions, clients, machines, depenses } = useAppContext();
   const { currentUser } = useAuth();
   const isCaisse = currentUser?.role === 'Réception/Caisse';
 
@@ -172,6 +177,29 @@ const Dashboard = () => {
     .filter((t) => isThisYear(parseISO(t.dateTransaction)))
     .reduce((acc, t) => acc + t.montantTotal, 0);
 
+  const scopedDepenses = useMemo(() => {
+    // Les dépenses ne sont pas liées aux clients, mais on peut les filtrer par période si besoin.
+    // Pour l'instant on prend tout ou on pourrait filtrer par date si le dashboard avait un range.
+    return depenses;
+  }, [depenses]);
+
+  const totalExpenses = scopedDepenses.reduce((acc, d) => acc + d.montant, 0);
+  const todayExpenses = scopedDepenses
+    .filter((d) => isToday(parseISO(d.dateDepense)))
+    .reduce((acc, d) => acc + d.montant, 0);
+  const weekExpenses = scopedDepenses
+    .filter((d) => isThisWeek(parseISO(d.dateDepense), { weekStartsOn: 1 }))
+    .reduce((acc, d) => acc + d.montant, 0);
+  const monthExpenses = scopedDepenses
+    .filter((d) => isThisMonth(parseISO(d.dateDepense)))
+    .reduce((acc, d) => acc + d.montant, 0);
+  const yearExpenses = scopedDepenses
+    .filter((d) => isThisYear(parseISO(d.dateDepense)))
+    .reduce((acc, d) => acc + d.montant, 0);
+
+  const netCaisseToday = todayRevenue - todayExpenses;
+  const netCaisseMonth = monthRevenue - monthExpenses;
+
   const eggsByType = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredCouvaisons.forEach((c) => {
@@ -179,6 +207,11 @@ const Dashboard = () => {
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredCouvaisons]);
+
+  const comparisonSeries = useMemo(
+    () => buildComparisonSeries(scopedTransactions, scopedDepenses),
+    [scopedTransactions, scopedDepenses],
+  );
 
   const todayAlerts = couvaisons
     .filter((c) => c.statut === 'En cours')
@@ -210,6 +243,15 @@ const Dashboard = () => {
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredCouvaisons]);
+
+  const expensesByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    scopedDepenses.forEach((d) => {
+      const cat = d.categorie || 'Autre';
+      counts[cat] = (counts[cat] || 0) + d.montant;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [scopedDepenses]);
 
   const canFinances = currentUser && hasPermission(currentUser, 'finances');
   const canMachines = currentUser && hasPermission(currentUser, 'machines');
@@ -459,28 +501,32 @@ const Dashboard = () => {
           {canFinances && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <KpiCard
-                title="Recettes jour"
-                value={`${todayRevenue.toLocaleString()} F`}
+                title="Caisse Nette Jour"
+                value={`${netCaisseToday.toLocaleString()} F`}
+                subtitle={`Reçus: ${todayRevenue.toLocaleString()} / Dép: ${todayExpenses.toLocaleString()}`}
                 icon={<Wallet size={20} />}
-                variant="emerald"
+                variant={netCaisseToday >= 0 ? 'emerald' : 'orange'}
               />
               <KpiCard
-                title="Recettes semaine"
-                value={`${weekRevenue.toLocaleString()} F`}
+                title="Caisse Nette Mois"
+                value={`${netCaisseMonth.toLocaleString()} F`}
+                subtitle={`Reçus: ${monthRevenue.toLocaleString()} / Dép: ${monthExpenses.toLocaleString()}`}
                 icon={<TrendingUp size={20} />}
-                variant="emerald"
+                variant={netCaisseMonth >= 0 ? 'violet' : 'orange'}
               />
               <KpiCard
-                title="Recettes mois"
-                value={`${monthRevenue.toLocaleString()} F`}
-                icon={<TrendingUp size={20} />}
-                variant="violet"
-              />
-              <KpiCard
-                title="Recettes année"
-                value={`${yearRevenue.toLocaleString()} F`}
-                icon={<TrendingUp size={20} />}
+                title="Total Dépenses"
+                value={`${totalExpenses.toLocaleString()} F`}
+                subtitle="Hors flux clients"
+                icon={<ArrowDownCircle size={20} />}
                 variant="orange"
+              />
+              <KpiCard
+                title="Chiffre d'affaires"
+                value={`${totalRevenue.toLocaleString()} F`}
+                subtitle="Ventes brutes"
+                icon={<ArrowUpCircle size={20} />}
+                variant="emerald"
               />
             </div>
           )}
@@ -608,7 +654,7 @@ const Dashboard = () => {
                             paddingAngle={4}
                             dataKey="value"
                           >
-                            {failureCauses.map((_, index) => (
+                            {failureCauses.map((_: any, index: number) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
@@ -624,35 +670,63 @@ const Dashboard = () => {
                     </ResponsiveContainer>
                   </div>
                 </ChartCard>
+
+                <ChartCard title="Répartition des Dépenses" subtitle="Par catégorie (FCFA)">
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {expensesByCategory.length > 0 ? (
+                        <PieChart>
+                          <Pie
+                            data={expensesByCategory}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={52}
+                            outerRadius={78}
+                            paddingAngle={4}
+                            dataKey="value"
+                            nameKey="name"
+                          >
+                            {expensesByCategory.map((_: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: any) => [`${Number(value).toLocaleString()} FCFA`, 'Montant']}
+                            contentStyle={tooltipStyle}
+                          />
+                          <Legend verticalAlign="bottom" height={40} iconType="circle" />
+                        </PieChart>
+                      ) : (
+                        <EmptyChart>Aucune dépense enregistrée</EmptyChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </ChartCard>
               </div>
 
               {canFinances && (
                 <ChartCard
-                  title="Évolution des encaissements"
-                  subtitle="Net mensuel (paiements − déductions) — FCFA"
+                  title="Performance Financière Mensuelle"
+                  subtitle="Comparaison Recettes vs Dépenses vs Net (FCFA)"
                 >
-                  <div className="h-72">
+                  <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      {revenueSeries.length > 0 ? (
-                        <LineChart data={revenueSeries}>
+                      {comparisonSeries.length > 0 ? (
+                        <ComposedChart data={comparisonSeries}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} width={88} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} width={80} />
                           <Tooltip
-                            formatter={(value) => [`${Number(value ?? 0).toLocaleString()} FCFA`, 'Net']}
+                            formatter={(value) => [`${Number(value ?? 0).toLocaleString()} FCFA`, '']}
                             contentStyle={tooltipStyle}
                           />
-                          <Line
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#EA580C"
-                            strokeWidth={3}
-                            dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                            activeDot={{ r: 6 }}
-                          />
-                        </LineChart>
+                          <Legend />
+                          <Bar dataKey="recettes" fill="#16a34a" name="Recettes" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="depenses" fill="#ef4444" name="Dépenses" radius={[4, 4, 0, 0]} />
+                          <Line type="monotone" dataKey="net" stroke="#ea580c" strokeWidth={3} name="Solde Net" dot={{ r: 4 }} />
+                        </ComposedChart>
                       ) : (
-                        <EmptyChart>Aucun paiement enregistré</EmptyChart>
+                        <EmptyChart>Aucune donnée financière disponible</EmptyChart>
                       )}
                     </ResponsiveContainer>
                   </div>

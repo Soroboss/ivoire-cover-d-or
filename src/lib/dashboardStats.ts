@@ -155,6 +155,58 @@ export function buildMonthlyPaymentSeries(transactions: Transaction[]): { name: 
     }));
 }
 
+/** Dépenses cumulées par mois */
+export function buildMonthlyExpenseSeries(depenses: any[]): { name: string; value: number }[] {
+  const map = new Map<string, number>();
+  for (const d of depenses) {
+    const date = parseISO(d.dateDepense);
+    if (Number.isNaN(date.getTime())) continue;
+    const m = format(date, 'yyyy-MM');
+    map.set(m, (map.get(m) || 0) + d.montant);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => ({
+      name: format(parseISO(`${k}-01`), 'MMM yyyy', { locale: fr }),
+      value: v,
+    }));
+}
+
+/** Comparaison Recettes vs Dépenses par mois */
+export function buildComparisonSeries(transactions: Transaction[], depenses: any[]): { name: string; recettes: number; depenses: number; net: number }[] {
+  const revenueMap = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.typeTransaction !== 'Paiement' && t.typeTransaction !== 'Deduction') continue;
+    const d = parseISO(t.dateTransaction);
+    if (Number.isNaN(d.getTime())) continue;
+    const m = format(d, 'yyyy-MM');
+    const delta = t.typeTransaction === 'Paiement' ? t.montantTotal : -t.montantTotal;
+    revenueMap.set(m, (revenueMap.get(m) || 0) + delta);
+  }
+
+  const expenseMap = new Map<string, number>();
+  for (const de of depenses) {
+    const date = parseISO(de.dateDepense);
+    if (Number.isNaN(date.getTime())) continue;
+    const m = format(date, 'yyyy-MM');
+    expenseMap.set(m, (expenseMap.get(m) || 0) + de.montant);
+  }
+
+  const allMonths = new Set([...revenueMap.keys(), ...expenseMap.keys()]);
+  return Array.from(allMonths)
+    .sort()
+    .map((m) => {
+      const rec = revenueMap.get(m) || 0;
+      const dep = expenseMap.get(m) || 0;
+      return {
+        name: format(parseISO(`${m}-01`), 'MMM yyyy', { locale: fr }),
+        recettes: rec,
+        depenses: dep,
+        net: rec - dep,
+      };
+    });
+}
+
 /** Stats client : lots terminés, taux global */
 export function clientEclosionSummary(couvaisons: Couvaison[]) {
   const done = couvaisons.filter((c) => c.statut === 'Terminé' && c.nombreOeufs > 0);

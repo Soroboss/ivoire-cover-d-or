@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Phone, User, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Phone, User, X, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import type { TypeTransaction } from '../../types';
 import { normalizeTelephone } from '../../lib/phoneNormalize';
@@ -7,22 +7,32 @@ import {
   netPayeLot,
   resteLot,
   sumAvoirsRemisesLot,
-  sumDeductionsLot,
-  sumPaiementsLot,
-  TYPE_TX_LABEL,
 } from '../../lib/financeCalculations';
+import { format, parseISO } from 'date-fns';
+
+interface LotInfo {
+  id: string;
+  clientId: string;
+  nombreOeufs: number;
+  prixUnitaire: number;
+  dateReception: string;
+  statut: string;
+  totalDue: number;
+  netEncashed: number;
+  credits: number;
+  balance: number;
+  typeOeuf: string;
+}
 
 export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
   const { couvaisons, clients, addTransaction, transactions } = useAppContext();
 
   const [phoneSearch, setPhoneSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [couvaisonId, setCouvaisonId] = useState('');
+  const [selectedLotIds, setSelectedLotIds] = useState<string[]>([]);
   const [montant, setMontant] = useState<number | ''>('');
   const [type, setType] = useState<TypeTransaction>('Paiement');
   const [notes, setNotes] = useState('');
-
-  const prevClientIdRef = useRef<string | null | undefined>(undefined);
 
   const selectedClient = useMemo(
     () => (selectedClientId ? clients.find((c) => c.id === selectedClientId) : undefined),
@@ -56,29 +66,49 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
     }
   }, [phoneSearch, clients, selectedClientId]);
 
-  const lotsForClient = useMemo(() => {
-    if (!selectedClientId) return couvaisons;
-    return couvaisons.filter((c) => c.clientId === selectedClientId);
-  }, [couvaisons, selectedClientId]);
+  /** Détails financiers de tous les lots du client sélectionné. */
+  const clientLotsWithInfo: LotInfo[] = useMemo(() => {
+    if (!selectedClientId) return [];
+    return couvaisons
+      .filter((c) => c.clientId === selectedClientId)
+      .map((c) => {
+        const totalDue = c.nombreOeufs * c.prixUnitaire;
+        const netEncashed = netPayeLot(transactions, c.id);
+        const credits = sumAvoirsRemisesLot(transactions, c.id);
+        const balance = resteLot(transactions, c.id, totalDue);
+        return { 
+          id: c.id,
+          clientId: c.clientId,
+          nombreOeufs: c.nombreOeufs,
+          prixUnitaire: c.prixUnitaire,
+          dateReception: c.dateReception,
+          statut: c.statut,
+          typeOeuf: c.typeOeuf,
+          totalDue, 
+          netEncashed, 
+          credits, 
+          balance 
+        };
+      })
+      .sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
+  }, [couvaisons, transactions, selectedClientId]);
 
-  /** Quand le client choisi change : préremplir le lot le plus récent (réception). */
+  /** Gérer la sélection automatique et obligatoire. */
   useEffect(() => {
-    if (prevClientIdRef.current === selectedClientId) return;
-    prevClientIdRef.current = selectedClientId;
-
     if (!selectedClientId) {
-      setCouvaisonId('');
+      setSelectedLotIds([]);
       return;
     }
-    const lots = couvaisons
-      .filter((c) => c.clientId === selectedClientId)
-      .sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
-    if (lots.length > 0) {
-      setCouvaisonId(lots[0].id);
-    } else {
-      setCouvaisonId('');
+    // Sélectionne par défaut les lots terminés non soldés et le lot le plus récent.
+    const mustSettle = clientLotsWithInfo.filter((l) => l.statut === 'Terminé' && l.balance > 0).map((l) => l.id);
+    if (mustSettle.length > 0) {
+      setSelectedLotIds(mustSettle);
+    } else if (clientLotsWithInfo.length > 0) {
+      // Si aucun lot terminé, on prend le plus récent qui n'est pas soldé.
+      const unresolved = clientLotsWithInfo.find((l) => l.balance > 0);
+      if (unresolved) setSelectedLotIds([unresolved.id]);
     }
-  }, [selectedClientId, couvaisons]);
+  }, [selectedClientId, clientLotsWithInfo]);
 
   const selectClient = (id: string, telephoneDisplay: string) => {
     setSelectedClientId(id);
@@ -88,79 +118,88 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
   const clearClientFilter = () => {
     setSelectedClientId(null);
     setPhoneSearch('');
-    setCouvaisonId('');
-    prevClientIdRef.current = undefined;
+    setSelectedLotIds([]);
   };
 
-  const selectedCouv = couvaisons.find((c) => c.id === couvaisonId);
-  const totalDue = selectedCouv ? selectedCouv.nombreOeufs * selectedCouv.prixUnitaire : 0;
+  const toggleLot = (id: string) => {
+    setSelectedLotIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
-  const brutPaye = useMemo(
-    () => (couvaisonId ? sumPaiementsLot(transactions, couvaisonId) : 0),
-    [transactions, couvaisonId],
-  );
-  const totalDeduction = useMemo(
-    () => (couvaisonId ? sumDeductionsLot(transactions, couvaisonId) : 0),
-    [transactions, couvaisonId],
-  );
-  const netPaye = useMemo(
-    () => (couvaisonId ? netPayeLot(transactions, couvaisonId) : 0),
-    [transactions, couvaisonId],
-  );
-  const avoirRemise = useMemo(
-    () => (couvaisonId ? sumAvoirsRemisesLot(transactions, couvaisonId) : 0),
-    [transactions, couvaisonId],
-  );
-  const resteAPayer = useMemo(
-    () => (couvaisonId && selectedCouv ? resteLot(transactions, couvaisonId, totalDue) : 0),
-    [transactions, couvaisonId, totalDue, selectedCouv],
-  );
+  const totalBalanceSelected = useMemo(() => {
+    return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.balance, 0);
+  }, [clientLotsWithInfo, selectedLotIds]);
+
+  const totalNetEncashedSelected = useMemo(() => {
+    return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.netEncashed, 0);
+  }, [clientLotsWithInfo, selectedLotIds]);
 
   const valMontant = typeof montant === 'number' ? montant : 0;
 
+  /** Règle : tous les lots "Terminé" avec un reste à payer doivent être sélectionnés. */
+  const mandatoryLotsUnselected = useMemo(() => {
+    return clientLotsWithInfo.filter((l) => l.statut === 'Terminé' && l.balance > 0 && !selectedLotIds.includes(l.id));
+  }, [clientLotsWithInfo, selectedLotIds]);
+
   const canSubmit = useMemo(() => {
-    if (!selectedCouv || montant === '' || valMontant <= 0) return false;
-    if (type === 'Paiement') return resteAPayer > 0 && valMontant <= resteAPayer;
-    if (type === 'Deduction') return netPaye > 0 && valMontant <= netPaye;
-    if (type === 'Avoir' || type === 'Remise') return resteAPayer > 0 && valMontant <= resteAPayer;
+    if (selectedLotIds.length === 0 || montant === '' || valMontant <= 0) return false;
+    if (mandatoryLotsUnselected.length > 0) return false;
+
+    if (type === 'Paiement') return valMontant <= totalBalanceSelected;
+    if (type === 'Deduction') return valMontant <= totalNetEncashedSelected;
+    if (type === 'Avoir' || type === 'Remise') return valMontant <= totalBalanceSelected;
     return false;
-  }, [selectedCouv, montant, valMontant, type, resteAPayer, netPaye]);
+  }, [selectedLotIds, montant, valMontant, type, totalBalanceSelected, totalNetEncashedSelected, mandatoryLotsUnselected]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCouv || !canSubmit) return;
+    if (!canSubmit) return;
 
-    let np = netPaye;
-    let nc = avoirRemise;
-    if (type === 'Paiement') np += valMontant;
-    else if (type === 'Deduction') np -= valMontant;
-    else if (type === 'Avoir' || type === 'Remise') nc += valMontant;
-
-    const newReste = Math.max(0, totalDue - np - nc);
+    let remainingAmount = valMontant;
+    const selectedLotsData = clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id));
+    
+    // Trier : Terminés d'abord, puis par date (les plus anciens d'abord pour solder le passif).
+    const sortedLots = [...selectedLotsData].sort((a: LotInfo, b: LotInfo) => {
+      if (a.statut === 'Terminé' && b.statut !== 'Terminé') return -1;
+      if (a.statut !== 'Terminé' && b.statut === 'Terminé') return 1;
+      return new Date(a.dateReception).getTime() - new Date(b.dateReception).getTime();
+    });
 
     try {
-      await addTransaction({
-        couvaisonId,
-        clientId: selectedCouv.clientId,
-        montantTotal: valMontant,
-        acomptesVerses: np,
-        resteAPayer: newReste,
-        dateTransaction: new Date().toISOString(),
-        typeTransaction: type,
-        notes,
-      });
+      for (const lot of sortedLots) {
+        if (remainingAmount <= 0) break;
+
+        let amountToApply = 0;
+        if (type === 'Paiement' || type === 'Avoir' || type === 'Remise') {
+          amountToApply = Math.min(remainingAmount, lot.balance);
+        } else if (type === 'Deduction') {
+          amountToApply = Math.min(remainingAmount, lot.netEncashed);
+        }
+
+        if (amountToApply > 0) {
+          const np = lot.netEncashed + (type === 'Paiement' ? amountToApply : type === 'Deduction' ? -amountToApply : 0);
+          const nr = lot.credits + (type === 'Avoir' || type === 'Remise' ? amountToApply : 0);
+          const newReste = Math.max(0, lot.totalDue - np - nr);
+
+          await addTransaction({
+            couvaisonId: lot.id,
+            clientId: lot.clientId,
+            montantTotal: amountToApply,
+            acomptesVerses: np,
+            resteAPayer: newReste,
+            dateTransaction: new Date().toISOString(),
+            typeTransaction: type,
+            notes: notes || (selectedLotIds.length > 1 ? `Paiement groupé (${selectedLotIds.length} lots)` : undefined),
+          });
+          remainingAmount -= amountToApply;
+        }
+      }
       onSuccess();
     } catch (err) {
       alert((err as Error).message || 'Erreur lors de l’enregistrement');
     }
   };
 
-  const maxMontant =
-    type === 'Deduction'
-      ? netPaye
-      : type === 'Paiement' || type === 'Avoir' || type === 'Remise'
-        ? resteAPayer
-        : undefined;
+  const maxMontant = type === 'Deduction' ? totalNetEncashedSelected : totalBalanceSelected;
 
   const showSuggestions = phoneSearch.trim().length >= 2 && matchingClients.length > 0 && !selectedClient;
 
@@ -168,21 +207,21 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
     <div className="app-card mx-auto mt-4 max-w-lg p-6">
       <h2 className="mb-2 font-display text-xl font-bold text-brand-dark">Nouvelle opération</h2>
       <p className="mb-6 text-xs text-brand-muted">
-        <strong>Paiement</strong> encaisse, <strong>Déduction</strong> retire de l&apos;argent déjà payé (ex. carton à
-        crédit), <strong>Avoir</strong> et <strong>Remise</strong> réduisent le montant dû.
+        <strong>Paiement</strong> encaisse, <strong>Déduction</strong> retire de l&apos;argent déjà payé, 
+        <strong>Avoir/Remise</strong> réduisent le montant dû.
       </p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Recherche client par téléphone */}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Recherche client */}
         <div className="relative">
           <label className="mb-1 flex items-center gap-2 text-sm font-medium text-brand-muted">
             <Phone className="h-4 w-4 text-brand-orange" aria-hidden />
-            Rechercher le client (téléphone)
+            Client (téléphone)
           </label>
           <div className="relative">
             <input
               type="text"
               inputMode="tel"
-              autoComplete="tel"
               value={phoneSearch}
               onChange={(e) => {
                 setPhoneSearch(e.target.value);
@@ -193,16 +232,14 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
                   }
                 }
               }}
-              placeholder="Ex. 07 XX XX XX XX ou +225…"
+              placeholder="Chercher par téléphone..."
               className="input-modern"
             />
             {selectedClient && (
               <button
                 type="button"
                 onClick={clearClientFilter}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-dark"
-                title="Effacer le client"
-                aria-label="Effacer le client"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
               >
                 <X size={18} />
               </button>
@@ -210,23 +247,19 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
           </div>
 
           {showSuggestions && (
-            <ul
-              className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-              role="listbox"
-            >
-              {matchingClients.map((c) => (
+            <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+              {matchingClients.map((c: any) => (
                 <li key={c.id}>
                   <button
                     type="button"
-                    role="option"
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-brand-cream"
                     onClick={() => selectClient(c.id, c.telephone)}
                   >
-                    <User className="h-4 shrink-0 text-brand-orange opacity-80" />
-                    <span>
-                      <span className="font-semibold text-brand-dark">{c.nom}</span>
-                      <span className="block text-xs text-brand-muted">{c.telephone}</span>
-                    </span>
+                    <User className="h-4 text-brand-orange" />
+                    <div>
+                      <div className="font-semibold text-brand-dark">{c.nom}</div>
+                      <div className="text-xs text-brand-muted">{c.telephone}</div>
+                    </div>
                   </button>
                 </li>
               ))}
@@ -235,123 +268,166 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
         </div>
 
         {selectedClient && (
-          <div className="flex items-center gap-2 rounded-xl border border-brand-orange/25 bg-brand-cream/80 px-3 py-2.5 text-sm">
-            <span className="font-medium text-brand-dark">{selectedClient.nom}</span>
-            <span className="text-brand-muted">·</span>
-            <span className="text-brand-gray">{selectedClient.telephone}</span>
+          <div className="rounded-xl border border-brand-orange/25 bg-brand-cream/80 px-3 py-2 text-sm font-medium text-brand-dark">
+            {selectedClient.nom} · {selectedClient.telephone}
           </div>
         )}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-brand-muted">Lot de couvaison</label>
-          <select
-            required
-            value={couvaisonId}
-            onChange={(e) => setCouvaisonId(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm focus:outline-none focus:ring-4 focus:ring-brand-orange/15"
-          >
-            <option value="">{selectedClientId ? '-- Choisir un lot --' : '-- Sélectionnez un lot (ou cherchez un client) --'}</option>
-            {lotsForClient.map((c) => {
-              const client = clients.find((cl) => cl.id === c.clientId);
-              return (
-                <option key={c.id} value={c.id}>
-                  {client?.nom} — {c.nombreOeufs} {c.typeOeuf}s ({c.statut})
-                </option>
-              );
-            })}
-          </select>
-          {selectedClientId && lotsForClient.length === 0 && (
-            <p className="mt-1 text-xs text-amber-700">Aucun lot pour ce client.</p>
-          )}
-        </div>
+        {/* Liste des lots */}
+        {selectedClientId && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-brand-muted">Sélection des lots à solder</label>
+            <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+              {clientLotsWithInfo.length === 0 ? (
+                <p className="text-xs text-slate-500 italic py-2">Aucun lot trouvé pour ce client.</p>
+              ) : (
+                clientLotsWithInfo.map((l: LotInfo) => {
+                  const isMandatory = l.statut === 'Terminé' && l.balance > 0;
+                  const isSelected = selectedLotIds.includes(l.id);
+                  return (
+                    <div
+                      key={l.id}
+                      onClick={() => toggleLot(l.id)}
+                      className={`cursor-pointer rounded-xl border p-3 transition-all ${
+                        isSelected
+                          ? 'border-brand-orange bg-brand-orange/5 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      } ${isMandatory && !isSelected ? 'border-red-300 bg-red-50' : ''}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // Géré par le parent div
+                            className="rounded border-slate-300 text-brand-orange focus:ring-brand-orange"
+                          />
+                          <span className="text-sm font-bold text-brand-dark">
+                            {l.nombreOeufs} {l.typeOeuf}s
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                          l.statut === 'Terminé' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {l.statut}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-500">Reçu le {format(parseISO(l.dateReception), 'dd/MM/yy')}</span>
+                        <span className={`font-bold ${l.balance > 0 ? 'text-brand-orange' : 'text-emerald-600'}`}>
+                          {l.balance > 0 ? `Reste: ${l.balance.toLocaleString()} F` : 'SOLDÉ'}
+                        </span>
+                      </div>
+                      {isMandatory && !isSelected && (
+                        <p className="mt-1 text-[10px] font-bold text-red-600 uppercase">⚠️ Règlement obligatoire</p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            {mandatoryLotsUnselected.length > 0 && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-[10px] text-red-700 border border-red-200">
+                <AlertTriangle size={14} className="shrink-0" />
+                <p>
+                  <strong>Attention :</strong> Les lots marqués &quot;Terminé&quot; doivent impérativement être sélectionnés pour être soldés.
+                </p>
+              </div>
+            )}
+            <div className="mt-3 flex gap-2">
+               <button
+                 type="button"
+                 onClick={() => setSelectedLotIds(clientLotsWithInfo.filter(l => l.balance > 0).map(l => l.id))}
+                 className="text-[11px] font-semibold text-brand-orange hover:underline"
+               >
+                 Tout sélectionner (non soldés)
+               </button>
+            </div>
+          </div>
+        )}
 
-        {selectedCouv && (
-          <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+        {/* Détails Financiers Groupés */}
+        {selectedLotIds.length > 0 && (
+          <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
+            <div className="flex justify-between font-bold text-brand-dark mb-1 underline">
+              <span>Total Sélectionné ({selectedLotIds.length} lot{selectedLotIds.length > 1 ? 's' : ''})</span>
+            </div>
             <div className="flex justify-between">
-              <span className="text-brand-gray">Total prestation :</span>
-              <span className="font-semibold">{totalDue.toLocaleString()} FCFA</span>
+              <span className="text-slate-500">Montant total dû :</span>
+              <span className="font-semibold">{clientLotsWithInfo.filter(l => selectedLotIds.includes(l.id)).reduce((s,l) => s + l.totalDue, 0).toLocaleString()} F</span>
             </div>
             <div className="flex justify-between text-green-700">
-              <span>Paiements (brut) :</span>
-              <span>{brutPaye.toLocaleString()} FCFA</span>
+              <span>Net déjà encaissé :</span>
+              <span className="font-semibold">{totalNetEncashedSelected.toLocaleString()} F</span>
             </div>
-            {totalDeduction > 0 && (
-              <div className="flex justify-between text-red-700">
-                <span>Déductions sur encaisse :</span>
-                <span>− {totalDeduction.toLocaleString()} FCFA</span>
-              </div>
-            )}
-            <div className="flex justify-between font-medium text-green-800">
-              <span>Net encaissé :</span>
-              <span>{netPaye.toLocaleString()} FCFA</span>
-            </div>
-            {avoirRemise > 0 && (
-              <div className="flex justify-between text-purple-700">
-                <span>Avoirs + remises :</span>
-                <span>{avoirRemise.toLocaleString()} FCFA</span>
-              </div>
-            )}
-            <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-bold text-brand-dark">
-              <span>Reste à payer :</span>
-              <span>{resteAPayer.toLocaleString()} FCFA</span>
+            <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold text-brand-orange text-sm">
+              <span>Reste total à payer :</span>
+              <span>{totalBalanceSelected.toLocaleString()} F</span>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Type et Montant */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-brand-muted">Type</label>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Type Opération</label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as TypeTransaction)}
-              className="w-full rounded-xl border border-slate-200 bg-white p-2.5 focus:outline-none focus:ring-4 focus:ring-brand-orange/15"
+              className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm"
             >
-              <option value="Paiement">{TYPE_TX_LABEL.Paiement} (acompte / solde)</option>
-              <option value="Deduction">{TYPE_TX_LABEL.Deduction}</option>
-              <option value="Avoir">{TYPE_TX_LABEL.Avoir}</option>
-              <option value="Remise">{TYPE_TX_LABEL.Remise}</option>
+              <option value="Paiement">Paiement</option>
+              <option value="Deduction">Déduction</option>
+              <option value="Avoir">Avoir (réduction dû)</option>
+              <option value="Remise">Remise</option>
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-brand-muted">Montant (FCFA)</label>
-            <input
-              required
-              type="number"
-              min={1}
-              max={maxMontant !== undefined && maxMontant > 0 ? maxMontant : undefined}
-              value={montant}
-              onChange={(e) => setMontant(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-              className="input-modern"
-            />
-            {maxMontant !== undefined && maxMontant > 0 && (
-              <p className="mt-1 text-[10px] text-brand-muted">Max : {maxMontant.toLocaleString()} FCFA</p>
-            )}
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Montant (F)</label>
+            <div className="relative">
+              <input
+                required
+                type="number"
+                min={1}
+                max={maxMontant > 0 ? maxMontant : undefined}
+                value={montant}
+                onChange={(e) => setMontant(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                className="input-modern pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setMontant(maxMontant)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-brand-orange hover:bg-brand-orange/10 px-1.5 py-0.5 rounded"
+              >
+                Max
+              </button>
+            </div>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-brand-muted">Notes / motif (optionnel)</label>
+          <label className="mb-1 block text-sm font-medium text-brand-muted">Notes / Motif</label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ex. espèces, Mobile Money, carton crédit…"
+            placeholder="Ex. Espèces, Solder le passif..."
             className="input-modern"
           />
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl border border-slate-200 px-4 py-2 font-medium text-brand-gray hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={!canSubmit}
-            className="rounded-xl bg-brand-orange px-4 py-2 font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+            className="rounded-xl bg-brand-orange px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-brand-hover hover:scale-[1.02] disabled:opacity-50 disabled:grayscale"
           >
             Enregistrer
           </button>
