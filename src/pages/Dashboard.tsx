@@ -41,8 +41,6 @@ import type { Granularity } from '../lib/dashboardStats';
 import {
   buildEclosionRateSeries,
   buildEggTypePercentByPeriod,
-  buildMonthlyPaymentSeries,
-  buildMonthlyExpenseSeries,
   buildComparisonSeries,
   clientEclosionSummary,
 } from '../lib/dashboardStats';
@@ -161,7 +159,6 @@ const Dashboard = () => {
     return transactions.filter((t) => t.clientId === clientFilter);
   }, [transactions, clientFilter]);
 
-  const revenueSeries = useMemo(() => buildMonthlyPaymentSeries(scopedTransactions), [scopedTransactions]);
 
   const totalRevenue = scopedTransactions.reduce((acc, t) => acc + t.montantTotal, 0);
   const todayRevenue = scopedTransactions
@@ -187,15 +184,11 @@ const Dashboard = () => {
   const todayExpenses = scopedDepenses
     .filter((d) => isToday(parseISO(d.dateDepense)))
     .reduce((acc, d) => acc + d.montant, 0);
-  const weekExpenses = scopedDepenses
-    .filter((d) => isThisWeek(parseISO(d.dateDepense), { weekStartsOn: 1 }))
-    .reduce((acc, d) => acc + d.montant, 0);
+
   const monthExpenses = scopedDepenses
     .filter((d) => isThisMonth(parseISO(d.dateDepense)))
     .reduce((acc, d) => acc + d.montant, 0);
-  const yearExpenses = scopedDepenses
-    .filter((d) => isThisYear(parseISO(d.dateDepense)))
-    .reduce((acc, d) => acc + d.montant, 0);
+
 
   const netCaisseToday = todayRevenue - todayExpenses;
   const netCaisseMonth = monthRevenue - monthExpenses;
