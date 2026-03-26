@@ -58,14 +58,17 @@ export default async function (req: Request): Promise<Response> {
   try {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
-    const apiKey = Deno.env.get('API_KEY') || anonKey // Bypass RLS for admin actions
-    const client = createClient({ baseUrl, anonKey: apiKey })
+    const apiKey = Deno.env.get('API_KEY')
+    
+    console.log(`[users_update] Updating user. HasApiKey: ${!!apiKey}`)
+    const client = createClient({ baseUrl, anonKey: apiKey || anonKey })
     
     const body = await req.json().catch(() => ({} as any))
     const id = body?.id
     const updates = body?.updates ?? {}
 
     if (!id) {
+       console.error('[users_update] Missing ID')
        return new Response(JSON.stringify({ error: 'Missing user id in request' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -82,12 +85,15 @@ export default async function (req: Request): Promise<Response> {
 
     // Handle profile update for permissions
     if (updates.permissions !== undefined && Array.isArray(updates.permissions)) {
+      console.log(`[users_update] Requested permissions: ${updates.permissions.join(',')}`)
       const { data: curRow, error: curErr } = await client.database
         .from('users')
         .select('profile')
         .eq('id', id)
         .maybeSingle()
+      
       if (curErr) {
+        console.error('[users_update] Error fetching profile:', curErr)
         return new Response(JSON.stringify({ error: curErr.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -97,6 +103,7 @@ export default async function (req: Request): Promise<Response> {
       updateValues.profile = { ...prev, permissions: updates.permissions }
     }
 
+    console.log(`[users_update] Final updateValues:`, JSON.stringify(updateValues))
     const { data: updateData, error: updateError } = await client.database
       .from('users')
       .update(updateValues)
@@ -104,6 +111,7 @@ export default async function (req: Request): Promise<Response> {
       .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
 
     if (updateError) {
+      console.error('[users_update] DB Update error:', updateError)
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -111,6 +119,10 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const r = updateData?.[0] as any
+    if (!r) {
+       console.warn('[users_update] No user found to update with ID:', id)
+    }
+    
     const user = r
       ? (() => {
           const isProjectAdmin = Boolean(r.is_project_admin)
@@ -137,6 +149,7 @@ export default async function (req: Request): Promise<Response> {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {
+    console.error('[users_update] Unexpected error:', e)
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
