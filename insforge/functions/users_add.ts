@@ -1,11 +1,49 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from 'npm:@insforge/sdk'
-import { normalizeRole, resolvePermissions } from '../lib/permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// INLINED FROM lib/permissions.ts
+const ALL_PERMISSION_IDS = [
+  'dashboard',
+  'couvaisons',
+  'clients',
+  'machines',
+  'analyses',
+  'finances',
+  'factures',
+  'historique',
+  'administration',
+] as const
+
+function normalizeRole(raw: string | null | undefined, isProjectAdmin?: boolean): string {
+  if (isProjectAdmin) return 'Admin'
+  const r = (raw ?? '').trim().toLowerCase()
+  if (['admin', 'administrateur', 'administrator', 'superadmin'].includes(r)) return 'Admin'
+  if (['technicien', 'tech', 'technician'].includes(r)) return 'Technicien'
+  if (['réception/caisse', 'reception/caisse', 'reception', 'caisse', 'réception'].includes(r)) return 'Réception/Caisse'
+  return 'Technicien'
+}
+
+function resolvePermissions(
+  role: string,
+  fromProfile: string[] | undefined | null,
+  isProjectAdmin?: boolean,
+): string[] {
+  if (isProjectAdmin || role === 'Admin') return [...ALL_PERMISSION_IDS]
+  if (!Array.isArray(fromProfile)) {
+    if (role === 'Technicien') return ['couvaisons', 'clients', 'machines', 'analyses']
+    if (role === 'Réception/Caisse') return ['dashboard', 'couvaisons', 'clients', 'factures']
+    return ['couvaisons']
+  }
+  const valid = new Set<string>(ALL_PERMISSION_IDS)
+  const custom = fromProfile.filter((x): x is string => typeof x === 'string' && valid.has(x))
+  if (custom.length > 0) return custom
+  return ['couvaisons']
 }
 
 export default async function (req: Request): Promise<Response> {
@@ -38,8 +76,7 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const profile =
-      Array.isArray(permissions) && permissions.length > 0 ? { permissions } : undefined
+    const profile = Array.isArray(permissions) && permissions.length > 0 ? { permissions } : undefined
 
     const { data, error } = await client.database
       .from('users')
@@ -55,10 +92,10 @@ export default async function (req: Request): Promise<Response> {
       .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+       return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       })
     }
 
     const r = data?.[0] as any
@@ -94,4 +131,3 @@ export default async function (req: Request): Promise<Response> {
     })
   }
 }
-

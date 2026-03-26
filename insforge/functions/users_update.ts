@@ -1,11 +1,49 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from 'npm:@insforge/sdk'
-import { normalizeRole, resolvePermissions } from '../lib/permissions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// INLINED FROM lib/permissions.ts
+const ALL_PERMISSION_IDS = [
+  'dashboard',
+  'couvaisons',
+  'clients',
+  'machines',
+  'analyses',
+  'finances',
+  'factures',
+  'historique',
+  'administration',
+] as const
+
+function normalizeRole(raw: string | null | undefined, isProjectAdmin?: boolean): string {
+  if (isProjectAdmin) return 'Admin'
+  const r = (raw ?? '').trim().toLowerCase()
+  if (['admin', 'administrateur', 'administrator', 'superadmin'].includes(r)) return 'Admin'
+  if (['technicien', 'tech', 'technician'].includes(r)) return 'Technicien'
+  if (['réception/caisse', 'reception/caisse', 'reception', 'caisse', 'réception'].includes(r)) return 'Réception/Caisse'
+  return 'Technicien'
+}
+
+function resolvePermissions(
+  role: string,
+  fromProfile: string[] | undefined | null,
+  isProjectAdmin?: boolean,
+): string[] {
+  if (isProjectAdmin || role === 'Admin') return [...ALL_PERMISSION_IDS]
+  if (!Array.isArray(fromProfile)) {
+    if (role === 'Technicien') return ['couvaisons', 'clients', 'machines', 'analyses']
+    if (role === 'Réception/Caisse') return ['dashboard', 'couvaisons', 'clients', 'factures']
+    return ['couvaisons']
+  }
+  const valid = new Set<string>(ALL_PERMISSION_IDS)
+  const custom = fromProfile.filter((x): x is string => typeof x === 'string' && valid.has(x))
+  if (custom.length > 0) return custom
+  return ['couvaisons']
 }
 
 export default async function (req: Request): Promise<Response> {
@@ -20,7 +58,7 @@ export default async function (req: Request): Promise<Response> {
   try {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
-    const apiKey = Deno.env.get('API_KEY') || anonKey // Use service role if available
+    const apiKey = Deno.env.get('API_KEY') || anonKey // Bypass RLS for admin actions
     const client = createClient({ baseUrl, anonKey: apiKey })
     
     const body = await req.json().catch(() => ({} as any))
@@ -28,10 +66,10 @@ export default async function (req: Request): Promise<Response> {
     const updates = body?.updates ?? {}
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing user id in request' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+       return new Response(JSON.stringify({ error: 'Missing user id in request' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+       })
     }
 
     const updateValues: any = {}
@@ -42,6 +80,7 @@ export default async function (req: Request): Promise<Response> {
     if (updates.role !== undefined) updateValues.role = updates.role
     if (updates.actif !== undefined) updateValues.actif = updates.actif
 
+    // Handle profile update for permissions
     if (updates.permissions !== undefined && Array.isArray(updates.permissions)) {
       const { data: curRow, error: curErr } = await client.database
         .from('users')
@@ -58,20 +97,20 @@ export default async function (req: Request): Promise<Response> {
       updateValues.profile = { ...prev, permissions: updates.permissions }
     }
 
-    const { data, error } = await client.database
+    const { data: updateData, error: updateError } = await client.database
       .from('users')
       .update(updateValues)
       .eq('id', id)
       .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (updateError) {
+      return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const r = data?.[0] as any
+    const r = updateData?.[0] as any
     const user = r
       ? (() => {
           const isProjectAdmin = Boolean(r.is_project_admin)
@@ -104,4 +143,3 @@ export default async function (req: Request): Promise<Response> {
     })
   }
 }
-
