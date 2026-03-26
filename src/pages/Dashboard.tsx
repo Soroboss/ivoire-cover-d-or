@@ -42,7 +42,6 @@ import {
   buildEclosionRateSeries,
   buildEggTypePercentByPeriod,
   buildComparisonSeries,
-  clientEclosionSummary,
   buildPerformanceStats,
   buildEggTypeEclosionRate,
   buildClientPerformanceTable,
@@ -148,7 +147,6 @@ const Dashboard = () => {
   const totalChicks = completed.reduce((acc, c) => acc + (c.poussinsNes || 0), 0);
   const successRate = totalCompletedEggs > 0 ? Math.round((totalChicks / totalCompletedEggs) * 100) : 0;
 
-  const clientSummary = useMemo(() => clientEclosionSummary(filteredCouvaisons), [filteredCouvaisons]);
   const eclosionRateSeries = useMemo(
     () => buildEclosionRateSeries(filteredCouvaisons, granularity),
     [filteredCouvaisons, granularity],
@@ -201,13 +199,6 @@ const Dashboard = () => {
   const netCaisseToday = todayRevenue - todayExpenses;
   const netCaisseMonth = monthRevenue - monthExpenses;
 
-  const eggsByType = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredCouvaisons.forEach((c) => {
-      counts[c.typeOeuf] = (counts[c.typeOeuf] || 0) + c.nombreOeufs;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredCouvaisons]);
 
   const comparisonSeries = useMemo(
     () => buildComparisonSeries(scopedTransactions, scopedDepenses),
