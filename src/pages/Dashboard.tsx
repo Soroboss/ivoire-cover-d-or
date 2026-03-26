@@ -43,6 +43,9 @@ import {
   buildEggTypePercentByPeriod,
   buildComparisonSeries,
   clientEclosionSummary,
+  buildPerformanceStats,
+  buildEggTypeEclosionRate,
+  buildClientPerformanceTable,
 } from '../lib/dashboardStats';
 import { hasPermission } from '../lib/permissions';
 
@@ -154,6 +157,11 @@ const Dashboard = () => {
     () => buildEggTypePercentByPeriod(filteredCouvaisons, granularity),
     [filteredCouvaisons, granularity],
   );
+
+  const perfStats = useMemo(() => buildPerformanceStats(filteredCouvaisons), [filteredCouvaisons]);
+  const eggTypeRates = useMemo(() => buildEggTypeEclosionRate(filteredCouvaisons), [filteredCouvaisons]);
+  const clientPerfTable = useMemo(() => buildClientPerformanceTable(filteredCouvaisons, clients), [filteredCouvaisons, clients]);
+
   const scopedTransactions = useMemo(() => {
     if (clientFilter === 'all') return transactions;
     return transactions.filter((t) => t.clientId === clientFilter);
@@ -396,15 +404,54 @@ const Dashboard = () => {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Performance (client filtré)</p>
               <p className="font-display text-xl font-bold text-brand-dark">
-                Taux d&apos;éclosion : <span className="text-brand-orange">{clientSummary.taux}%</span>
+                Taux d&apos;éclosion : <span className="text-brand-orange">{perfStats.taux}%</span>
               </p>
               <p className="text-sm text-slate-600">
-                {clientSummary.lotsTermines} lot(s) terminé(s) · {clientSummary.poussins.toLocaleString()} poussins /{' '}
-                {clientSummary.oeufs.toLocaleString()} œufs
+                {perfStats.lotsTermines} lot(s) terminé(s) · {perfStats.poussins.toLocaleString()} poussins /{' '}
+                {perfStats.oeufs.toLocaleString()} œufs
               </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* NOUVELLE SECTION PERFORMANCES & ECLOSIONS (SCREENSHOT 1) */}
+      {!isCaisse && (
+        <section className="space-y-6">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-brand-dark uppercase tracking-tight">Performances & Éclosions</h2>
+            <p className="text-sm text-slate-500">Analyse des taux de réussite et productivité</p>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-soft flex flex-col items-center text-center group hover:shadow-soft-lg transition-all">
+                <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <TrendingUp size={32} />
+                </div>
+                <div className="font-display text-4xl font-black text-brand-dark mb-2">{perfStats.taux}%</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Taux d'éclosion global</div>
+                <div className="text-[10px] text-slate-400 font-medium">(Poussins / Œufs mis)</div>
+             </div>
+
+             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-soft flex flex-col items-center text-center group hover:shadow-soft-lg transition-all">
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <Egg size={32} />
+                </div>
+                <div className="font-display text-4xl font-black text-brand-dark mb-2">{perfStats.tauxFertilite}%</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Taux de fertilité</div>
+                <div className="text-[10px] text-slate-400 font-medium">(Œufs fertiles au mirage)</div>
+             </div>
+
+             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-soft flex flex-col items-center text-center group hover:shadow-soft-lg transition-all">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <CheckCircle size={32} />
+                </div>
+                <div className="font-display text-4xl font-black text-brand-dark mb-2">{perfStats.tauxReussite}%</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Taux de réussite</div>
+                <div className="text-[10px] text-slate-400 font-medium">(Poussins / Œufs fertiles)</div>
+             </div>
+          </div>
+        </section>
       )}
 
       {isCaisse ? (
@@ -533,50 +580,6 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <ChartCard
                   className="lg:col-span-3"
-                  title="Taux d'éclosion par période"
-                  subtitle="Lots terminés, pondérés œufs / poussins · selon la granularité choisie"
-                >
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {eclosionRateSeries.length > 0 ? (
-                        <LineChart data={eclosionRateSeries}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis
-                            dataKey="label"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b', fontSize: 11 }}
-                          />
-                          <YAxis
-                            domain={[0, 100]}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748b' }}
-                            unit="%"
-                          />
-                          <Tooltip
-                            formatter={(value) => [`${Number(value ?? 0)}%`, 'Taux']}
-                            labelFormatter={(label) => `Période : ${label}`}
-                            contentStyle={tooltipStyle}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="rate"
-                            name="Taux d'éclosion"
-                            stroke="#16a34a"
-                            strokeWidth={2.5}
-                            dot={{ r: 4, fill: '#16a34a', strokeWidth: 2, stroke: '#fff' }}
-                          />
-                        </LineChart>
-                      ) : (
-                        <EmptyChart>Pas assez de lots terminés pour cette vue</EmptyChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                </ChartCard>
-
-                <ChartCard
-                  className="lg:col-span-3"
                   title="Types d'œufs — % par période"
                   subtitle="Répartition des lots (œufs) par date de réception"
                 >
@@ -612,22 +615,75 @@ const Dashboard = () => {
                 </ChartCard>
 
                 <ChartCard
-                  className="lg:col-span-2"
-                  title="Volume par type d'œuf"
-                  subtitle="Nombre d'œufs reçus (tous statuts)"
+                  className="lg:col-span-1"
+                  title="Taux d'éclosion par Type d'Œuf"
+                  subtitle="Moyenne des lots terminés"
                 >
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                      {eggsByType.length > 0 ? (
-                        <BarChart data={eggsByType}>
+                      {eggTypeRates.length > 0 ? (
+                        <BarChart data={eggTypeRates}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                          <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={tooltipStyle} />
-                          <Bar dataKey="value" fill="#374151" radius={[6, 6, 0, 0]} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#64748b' }} 
+                            domain={[0, 100]}
+                            unit="%"
+                          />
+                          <Tooltip 
+                            cursor={{ fill: '#f1f5f9' }} 
+                            contentStyle={tooltipStyle}
+                            formatter={(value) => [`${value}%`, 'Taux']}
+                          />
+                          <Bar dataKey="rate" fill="#f97316" radius={[6, 6, 0, 0]} />
                         </BarChart>
                       ) : (
                         <EmptyChart>Aucune donnée</EmptyChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </ChartCard>
+
+                <ChartCard
+                  className="lg:col-span-2"
+                  title="Évolution du Taux Global"
+                  subtitle="Lots terminés, pondérés œufs / poussins"
+                >
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {eclosionRateSeries.length > 0 ? (
+                        <LineChart data={eclosionRateSeries}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis
+                            dataKey="label"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#64748b', fontSize: 11 }}
+                          />
+                          <YAxis
+                            domain={[0, 100]}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#64748b' }}
+                            unit="%"
+                          />
+                          <Tooltip
+                            formatter={(value) => [`${Number(value ?? 0)}%`, 'Taux']}
+                            contentStyle={tooltipStyle}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="rate"
+                            name="Taux d'éclosion"
+                            stroke="#2563eb"
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
+                          />
+                        </LineChart>
+                      ) : (
+                        <EmptyChart>Pas assez de données</EmptyChart>
                       )}
                     </ResponsiveContainer>
                   </div>
@@ -725,6 +781,44 @@ const Dashboard = () => {
                   </div>
                 </ChartCard>
               )}
+
+              {/* TABLE PERFORMANCE PAR CLIENT (SCREENSHOT 3) */}
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-soft overflow-hidden">
+                <div className="p-6 border-b border-slate-50">
+                   <h2 className="font-display text-xl font-bold text-brand-dark">Performance par Client</h2>
+                </div>
+                <div className="overflow-x-auto">
+                   <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+                         <tr>
+                            <th className="px-6 py-4">Client</th>
+                            <th className="px-6 py-4 text-center">Œufs mis</th>
+                            <th className="px-6 py-4 text-center">Éclosions</th>
+                            <th className="px-6 py-4 text-right pr-8">Taux d'éclosion</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                         {clientPerfTable.map(item => (
+                            <tr key={item.clientId} className="hover:bg-slate-50/50 transition-colors">
+                               <td className="px-6 py-4 font-bold text-brand-dark uppercase">{item.nom}</td>
+                               <td className="px-6 py-4 text-center font-medium text-slate-600 italic">*{item.oeufs.toLocaleString()}</td>
+                               <td className="px-6 py-4 text-center font-medium text-slate-600 italic">{item.poussins.toLocaleString()}</td>
+                               <td className="px-6 py-4 text-right pr-8">
+                                  <span className="inline-flex items-center justify-center min-w-[60px] px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs ring-1 ring-emerald-100">
+                                     {item.taux}%
+                                  </span>
+                               </td>
+                            </tr>
+                         ))}
+                         {clientPerfTable.length === 0 && (
+                            <tr>
+                               <td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic">Aucune donnée disponible</td>
+                            </tr>
+                         )}
+                      </tbody>
+                   </table>
+                </div>
+              </div>
             </>
           )}
         </div>

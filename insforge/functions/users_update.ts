@@ -20,14 +20,15 @@ export default async function (req: Request): Promise<Response> {
   try {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
-    const client = createClient({ baseUrl, anonKey })
+    const apiKey = Deno.env.get('API_KEY') || anonKey // Use service role if available
+    const client = createClient({ baseUrl, anonKey: apiKey })
+    
     const body = await req.json().catch(() => ({} as any))
-
     const id = body?.id
     const updates = body?.updates ?? {}
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing id' }), {
+      return new Response(JSON.stringify({ error: 'Missing user id in request' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

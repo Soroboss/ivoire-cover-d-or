@@ -211,11 +211,61 @@ export function buildComparisonSeries(transactions: Transaction[], depenses: any
 export function clientEclosionSummary(couvaisons: Couvaison[]) {
   const done = couvaisons.filter((c) => c.statut === 'Terminé' && c.nombreOeufs > 0);
   const oeufs = done.reduce((s, c) => s + c.nombreOeufs, 0);
+  const fertile = done.reduce((s, c) => s + (c.nombreOeufs - (c.oeufsClairs || 0)), 0);
   const poussins = done.reduce((s, c) => s + (c.poussinsNes ?? 0), 0);
+  
   return {
     lotsTermines: done.length,
     oeufs,
+    fertile,
     poussins,
     taux: oeufs > 0 ? Math.round((poussins / oeufs) * 1000) / 10 : 0,
+    tauxFertilite: oeufs > 0 ? Math.round((fertile / oeufs) * 1000) / 10 : 0,
+    tauxReussite: fertile > 0 ? Math.round((poussins / fertile) * 1000) / 10 : 0,
   };
+}
+
+/** Stats de performance globales pour les 3 cartes KPI majeures */
+export function buildPerformanceStats(couvaisons: Couvaison[]) {
+  return clientEclosionSummary(couvaisons);
+}
+
+/** Taux d'éclosion par type d'œuf (lots terminés) */
+export function buildEggTypeEclosionRate(couvaisons: Couvaison[]) {
+  const done = couvaisons.filter((c) => c.statut === 'Terminé' && c.nombreOeufs > 0);
+  const groups: Record<string, { oeufs: number; poussins: number }> = {};
+  
+  done.forEach(c => {
+    if (!groups[c.typeOeuf]) groups[c.typeOeuf] = { oeufs: 0, poussins: 0 };
+    groups[c.typeOeuf].oeufs += c.nombreOeufs;
+    groups[c.typeOeuf].poussins += (c.poussinsNes || 0);
+  });
+
+  return Object.entries(groups).map(([name, v]) => ({
+    name,
+    rate: v.oeufs > 0 ? Math.round((v.poussins / v.oeufs) * 1000) / 10 : 0
+  })).sort((a, b) => b.rate - a.rate);
+}
+
+/** Tableau de performance par client */
+export function buildClientPerformanceTable(couvaisons: Couvaison[], clients: { id: string, nom: string }[]) {
+  const perfMap = new Map<string, { oeufs: number; poussins: number }>();
+  
+  couvaisons.filter(c => c.statut === 'Terminé').forEach(c => {
+    const cur = perfMap.get(c.clientId) || { oeufs: 0, poussins: 0 };
+    cur.oeufs += c.nombreOeufs;
+    cur.poussins += (c.poussinsNes || 0);
+    perfMap.set(c.clientId, cur);
+  });
+
+  return Array.from(perfMap.entries()).map(([clientId, stats]) => {
+    const client = clients.find(cl => cl.id === clientId);
+    return {
+      clientId,
+      nom: client?.nom || 'Client inconnu',
+      oeufs: stats.oeufs,
+      poussins: stats.poussins,
+      taux: stats.oeufs > 0 ? Math.round((stats.poussins / stats.oeufs) * 1000) / 10 : 0
+    };
+  }).sort((a, b) => b.oeufs - a.oeufs);
 }
