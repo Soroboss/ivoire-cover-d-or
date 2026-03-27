@@ -9,7 +9,7 @@ export type TreasuryMovement = {
   reference: string;
   clientId: string;
   clientName: string;
-  couvaisonId: string;
+  couvaisonId?: string;
   lotLabel: string;
   typeTransaction: Transaction['typeTransaction'];
   typeLabel: string;
@@ -24,7 +24,8 @@ export type TreasuryMovement = {
   notes?: string;
 };
 
-function lotLabel(couvaisons: Couvaison[], couvaisonId: string): string {
+function lotLabel(couvaisons: Couvaison[], couvaisonId?: string): string {
+  if (!couvaisonId || couvaisonId === 'INTERNAL') return '—';
   const c = couvaisons.find((x) => x.id === couvaisonId);
   if (!c) return 'Lot';
   return `${c.nombreOeufs} ${c.typeOeuf}s · ${c.statut}`;
@@ -44,7 +45,6 @@ export function buildTreasuryMovements(
     const ajust =
       t.typeTransaction === 'Avoir' || t.typeTransaction === 'Remise' ? t.montantTotal : 0;
     const impact = entree - sortie;
-
     return {
       id: t.id,
       dateIso: t.dateTransaction,
@@ -60,7 +60,7 @@ export function buildTreasuryMovements(
       ajustementCreance: ajust,
       impactCaisseNet: impact,
       notes: t.notes,
-    } satisfies TreasuryMovement;
+    } as TreasuryMovement;
   });
 
   const depMovements = depenses.map((d) => ({
@@ -69,7 +69,7 @@ export function buildTreasuryMovements(
     reference: `DEP-${d.id.slice(0, 8).toUpperCase()}`,
     clientId: 'INTERNAL',
     clientName: '—',
-    couvaisonId: 'INTERNAL',
+    couvaisonId: undefined,
     lotLabel: `Dépense: ${d.categorie}`,
     typeTransaction: 'Deduction' as Transaction['typeTransaction'],
     typeLabel: 'Charge / Dépense',
@@ -78,7 +78,7 @@ export function buildTreasuryMovements(
     ajustementCreance: 0,
     impactCaisseNet: -d.montant,
     notes: d.libelle + (d.notes ? ` (${d.notes})` : ''),
-  }) satisfies TreasuryMovement);
+  } as TreasuryMovement));
 
   return [...txMovements, ...depMovements].sort(
     (a, b) => new Date(a.dateIso).getTime() - new Date(b.dateIso).getTime(),
