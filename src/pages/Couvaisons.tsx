@@ -10,6 +10,7 @@ import { format, parseISO } from 'date-fns';
 import { Search, Filter, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2 } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { isIsoDateInRange } from '../lib/dateRangeFilter';
+import { resteLot } from '../lib/financeCalculations';
 
 const formatWhatsAppNumber = (phone?: string) => {
   if (!phone) return '';
@@ -22,7 +23,7 @@ const formatWhatsAppNumber = (phone?: string) => {
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
 const Couvaisons = () => {
-  const { couvaisons, clients, machines, deleteCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, machines, transactions, deleteCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -65,10 +66,23 @@ const Couvaisons = () => {
     couvaisonId: string,
     template: string,
     message: string,
-    phone?: string,
+    phone?: string
   ) => {
     if (!phone || !clientId) return;
-    const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(message)}`;
+    
+    let finalMessage = message;
+    if (template === 'planning_incubation' || template === 'bilan_eclosion') {
+       const couv = couvaisons.find(c => c.id === couvaisonId);
+       if (couv) {
+         const total = (couv.nombreOeufs * couv.prixUnitaire);
+         const rest = resteLot(transactions, couv.id, total);
+         finalMessage += `\n\n📌 Détails financiers :\n- Total lot : ${total.toLocaleString()} F\n- Reste à payer : ${rest.toLocaleString()} F`;
+         if (rest > 0) finalMessage += `\n⚠️ Merci de régulariser lors de votre passage.`;
+         else finalMessage += `\n✅ Lot déjà soldé. Merci !`;
+       }
+    }
+
+    const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(finalMessage)}`;
     try {
       await addClientMessage({
         clientId,
@@ -76,12 +90,12 @@ const Couvaisons = () => {
         canal: 'WhatsApp',
         statut: 'Envoye',
         template,
-        message,
+        message: finalMessage,
         sentByUserId: currentUser?.id,
         sentByName: currentUser?.nom,
       });
     } catch {
-      // No-op: on n'empêche pas l'envoi WhatsApp si le log échoue.
+      // No-op
     }
     window.open(url, '_blank', 'noopener,noreferrer');
   };

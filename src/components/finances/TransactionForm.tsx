@@ -146,7 +146,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
 
     if (type === 'Paiement') return valMontant <= totalBalanceSelected;
     if (type === 'Deduction') return valMontant <= totalNetEncashedSelected;
-    if (type === 'Avoir' || type === 'Remise') return valMontant <= totalBalanceSelected;
+    if (type === 'Avoir' || type === 'Remise') return true; // Allow Avoir/Remise to exceed balance to create/record credit
     return false;
   }, [selectedLotIds, montant, valMontant, type, totalBalanceSelected, totalNetEncashedSelected, mandatoryLotsUnselected]);
 
@@ -389,7 +389,6 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
                 required
                 type="number"
                 min={1}
-                max={maxMontant > 0 ? maxMontant : undefined}
                 value={montant}
                 onChange={(e) => setMontant(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                 className="input-modern pr-10"

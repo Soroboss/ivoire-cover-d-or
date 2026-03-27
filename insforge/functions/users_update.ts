@@ -40,7 +40,7 @@ function resolvePermissions(
   if (isProjectAdmin || role === 'Admin') return [...ALL_PERMISSION_IDS]
   if (!Array.isArray(fromProfile)) {
     if (role === 'Technicien') return ['couvaisons', 'clients', 'machines', 'analyses']
-    if (role === 'Réception/Caisse') return ['dashboard', 'couvaisons', 'clients', 'factures']
+    if (role === 'Réception/Caisse') return ['dashboard', 'couvaisons', 'clients', 'finances', 'factures', 'historique']
     if (role === 'Finance') return ['dashboard', 'finances', 'factures', 'historique']
     if (role === 'Comptable') return ['dashboard', 'finances', 'factures', 'analyses', 'historique']
     if (role === 'Logistique') return ['couvaisons', 'clients', 'machines']
