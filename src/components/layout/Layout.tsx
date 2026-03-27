@@ -1,13 +1,19 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X, Database, Landmark, Wallet, ScrollText } from 'lucide-react';
+import { hasPermission } from '../../lib/permissions';
+import { LayoutDashboard, Egg, DollarSign, FileText, Server, Shield, BrainCircuit, History, X, Database, Landmark, Wallet, ScrollText, ChevronRight, Home } from 'lucide-react';
 
 const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { currentUser } = useAuth();
+  const location = useLocation();
+
+  const isDashboard = location.pathname === '/dashboard';
+  const showHomeLink = currentUser && hasPermission(currentUser, 'dashboard') && !isDashboard;
+
 
   const navItems = [
     { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['Admin', 'Réception/Caisse'] },
@@ -68,9 +74,22 @@ const Layout = () => {
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
         <main className="w-full flex-grow p-3 sm:p-5 md:p-8">
           <div className="mx-auto max-w-[1600px]">
+            {showHomeLink && (
+              <nav className="flex items-center gap-2 text-xs font-semibold text-brand-muted mb-4 bg-white/40 backdrop-blur-sm border border-black/5 w-fit px-3 py-1.5 rounded-full shadow-sm animate-in slide-in-from-left duration-500">
+                <Link to="/dashboard" className="flex items-center gap-1.5 hover:text-brand-orange transition-colors">
+                  <Home size={14} />
+                  <span>Tableau de Bord</span>
+                </Link>
+                <ChevronRight size={12} className="opacity-40" />
+                <span className="text-brand-dark opacity-80 capitalize">
+                  {location.pathname.startsWith('/') ? location.pathname.substring(1).replace(/-/g, ' ') : location.pathname}
+                </span>
+              </nav>
+            )}
             <Outlet />
           </div>
         </main>
+
       </div>
     </div>
   );

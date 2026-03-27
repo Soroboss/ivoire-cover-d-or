@@ -16,6 +16,7 @@ interface AuthState {
   logout: () => void;
   addUser: (u: Omit<User, 'id'>) => Promise<void>;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -129,9 +130,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const deleteUser = async (id: string) => {
+    await callInsforgeFunction('users_delete', { id });
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
+
+
   return (
     <AuthContext.Provider
-      value={{ currentUser, users, usersLoading, usersError, login, logout, addUser, updateUser }}
+      value={{ currentUser, users, usersLoading, usersError, login, logout, addUser, updateUser, deleteUser }}
     >
       {children}
     </AuthContext.Provider>

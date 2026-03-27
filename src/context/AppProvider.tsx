@@ -14,6 +14,7 @@ import type {
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callInsforgeFunction } from '../lib/insforgeApi';
+import { getClientGlobalBalance } from '../lib/financeCalculations';
 
 interface AppState {
   clients: Client[];
@@ -29,6 +30,7 @@ interface AppState {
   addCouvaisonsBatch: (
     lines: Omit<Couvaison, 'id' | 'clientId'>[],
     clientInfos: Omit<Client, 'id'>,
+    acompte?: number,
   ) => Promise<void>;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => Promise<void>;
   deleteCouvaison: (id: string) => Promise<void>;
@@ -209,19 +211,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addCouvaisonsBatch = async (
     lines: Omit<Couvaison, 'id' | 'clientId'>[],
     clientInfos: Omit<Client, 'id'>,
+    acompte?: number,
   ) => {
     const valid = lines.filter((l) => l.nombreOeufs > 0);
     if (valid.length === 0) {
       throw new Error('Ajoutez au moins un lot avec une quantité > 0.')
     }
+    const createdLots: Couvaison[] = [];
     for (const couv of valid) {
       const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
         couv,
         clientInfos,
       })
-      if (!res.couvaison) {
-        throw new Error('Echec de création côté backend (couvaison_create).')
+      if (res.couvaison) {
+        createdLots.push(res.couvaison);
       }
+    }
+
+    if (acompte && acompte > 0 && createdLots.length > 0) {
+       const firstLot = createdLots[0] as Couvaison;
+       let remaining = acompte;
+
+       // 1. Solder les dettes passées s'il y en a
+       const oldBalance = getClientGlobalBalance(transactions, couvaisons, firstLot.clientId);
+       if (oldBalance > 0) {
+         const toPayOld = Math.min(remaining, oldBalance);
+         await callInsforgeFunction('transaction_create', {
+           clientId: firstLot.clientId,
+           montantTotal: toPayOld,
+           dateTransaction: new Date().toISOString(),
+           typeTransaction: 'Paiement',
+           notes: `Règlement dettes antérieures (pendant réception nouveaux lots)`,
+         });
+         remaining -= toPayOld;
+       }
+
+       // 2. Répartir le reste sur les nouveaux lots créés
+       if (remaining > 0) {
+         for (let i = 0; i < createdLots.length; i++) {
+           const lot = createdLots[i];
+           const lotTotal = lot.nombreOeufs * lot.prixUnitaire;
+           const val = i === createdLots.length - 1 ? remaining : Math.min(remaining, lotTotal);
+           if (val > 0) {
+             await callInsforgeFunction('transaction_create', {
+               couvaisonId: lot.id,
+               clientId: lot.clientId,
+               montantTotal: val,
+               dateTransaction: new Date().toISOString(),
+               typeTransaction: 'Paiement',
+               notes: `Acompte réception - Lot ${lot.typeOeuf}`,
+             });
+             remaining -= val;
+           }
+         }
+       }
     }
     const [clientsRes, couvRes] = await Promise.all([
       callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),

@@ -5,7 +5,8 @@ import type { Role, PermissionKey } from '../types';
 import { hasPermission, PERMISSION_CATALOG, defaultPermissionsForRole } from '../lib/permissions';
 
 export const Utilisateurs = () => {
-  const { users, usersLoading, usersError, addUser, updateUser, currentUser } = useAuth();
+  const { users, usersLoading, usersError, addUser, updateUser, deleteUser, currentUser } = useAuth();
+
 
   const [showModal, setShowModal] = useState(false);
   const [nom, setNom] = useState('');
@@ -166,11 +167,16 @@ export const Utilisateurs = () => {
                        disabled={currentUser.id === u.id} // Éviter de s'auto-rétrograder
                        className={`px-2 py-1 rounded-md text-xs font-bold ${u.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}
                     >
-                       <option value="Admin">Administrateur</option>
-                       <option value="Technicien">Technicien</option>
-                       <option value="Réception/Caisse">Réception/Caisse</option>
-                    </select>
-                 </td>
+                        <option value="Admin">Administrateur</option>
+                        <option value="Technicien">Technicien</option>
+                        <option value="Réception/Caisse">Réception/Caisse</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Comptable">Comptable</option>
+                        <option value="Logistique">Logistique</option>
+                        <option value="Mixte">Mixte (Profil Personnalisé)</option>
+                     </select>
+                  </td>
+
                  <td className="px-6 py-4 text-center">
                     {u.actif ? 
                       <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-semibold"><CheckCircle size={14}/> Oui</span> : 
@@ -187,14 +193,30 @@ export const Utilisateurs = () => {
                     </button>
                  </td>
                  <td className="px-6 py-4 text-center">
-                    <button 
-                       onClick={() => toggleStatut(u.id, u.actif)} 
-                       disabled={currentUser.id === u.id}
-                       className={`px-3 py-1 rounded text-xs font-semibold ${u.actif ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'} transition-colors disabled:opacity-30`}
-                    >
-                       {u.actif ? 'Bloquer' : 'Débloquer'}
-                    </button>
-                 </td>
+                     <div className="flex items-center justify-center gap-2">
+                        <button 
+                           onClick={() => toggleStatut(u.id, u.actif)} 
+                           disabled={currentUser.id === u.id}
+                           className={`px-3 py-1 rounded text-xs font-semibold ${u.actif ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'} transition-colors disabled:opacity-30`}
+                           title={u.actif ? 'Bloquer l\'accès' : 'Débloquer l\'accès'}
+                        >
+                           {u.actif ? 'Bloquer' : 'Débloquer'}
+                        </button>
+                        <button 
+                           onClick={async () => {
+                              if (window.confirm(`Confirmez-vous la suppression DEFINITIVE du compte de ${u.nom} ?`)) {
+                                 await deleteUser(u.id);
+                              }
+                           }}
+                           disabled={currentUser.id === u.id}
+                           className="px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-red-500 hover:text-white transition-all disabled:opacity-30"
+                           title="Supprimer définitivement"
+                        >
+                           Supprimer
+                        </button>
+                     </div>
+                  </td>
+
                </tr>
              ))}
           </tbody>
@@ -304,6 +326,7 @@ export const Utilisateurs = () => {
                       <option value="Finance">Finance (Indicateurs & Trésorerie)</option>
                       <option value="Comptable">Comptable (Analyses & Factures)</option>
                       <option value="Logistique">Logistique (Machines & Stocks)</option>
+                      <option value="Mixte">Mixte (Profil à permissions manuelles)</option>
                       <option value="Admin">Administrateur (Pleins pouvoirs)</option>
                   </select>
                </div>
