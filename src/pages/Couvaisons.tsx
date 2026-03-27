@@ -216,7 +216,7 @@ const Couvaisons = () => {
                  <th className="px-6 py-4">Détails (Œufs)</th>
                  <th className="px-6 py-4">Dates Clés</th>
                  <th className="px-6 py-4">Statut</th>
-                 <th className="px-6 py-4 text-center">Actions</th>
+                 <th className="px-6 py-4 text-center sticky right-0 z-10 bg-gray-50 shadow-[rgba(0,0,0,0.1)_-4px_0_6px_-2px]">Actions</th>
                </tr>
             </thead>
             <tbody className="divide-y divide-brand-lightgray">
@@ -293,7 +293,7 @@ const Couvaisons = () => {
                          {c.statut}
                        </span>
                      </td>
-                     <td className="px-6 py-4 text-center space-x-2">
+                     <td className="px-6 py-4 text-center space-x-2 sticky right-0 z-10 bg-white shadow-[rgba(0,0,0,0.1)_-4px_0_6px_-2px]">
                        {c.statut === 'En attente' && (
                          <div className="flex items-center justify-center gap-2">
                            <button onClick={() => { setActiveId(c.id); setView('placement'); }} className="px-3 py-1 bg-brand-orange text-white text-xs font-semibold rounded hover:bg-brand-hover transition-colors whitespace-nowrap">
