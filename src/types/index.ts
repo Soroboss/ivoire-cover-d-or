@@ -1,7 +1,7 @@
 export type StatutCouvaison = 'En attente' | 'En cours' | 'Terminé' | 'Annulé';
 export type TypeOeuf = 'Poule' | 'Canard' | 'Dinde' | 'Caille' | 'Pintade' | 'Oie' | 'Autre';
 export type TypeMachine = 'Couveuse' | 'Éclosoir' | 'Mixte';
-export type Role = 'Admin' | 'Technicien' | 'Réception/Caisse';
+export type Role = 'Admin' | 'Technicien' | 'Réception/Caisse' | 'Finance' | 'Comptable' | 'Logistique';
 
 /** Droits d’accès (menu / routes), modifiables par cases à cocher (stockés dans profile.permissions côté InsForge) */
 export type PermissionKey =

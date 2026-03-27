@@ -20,6 +20,9 @@ export function normalizeRole(raw: string | null | undefined, isProjectAdmin?: b
   if (['admin', 'administrateur', 'administrator', 'superadmin'].includes(r)) return 'Admin';
   if (['technicien', 'tech', 'technician'].includes(r)) return 'Technicien';
   if (['réception/caisse', 'reception/caisse', 'reception', 'caisse', 'réception'].includes(r)) return 'Réception/Caisse';
+  if (['finance', 'financier', 'finances'].includes(r)) return 'Finance';
+  if (['comptable', 'compta', 'accounting', 'accountant'].includes(r)) return 'Comptable';
+  if (['logistique', 'logistic', 'logistics', 'magasinier'].includes(r)) return 'Logistique';
   return 'Technicien';
 }
 
@@ -31,6 +34,12 @@ export function defaultPermissionsForRole(role: Role): PermissionKey[] {
       return ['couvaisons', 'clients', 'machines', 'analyses'];
     case 'Réception/Caisse':
       return ['dashboard', 'couvaisons', 'clients', 'factures'];
+    case 'Finance':
+      return ['dashboard', 'finances', 'factures', 'historique'];
+    case 'Comptable':
+      return ['dashboard', 'finances', 'factures', 'analyses', 'historique'];
+    case 'Logistique':
+      return ['couvaisons', 'clients', 'machines'];
     default:
       return ['couvaisons'];
   }

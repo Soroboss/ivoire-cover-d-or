@@ -108,18 +108,21 @@ export const Utilisateurs = () => {
           <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
             <tr>
               <th className="px-4 py-3">Fonction</th>
-              <th className="px-2 py-3 text-center">Admin</th>
-              <th className="px-2 py-3 text-center">Technicien</th>
-              <th className="px-2 py-3 text-center">Réception</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm">Admin</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm">Tech</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm">Récept</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm font-bold text-brand-orange">Finan</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm font-bold text-brand-orange">Compt</th>
+              <th className="px-1 py-1 text-center text-[10px] md:text-sm font-bold text-brand-orange">Logist</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-lightgray">
-            <tr><td className="px-4 py-2">Tableau de bord</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">✓</td></tr>
-            <tr><td className="px-4 py-2">Couvaisons / Clients</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">✓</td></tr>
-            <tr><td className="px-4 py-2">Machines / Expertise</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td></tr>
-            <tr><td className="px-4 py-2">Finances / Historique</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td></tr>
-            <tr><td className="px-4 py-2">Factures</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">✓</td></tr>
-            <tr className="bg-orange-50/50 font-medium"><td className="px-4 py-2">Administration (ce module)</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td></tr>
+            <tr><td className="px-4 py-2">Tableau de bord</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td></tr>
+            <tr><td className="px-4 py-2">Couvaisons / Clients</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">✓</td></tr>
+            <tr><td className="px-4 py-2">Machines / Expertise</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">✓</td></tr>
+            <tr><td className="px-4 py-2">Finances / Historique</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td></tr>
+            <tr><td className="px-4 py-2">Factures</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">✓</td><td className="text-center">—</td></tr>
+            <tr className="bg-orange-50/50 font-medium"><td className="px-4 py-2">Administration</td><td className="text-center">✓</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">—</td><td className="text-center">—</td></tr>
           </tbody>
         </table>
       </div>
@@ -296,9 +299,12 @@ export const Utilisateurs = () => {
                <div>
                   <label className="block text-sm font-semibold text-brand-dark mb-1">Privilège initial</label>
                   <select value={role} onChange={e => setRole(e.target.value as Role)} className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none bg-white">
-                     <option value="Technicien">Technicien (Production)</option>
-                     <option value="Réception/Caisse">Réception/Caisse (Saisie clients)</option>
-                     <option value="Admin">Administrateur (Pleins pouvoirs)</option>
+                      <option value="Technicien">Technicien (Production)</option>
+                      <option value="Réception/Caisse">Réception/Caisse (Saisie clients)</option>
+                      <option value="Finance">Finance (Indicateurs & Trésorerie)</option>
+                      <option value="Comptable">Comptable (Analyses & Factures)</option>
+                      <option value="Logistique">Logistique (Machines & Stocks)</option>
+                      <option value="Admin">Administrateur (Pleins pouvoirs)</option>
                   </select>
                </div>
                <div className="flex justify-end space-x-3 pt-4">

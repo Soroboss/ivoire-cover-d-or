@@ -26,6 +26,9 @@ function normalizeRole(raw: string | null | undefined, isProjectAdmin?: boolean)
   if (['admin', 'administrateur', 'administrator', 'superadmin'].includes(r)) return 'Admin'
   if (['technicien', 'tech', 'technician'].includes(r)) return 'Technicien'
   if (['réception/caisse', 'reception/caisse', 'reception', 'caisse', 'réception'].includes(r)) return 'Réception/Caisse'
+  if (['finance', 'financier', 'finances'].includes(r)) return 'Finance'
+  if (['comptable', 'compta', 'accounting', 'accountant'].includes(r)) return 'Comptable'
+  if (['logistique', 'logistic', 'logistics', 'magasinier'].includes(r)) return 'Logistique'
   return 'Technicien'
 }
 
@@ -38,6 +41,9 @@ function resolvePermissions(
   if (!Array.isArray(fromProfile)) {
     if (role === 'Technicien') return ['couvaisons', 'clients', 'machines', 'analyses']
     if (role === 'Réception/Caisse') return ['dashboard', 'couvaisons', 'clients', 'factures']
+    if (role === 'Finance') return ['dashboard', 'finances', 'factures', 'historique']
+    if (role === 'Comptable') return ['dashboard', 'finances', 'factures', 'analyses', 'historique']
+    if (role === 'Logistique') return ['couvaisons', 'clients', 'machines']
     return ['couvaisons']
   }
   const valid = new Set<string>(ALL_PERMISSION_IDS)
