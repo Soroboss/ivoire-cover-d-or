@@ -9,6 +9,7 @@ import {
   sumAvoirsRemisesLot,
 } from '../../lib/financeCalculations';
 import { format, parseISO } from 'date-fns';
+import { ClientStatsSummary } from './ClientStatsSummary';
 
 interface LotInfo {
   id: string;
@@ -270,6 +271,12 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
         {selectedClient && (
           <div className="rounded-xl border border-brand-orange/25 bg-brand-cream/80 px-3 py-2 text-sm font-medium text-brand-dark">
             {selectedClient.nom} · {selectedClient.telephone}
+          </div>
+        )}
+
+        {selectedClientId && (
+          <div className="-mx-2 sm:mx-0">
+             <ClientStatsSummary clientId={selectedClientId} />
           </div>
         )}
 

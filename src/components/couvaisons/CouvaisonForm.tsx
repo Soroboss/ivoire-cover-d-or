@@ -8,7 +8,8 @@ import type { TypeOeuf } from '../../types';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
 import { normalizeTelephone } from '../../lib/phoneNormalize';
 import { getClientGlobalBalance } from '../../lib/financeCalculations';
-import { AlertCircle, CreditCard, Wallet } from 'lucide-react';
+import { AlertCircle, CreditCard, Wallet, Calculator } from 'lucide-react';
+
 
 type LotLine = {
   id: string;
@@ -35,6 +36,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   const [lines, setLines] = useState<LotLine[]>(() => [emptyLine()]);
   const [dateReception, setDateReception] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [acompte, setAcompte] = useState<number>(0);
+  const [remise, setRemise] = useState<number>(0);
 
   const matchingClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -100,6 +102,8 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   };
 
   const totalOeufs = useMemo(() => lines.reduce((s, l) => s + (l.nombreOeufs > 0 ? l.nombreOeufs : 0), 0), [lines]);
+  const totalBrut = useMemo(() => lines.reduce((s, l) => s + (l.nombreOeufs > 0 ? l.nombreOeufs * l.prixUnitaire : 0), 0), [lines]);
+  const netAPayer = useMemo(() => Math.max(0, totalBrut - (remise || 0) + currentBalance), [totalBrut, remise, currentBalance]);
   const validLines = useMemo(() => lines.filter((l) => l.nombreOeufs > 0), [lines]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,6 +125,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           telephone: clientTel,
         },
         acompte,
+        remise
       );
 
       onSuccess();
@@ -222,7 +227,11 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-brand-gray border-b pb-2">Réglages & Paiement</h3>
+            <h3 className="font-semibold text-brand-gray border-b pb-2 flex items-center gap-2">
+              <Calculator size={18} />
+              Résumé Financier & Paiement
+            </h3>
+            
             <div>
               <label className="block text-sm font-medium text-brand-muted mb-1">Date de réception</label>
               <input
@@ -233,32 +242,65 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
               />
             </div>
             
-            <div className="bg-brand-lightgray/50 p-4 rounded-lg border border-gray-200">
-               <div className="flex items-center gap-2 mb-2 text-brand-dark font-semibold">
-                  <CreditCard size={18} className="text-brand-orange" />
-                  <span>Encaissement (Optionnel)</span>
-               </div>
-               <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-brand-muted mb-1">Montant versé ce jour (FCFA)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={acompte || ''}
-                      onChange={(e) => setAcompte(parseInt(e.target.value, 10) || 0)}
-                      placeholder="Ex: 5000"
-                      className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-green-500 outline-none font-bold text-green-700 bg-white"
-                    />
-                  </div>
-                  <p className="text-[10px] text-brand-muted leading-tight italic">
-                    Ce montant servira en priorité à solder les dettes passées, puis sera appliqué en acompte sur les nouveaux lots.
-                  </p>
-               </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex justify-between items-center">
+                 <span className="text-sm font-medium text-slate-500">Total Brut (nouveaux lots)</span>
+                 <span className="text-lg font-bold text-brand-dark">{totalBrut.toLocaleString()} F</span>
+              </div>
+              
+              {isClientRegistered && currentBalance !== 0 && (
+                <div className="flex justify-between items-center border-t border-slate-200/60 pt-2 mt-2">
+                   <span className="text-sm font-medium text-slate-500">
+                     Situation financière ({currentBalance > 0 ? 'Dette' : 'Avoir'})
+                   </span>
+                   <span className={`text-sm font-bold ${currentBalance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                     {currentBalance > 0 ? '+' : '-'} {Math.abs(currentBalance).toLocaleString()} F
+                   </span>
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center border-t border-slate-200/60 pt-2 mt-2">
+                 <span className="text-sm font-medium text-slate-500">Remise (FCFA)</span>
+                 <input
+                   type="number"
+                   min="0"
+                   value={remise || ''}
+                   onChange={(e) => setRemise(parseInt(e.target.value, 10) || 0)}
+                   className="w-24 rounded-md border border-gray-300 p-1 text-right focus:ring-2 focus:ring-brand-orange outline-none font-bold text-brand-dark"
+                   placeholder="0"
+                 />
+              </div>
+              
+              <div className="flex justify-between items-center border-t border-slate-200 pt-3 mt-2">
+                 <span className="text-sm font-black text-brand-dark uppercase">Net à payer</span>
+                 <span className="text-xl font-black text-brand-orange">{netAPayer.toLocaleString()} F</span>
+              </div>
             </div>
-            <div className="bg-brand-lightgray p-4 rounded-lg border border-gray-200">
-              <p className="text-sm text-brand-muted italic">
-                La mise en machine et le dispatch en casiers se font à l’étape suivante pour chaque lot.
-              </p>
+
+            <div className="bg-white p-4 rounded-xl border border-brand-orange/20 shadow-sm">
+               <div className="flex justify-between items-center mb-3">
+                  <label className="text-sm font-bold text-brand-dark flex items-center gap-2">
+                    <CreditCard size={18} className="text-brand-orange" />
+                    Montant versé ce jour
+                  </label>
+               </div>
+               <input
+                 type="number"
+                 min="0"
+                 value={acompte || ''}
+                 onChange={(e) => setAcompte(parseInt(e.target.value, 10) || 0)}
+                 placeholder="Ex: 5000"
+                 className="w-full rounded-lg border border-gray-300 p-3 text-lg focus:ring-2 focus:ring-green-500 outline-none font-black text-green-700 bg-gray-50 text-right transition-all"
+               />
+               <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                 <span className="text-xs text-brand-muted font-medium">Reste après versement :</span>
+                 <span className="font-bold text-sm text-brand-dark">
+                   {Math.max(0, netAPayer - (acompte || 0)).toLocaleString()} F
+                 </span>
+               </div>
+               <p className="text-[10px] text-brand-muted leading-tight italic mt-2">
+                  La mise en machine se fait à l’étape suivante pour chaque lot.
+               </p>
             </div>
           </div>
         </div>

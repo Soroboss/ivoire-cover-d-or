@@ -31,6 +31,7 @@ interface AppState {
     lines: Omit<Couvaison, 'id' | 'clientId'>[],
     clientInfos: Omit<Client, 'id'>,
     acompte?: number,
+    remise?: number,
   ) => Promise<void>;
   updateCouvaison: (id: string, updates: Partial<Couvaison>) => Promise<void>;
   deleteCouvaison: (id: string) => Promise<void>;
@@ -212,6 +213,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     lines: Omit<Couvaison, 'id' | 'clientId'>[],
     clientInfos: Omit<Client, 'id'>,
     acompte?: number,
+    remise?: number,
   ) => {
     const valid = lines.filter((l) => l.nombreOeufs > 0);
     if (valid.length === 0) {
@@ -226,6 +228,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (res.couvaison) {
         createdLots.push(res.couvaison);
       }
+    }
+
+    if (remise && remise > 0 && createdLots.length > 0) {
+      // On applique la remise globale sur le premier lot
+      await callInsforgeFunction('transaction_create', {
+        couvaisonId: createdLots[0].id,
+        clientId: createdLots[0].clientId,
+        montantTotal: remise,
+        dateTransaction: new Date().toISOString(),
+        typeTransaction: 'Remise',
+        notes: `Remise accordée lors de la réception`,
+      });
     }
 
     if (acompte && acompte > 0 && createdLots.length > 0) {

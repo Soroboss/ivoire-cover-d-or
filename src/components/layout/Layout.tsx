@@ -23,7 +23,7 @@ const Layout = () => {
     { name: 'Expertise & Conseils', path: '/analyses', icon: <BrainCircuit size={18} />, roles: ['Admin', 'Technicien'] },
     { name: 'Finances', path: '/finances', icon: <DollarSign size={18} />, roles: ['Admin'] },
     { name: 'Trésorerie', path: '/tresorerie', icon: <Landmark size={18} />, roles: ['Admin'] },
-    { name: 'Dépenses', path: '/depenses', icon: <Wallet size={18} />, roles: ['Admin'] },
+    { name: 'Dépenses', path: '/depenses', icon: <Wallet size={18} />, roles: ['Admin', 'Finance', 'Comptable', 'Réception/Caisse'] },
     { name: 'Bulletin de salaire', path: '/bulletin-salaire', icon: <ScrollText size={18} />, roles: ['Admin'] },
     { name: 'Factures', path: '/factures', icon: <FileText size={18} />, roles: ['Admin', 'Réception/Caisse'] },
     { name: 'Historique', path: '/historique', icon: <History size={18} />, roles: ['Admin'] },

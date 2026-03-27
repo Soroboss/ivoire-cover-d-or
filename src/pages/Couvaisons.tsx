@@ -14,7 +14,7 @@ import { resteLot } from '../lib/financeCalculations';
 
 const formatWhatsAppNumber = (phone?: string) => {
   if (!phone) return '';
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  const cleaned = phone.replace(/[^\d+]/g, '');
   if (cleaned.startsWith('+')) return cleaned.substring(1);
   if (cleaned.length === 10) return '225' + cleaned;
   return cleaned;

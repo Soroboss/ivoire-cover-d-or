@@ -34,7 +34,7 @@ const EclosionStartForm = ({
     [clients, couv],
   );
 
-  const canStart = currentUser?.role === 'Admin' || currentUser?.role === 'Technicien';
+  const canStart = currentUser?.role === 'Admin' || currentUser?.role === 'Technicien' || currentUser?.role === 'Réception/Caisse';
   const [nomDepart, setNomDepart] = useState('');
   const startedDate = useMemo(() => new Date(), []);
 
