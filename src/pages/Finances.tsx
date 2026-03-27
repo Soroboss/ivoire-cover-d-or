@@ -261,7 +261,7 @@ const Finances = () => {
           <h2 className="font-semibold text-brand-dark">Impayés clients (action de relance)</h2>
         </div>
         <div className="overflow-x-auto border-b border-brand-lightgray">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="text-brand-gray font-semibold border-b border-brand-lightgray">
               <tr>
                 <th className="px-6 py-3">Client</th>
@@ -309,7 +309,7 @@ const Finances = () => {
            <h2 className="font-semibold text-brand-dark">Historique des Transactions</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="text-brand-gray font-semibold border-b border-brand-lightgray">
                <tr>
                  <th className="px-6 py-4">Date opération</th>

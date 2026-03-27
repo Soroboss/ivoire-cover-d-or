@@ -336,12 +336,12 @@ const Depenses = () => {
           <table className="min-w-0 w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-slate-500">
-                <th className="whitespace-nowrap px-4 py-3">Date</th>
+                <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Catégorie</th>
                 <th className="min-w-[160px] px-4 py-3">Libellé</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right">Montant</th>
+                <th className="px-4 py-3 text-right">Montant</th>
                 <th className="hidden px-4 py-3 md:table-cell">Notes</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -354,7 +354,7 @@ const Depenses = () => {
               ) : (
                 sortedRows.map((d) => (
                   <tr key={d.id} className="border-b border-slate-100 hover:bg-amber-50/40">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                    <td className="px-4 py-3 text-slate-700">
                       {format(parseISO(d.dateDepense), 'dd/MM/yyyy', { locale: fr })}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
@@ -363,13 +363,13 @@ const Depenses = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-brand-dark">{d.libelle}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-red-800">
+                    <td className="px-4 py-3 text-right font-semibold text-red-800">
                       −{d.montant.toLocaleString()}
                     </td>
                     <td className="hidden max-w-[220px] truncate px-4 py-3 text-slate-600 md:table-cell">
                       {d.notes ?? '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right">
                       <button
                         type="button"
                         onClick={() => openEdit(d)}

@@ -62,7 +62,7 @@ export const Historique = () => {
       <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray overflow-hidden">
         {filteredLogs.length > 0 ? (
           <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
               <tr>
                 <th className="px-6 py-4">Date & Heure</th>
@@ -75,7 +75,7 @@ export const Historique = () => {
             <tbody className="divide-y divide-brand-lightgray">
               {filteredLogs.map(log => (
                 <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 text-gray-500 font-medium whitespace-nowrap">
+                  <td className="px-6 py-4 text-gray-500 font-medium ">
                      {format(parseISO(log.timestamp), "d MMM yyyy 'à' HH:mm", { locale: fr })}
                   </td>
                   <td className="px-6 py-4 font-semibold text-brand-dark flex items-center gap-2">

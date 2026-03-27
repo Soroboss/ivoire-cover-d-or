@@ -481,14 +481,14 @@ const Tresorerie = () => {
           <table className="min-w-0 w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-white text-xs uppercase tracking-wide text-slate-500">
-                <th className="whitespace-nowrap px-4 py-3">Date</th>
-                <th className="whitespace-nowrap px-4 py-3">Réf.</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Réf.</th>
                 <th className="min-w-[140px] px-4 py-3">Client</th>
                 <th className="px-4 py-3">Type</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-emerald-700">Entrée</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-red-700">Sortie</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-violet-700">Ajust. créance</th>
-                <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Solde caisse</th>
+                <th className="px-4 py-3 text-right text-emerald-700">Entrée</th>
+                <th className="px-4 py-3 text-right text-red-700">Sortie</th>
+                <th className="px-4 py-3 text-right text-violet-700">Ajust. créance</th>
+                <th className="px-4 py-3 text-right font-semibold">Solde caisse</th>
               </tr>
             </thead>
             <tbody>
@@ -501,22 +501,22 @@ const Tresorerie = () => {
               ) : (
                 linesWithBalance.map((m: TreasuryLineWithBalance) => (
                   <tr key={m.id} className="border-b border-slate-100 hover:bg-brand-cream/40">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                    <td className="px-4 py-3 text-slate-700">
                       {format(parseISO(m.dateIso), 'dd/MM/yyyy HH:mm', { locale: fr })}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600">{m.reference}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{m.reference}</td>
                     <td className="px-4 py-3 font-medium text-brand-dark">{m.clientName}</td>
                     <td className="px-4 py-3 text-slate-600">{m.typeLabel}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-emerald-800">
+                    <td className="px-4 py-3 text-right text-emerald-800">
                       {m.entreeCaisse ? m.entreeCaisse.toLocaleString() : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-red-800">
+                    <td className="px-4 py-3 text-right text-red-800">
                       {m.sortieCaisse ? m.sortieCaisse.toLocaleString() : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-violet-800">
+                    <td className="px-4 py-3 text-right text-violet-800">
                       {m.ajustementCreance ? m.ajustementCreance.toLocaleString() : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-brand-dark">
+                    <td className="px-4 py-3 text-right font-semibold text-brand-dark">
                       {m.soldeCaisseCumule.toLocaleString()}
                     </td>
                   </tr>

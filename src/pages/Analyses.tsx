@@ -252,7 +252,7 @@ const Analyses = () => {
           <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Machines</h2>
           <p className="text-xs text-brand-muted mb-4">Taux d'éclosion estimé par machine (lots terminés avec placements).</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm whitespace-nowrap">
+            <table className="w-full text-sm">
               <thead className="text-left text-brand-gray border-b border-brand-lightgray">
                 <tr>
                   <th className="py-2 pr-3">Machine</th>
@@ -283,7 +283,7 @@ const Analyses = () => {
           <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Casiers</h2>
           <p className="text-xs text-brand-muted mb-4">Top casiers selon performance d'éclosion estimée.</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm whitespace-nowrap">
+            <table className="w-full text-sm">
               <thead className="text-left text-brand-gray border-b border-brand-lightgray">
                 <tr>
                   <th className="py-2 pr-3">Machine</th>

@@ -208,7 +208,7 @@ const Couvaisons = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
                <tr>
                  <th className="px-6 py-4">Client</th>
