@@ -71,15 +71,34 @@ const Couvaisons = () => {
     if (!phone || !clientId) return;
     
     let finalMessage = message;
-    if (template === 'planning_incubation' || template === 'bilan_eclosion') {
-       const couv = couvaisons.find(c => c.id === couvaisonId);
-       if (couv) {
-         const total = (couv.nombreOeufs * couv.prixUnitaire);
-         const rest = resteLot(transactions, couv.id, total);
-         finalMessage += `\n\n📌 Détails financiers :\n- Total lot : ${total.toLocaleString()} F\n- Reste à payer : ${rest.toLocaleString()} F`;
-         if (rest > 0) finalMessage += `\n⚠️ Merci de régulariser lors de votre passage.`;
-         else finalMessage += `\n✅ Lot déjà soldé. Merci !`;
-       }
+    const couv = couvaisons.find(c => c.id === couvaisonId);
+    if (couv) {
+      const total = couv.nombreOeufs * couv.prixUnitaire;
+      const rest = resteLot(transactions, couv.id, total);
+      const acompte = total - rest;
+      
+      finalMessage += `\n\n📝 Détails du lot :`;
+      finalMessage += `\n- Œufs reçus : ${couv.nombreOeufs} ${couv.typeOeuf}s`;
+      
+      if (couv.oeufsClairs != null || couv.oeufsPourris != null) {
+        const viables = couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0);
+        finalMessage += `\n- Œufs viables (après mirage) : ${viables}`;
+      }
+      
+      finalMessage += `\n\n📌 Situation Financière :`;
+      finalMessage += `\n- Coût total : ${total.toLocaleString()} FCFA`;
+      finalMessage += `\n- Acompte payé : ${acompte.toLocaleString()} FCFA`;
+      finalMessage += `\n- Reste à payer : ${rest.toLocaleString()} FCFA`;
+      
+      if (rest > 0) {
+        if (acompte > 0) {
+          finalMessage += `\n⚠️ Solde restant à régler : ${rest.toLocaleString()} FCFA.`;
+        } else {
+          finalMessage += `\n⚠️ Aucun acompte versé. Le montant total reste dû.`;
+        }
+      } else {
+        finalMessage += `\n✅ Lot entièrement soldé. Merci !`;
+      }
     }
 
     const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(finalMessage)}`;
@@ -337,6 +356,21 @@ const Couvaisons = () => {
                            <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
                              <Eye size={18} />
                            </button>
+                           {mirageFait && (
+                             <button
+                               onClick={() => sendClientWhatsApp(
+                                 client?.id,
+                                 c.id,
+                                 'bilan_mirage',
+                                 `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué avec succès.\n\n🔍 Résultats du mirage :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n\nL'incubation se poursuit pour les œufs viables. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                 client?.telephone,
+                               )}
+                               title="WhatsApp: Bilan Mirage"
+                               className="p-2 bg-teal-50 text-teal-600 rounded-md hover:bg-teal-100 transition-colors"
+                             >
+                               <MessageCircle size={18} />
+                             </button>
+                           )}
                            <button
                              onClick={() => handleOpenEclosionHub(c.id)}
                              title="Éclosion : démarrage ou clôture (onglets)"
