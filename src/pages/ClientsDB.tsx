@@ -3,11 +3,13 @@ import { useAppContext } from '../context/AppProvider';
 import { format, parseISO } from 'date-fns';
 import { Search, ChevronLeft, User } from 'lucide-react';
 import type { StatutCouvaison } from '../types';
+import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
+import { formatEmplacementsLigne } from '../lib/casierLabels';
 
 type FilterState = StatutCouvaison | 'Tous';
 
 const ClientsDB = () => {
-  const { clients, couvaisons, clientMessages } = useAppContext();
+  const { clients, couvaisons, clientMessages, machines } = useAppContext();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -154,6 +156,12 @@ const ClientsDB = () => {
               </div>
             </div>
 
+            {selectedClientId && (
+               <div className="mb-4">
+                  <ClientStatsSummary clientId={selectedClientId} />
+               </div>
+            )}
+
             {!selectedClient ? (
               <div className="text-center py-12 text-brand-muted text-sm">
                 Choisissez un client dans la liste.
@@ -169,22 +177,33 @@ const ClientsDB = () => {
                   <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
                     <tr>
                       <th className="px-4 py-3">Date réception</th>
-                      <th className="px-4 py-3">Œufs</th>
-                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Détails lot</th>
                       <th className="px-4 py-3">Statut</th>
                       <th className="px-4 py-3">Dates clés</th>
+                      <th className="px-4 py-3 min-w-[200px]">Machine & Tiroirs</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-brand-lightgray">
-                    {clientCouvaisons.map((c) => (
+                    {clientCouvaisons.map((c) => {
+                       const mirageFait = c.oeufsClairs != null || c.oeufsPourris != null;
+                       const avantMirage = formatEmplacementsLigne(
+                         mirageFait ? c.emplacementsAvantMirage ?? c.emplacements : c.emplacements,
+                         machines
+                       );
+                       const apresMirage = formatEmplacementsLigne(
+                         mirageFait ? c.emplacementsApresMirage ?? c.emplacements : undefined,
+                         machines
+                       );
+                       
+                       return (
                       <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 text-brand-muted">
                           {c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}
                         </td>
-                        <td className="px-4 py-3 font-medium text-brand-dark">
-                          {c.nombreOeufs} {c.typeOeuf}s
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-brand-dark">{c.nombreOeufs} {c.typeOeuf}s</div>
+                          <div className="text-xs text-brand-muted">{c.prixUnitaire} FCFA/u</div>
                         </td>
-                        <td className="px-4 py-3">{c.typeOeuf}</td>
                         <td className="px-4 py-3">
                           <span
                             className={`px-2 py-1 text-[12px] font-semibold rounded-full ${
@@ -202,13 +221,27 @@ const ClientsDB = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-xs text-brand-muted space-y-1">
-                            <div>Machine: {c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}</div>
+                            <div>Machine: <span className="text-brand-dark font-medium">{c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}</span></div>
                             <div>Mirage: {c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}</div>
                             <div>Éclosion: {c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}</div>
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          <div className="text-[11px] leading-tight text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 whitespace-normal">
+                             {mirageFait ? (
+                               <div className="space-y-1">
+                                 <p><span className="font-semibold text-brand-dark">Avant mirage :</span> {avantMirage || '-'}</p>
+                                 <p><span className="font-semibold text-brand-dark">Après mirage :</span> {apresMirage || '-'}</p>
+                               </div>
+                             ) : c.emplacements && c.emplacements.length > 0 ? (
+                               <p><span className="font-semibold text-brand-dark">Tiroirs :</span> {avantMirage}</p>
+                             ) : (
+                               <p className="italic text-slate-400">Non placé</p>
+                             )}
+                          </div>
+                        </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
