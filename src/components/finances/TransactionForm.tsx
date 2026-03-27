@@ -145,7 +145,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
     if (selectedLotIds.length === 0 || montant === '' || valMontant <= 0) return false;
     if (mandatoryLotsUnselected.length > 0) return false;
 
-    if (type === 'Paiement') return valMontant <= totalBalanceSelected;
+    if (type === 'Paiement') return true; // On autorise les acomptes/avoirs (paiement supérieur au dû)
     if (type === 'Deduction') return valMontant <= totalNetEncashedSelected;
     if (type === 'Avoir' || type === 'Remise') return true; // Allow Avoir/Remise to exceed balance to create/record credit
     return false;
@@ -170,10 +170,11 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
         if (remainingAmount <= 0) break;
 
         let amountToApply = 0;
+        const isLastLot = (sortedLots.indexOf(lot) === sortedLots.length - 1);
         if (type === 'Paiement' || type === 'Avoir' || type === 'Remise') {
-          amountToApply = Math.min(remainingAmount, lot.balance);
+          amountToApply = isLastLot ? remainingAmount : Math.min(remainingAmount, lot.balance);
         } else if (type === 'Deduction') {
-          amountToApply = Math.min(remainingAmount, lot.netEncashed);
+          amountToApply = isLastLot ? remainingAmount : Math.min(remainingAmount, lot.netEncashed);
         }
 
         if (amountToApply > 0) {

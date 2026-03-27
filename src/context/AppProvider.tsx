@@ -251,6 +251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
        if (oldBalance > 0) {
          const toPayOld = Math.min(remaining, oldBalance);
          await callInsforgeFunction('transaction_create', {
+           couvaisonId: firstLot.id,
            clientId: firstLot.clientId,
            montantTotal: toPayOld,
            dateTransaction: new Date().toISOString(),
