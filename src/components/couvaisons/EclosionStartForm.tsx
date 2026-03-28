@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
-import type { Client } from '../../types';
+import type { Client, Machine, Casier } from '../../types';
 import { format } from 'date-fns';
+import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
   if (!phone) return '';
@@ -22,7 +23,7 @@ const EclosionStartForm = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const { couvaisons, clients, updateCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, machines, transactions, updateCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
 
   const couv = useMemo(
@@ -38,11 +39,49 @@ const EclosionStartForm = ({
   const [nomDepart, setNomDepart] = useState('');
   const startedDate = useMemo(() => new Date(), []);
 
+  const [emplacements, setEmplacements] = useState<{ machineId: string, casierId: string, quantite: number }[]>(
+    couv?.emplacements && couv.emplacements.length > 0
+      ? couv.emplacements.map(x => ({ ...x }))
+      : [{ machineId: '', casierId: '', quantite: couv?.nombreOeufs || 0 }]
+  );
+
+  const getCasierOccupation = (machineId: string, casierId: string) => {
+    return couvaisons.reduce((sum, c) => {
+      if (c.statut === 'En cours' && c.id !== couvaisonId) {
+        const emps = c.emplacements?.filter(emp => emp.machineId === machineId && emp.casierId === casierId) || [];
+        return sum + emps.reduce((acc, e) => acc + (Number(e.quantite) || 0), 0);
+      }
+      return sum;
+    }, 0);
+  };
+
+  const updateEmplacement = (index: number, key: string, value: any) => {
+    const newEmps = [...emplacements];
+    newEmps[index] = { ...newEmps[index], [key]: value };
+    if (key === 'machineId') newEmps[index].casierId = '';
+    setEmplacements(newEmps);
+  };
+
+  const totalPlaque = emplacements.reduce((sum, emp) => sum + (Number(emp.quantite) || 0), 0);
+  const oeufsViables = couv ? (couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0)) : 0;
+
   const whatsAppText = useMemo(() => {
-    const base = "votre eclosion a demarré venez chercher demain dans l'apres midi";
+    if (!couv) return '';
+    const resteSurCeLot = resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire);
+    const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
+
+    const base = `votre éclosion pour le lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) a démarré, préparez-vous à venir récupérer vos poussins.`;
     const greeting = `Bonjour ${client?.nom || ''}`;
-    return `${greeting},\n\n${base}\n\nMerci pour votre confiance !\nL'équipe Ivoire Couvée d'Or.`;
-  }, [client?.nom]);
+    
+    let financeText = `\n\n📌 Point Financier :\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
+    if (resteGlobal > 0 && resteGlobal !== resteSurCeLot) {
+      financeText += `\n- Reste à payer TOTAL (tous vos lots confondus) : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
+    } else if (resteGlobal === 0) {
+      financeText += `\n- Reste à payer TOTAL : 0 FCFA (Soldé)`;
+    }
+
+    return `${greeting},\n\n${base}${financeText}\n\nMerci pour votre confiance !\nL'équipe Ivoire Couvée d'Or.`;
+  }, [client?.nom, client?.id, couv, couvaisonId, transactions, couvaisons]);
 
   const whatsAppUrl = useMemo(() => {
     const phone = normalizePhoneForWhatsApp(client?.telephone);
@@ -62,6 +101,7 @@ const EclosionStartForm = ({
       await updateCouvaison(couvaisonId, {
         nomDepart: nomDepart.trim(),
         dateEclosionDemarrage: startedDate.toISOString(),
+        emplacements: emplacements.filter(e => e.machineId && e.casierId && e.quantite > 0),
       });
       if (client?.id) {
         try {
@@ -101,17 +141,59 @@ const EclosionStartForm = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-brand-muted mb-1">Nom de départ</label>
-          <input
-            required
-            type="text"
-            value={nomDepart}
-            onChange={(e) => setNomDepart(e.target.value)}
-            className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none"
-            disabled={!canStart}
-          />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+           <h3 className="font-semibold text-blue-900 mb-3 text-sm uppercase tracking-wider">Transfert en tiroirs d'éclosion</h3>
+           <div className="space-y-3">
+              {emplacements.map((emp, idx) => {
+                const machineSelected = machines.find(m => m.id === emp.machineId);
+                return (
+                  <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                     <select required value={emp.machineId} onChange={e => updateEmplacement(idx, 'machineId', e.target.value)} className="flex-1 min-w-[120px] rounded-md border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-orange outline-none bg-white">
+                        <option value="">-- Machine --</option>
+                        {machines.filter((m: Machine) => m.enService).map((m: Machine) => (
+                          <option key={m.id} value={m.id}>{m.nom} ({m.type})</option>
+                        ))}
+                     </select>
+                     <select required value={emp.casierId} onChange={e => updateEmplacement(idx, 'casierId', e.target.value)} disabled={!machineSelected} className="flex-1 min-w-[120px] rounded-md border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-orange outline-none bg-white">
+                        <option value="">-- Tiroir Éclosion --</option>
+                        {machineSelected?.casiers?.map((c: Casier) => {
+                          const occ = getCasierOccupation(machineSelected.id, c.id);
+                          const dispo = c.capacite - occ;
+                          const affecteIci = emplacements.filter((e, i) => i !== idx && e.machineId === machineSelected.id && e.casierId === c.id).reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+                          const dispoReelle = dispo - affecteIci;
+                          return <option key={c.id} value={c.id} disabled={dispoReelle <= 0}>{c.nom} (Dispo: {dispoReelle}/{c.capacite})</option>
+                        })}
+                     </select>
+                     <input required type="number" min="1" max={oeufsViables} placeholder="Qté" value={emp.quantite} onChange={e => updateEmplacement(idx, 'quantite', parseInt(e.target.value))} className="w-20 rounded-md border border-gray-300 p-2 text-sm text-center focus:ring-2 focus:ring-brand-orange outline-none" />
+                     {idx > 0 && (
+                       <button type="button" onClick={() => setEmplacements(emplacements.filter((_, i) => i !== idx))} className="px-2 py-1 text-red-500 font-bold">✕</button>
+                     )}
+                  </div>
+                )
+              })}
+           </div>
+           <button type="button" onClick={() => setEmplacements([...emplacements, { machineId: '', casierId: '', quantite: 0 }])} className="mt-2 text-xs text-blue-700 font-medium hover:underline">
+              + Ajouter un autre tiroir
+           </button>
+           <div className="mt-2 text-xs font-bold text-right">
+              Total assigné : <span className={totalPlaque !== oeufsViables ? 'text-red-500' : 'text-green-600'}>{totalPlaque} / {oeufsViables}</span>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-brand-muted mb-1">Nom de départ / Batch</label>
+            <input
+              required
+              type="text"
+              placeholder="Ex: Batch A - Matin"
+              value={nomDepart}
+              onChange={(e) => setNomDepart(e.target.value)}
+              className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none"
+              disabled={!canStart}
+            />
+          </div>
         </div>
 
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm">
@@ -139,7 +221,7 @@ const EclosionStartForm = ({
           )}
           <button
             type="submit"
-            disabled={!canStart || !nomDepart.trim()}
+            disabled={!canStart || !nomDepart.trim() || totalPlaque !== oeufsViables}
             className="px-4 py-2 bg-brand-orange text-white font-medium rounded-md hover:bg-brand-hover shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Enregistrer démarrage

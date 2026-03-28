@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { format, parseISO } from 'date-fns';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, updateCouvaison, deleteCouvaison } = useAppContext();
+  const { couvaisons, machines, updateCouvaison, deleteCouvaison } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   
@@ -12,6 +12,39 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
   const [pourris, setPourris] = useState(couv?.oeufsPourris || 0);
   const [cause, setCause] = useState<any>(couv?.causeEchecMajeure || 'Aucune');
   const canDelete = currentUser?.role === 'Admin';
+
+  const oeufsRestantsInitiaux = couv ? couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0) : 0;
+  const [emplacements, setEmplacements] = useState<{machineId: string, casierId: string, quantite: number}[]>(
+    couv?.emplacementsApresMirage && couv.emplacementsApresMirage.length > 0
+      ? couv.emplacementsApresMirage.map(x => ({ ...x }))
+      : couv?.emplacements && couv.emplacements.length > 0
+        ? couv.emplacements.map(x => ({ ...x, quantite: Math.min(x.quantite, oeufsRestantsInitiaux) }))
+        : [{ machineId: '', casierId: '', quantite: oeufsRestantsInitiaux }]
+  );
+
+  const getCasierOccupation = (machineId: string, casierId: string) => {
+    return couvaisons.reduce((sum, c) => {
+      // Exclure la couvaison courante pour éviter le double comptage de sa propre occupation
+      if (c.statut === 'En cours' && c.id !== couvaisonId) {
+        const emps = c.emplacements?.filter(emp => emp.machineId === machineId && emp.casierId === casierId) || [];
+        return sum + emps.reduce((acc, e) => acc + (Number(e.quantite) || 0), 0);
+      }
+      return sum;
+    }, 0);
+  };
+
+  const handleAddEmplacement = () => {
+    setEmplacements([...emplacements, { machineId: '', casierId: '', quantite: 0 }]);
+  };
+
+  const updateEmplacement = (index: number, key: string, value: any) => {
+    const newEmps = [...emplacements];
+    newEmps[index] = { ...newEmps[index], [key]: value };
+    if (key === 'machineId') newEmps[index].casierId = ''; // reset casier
+    setEmplacements(newEmps);
+  };
+
+  const totalPlaque = emplacements.reduce((sum, emp) => sum + (Number(emp.quantite) || 0), 0);
 
   const handleDelete = async () => {
     if (!couv) return;
@@ -31,23 +64,21 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
     e.preventDefault();
 
     try {
-      const premierEnregistrementMirage = couv.oeufsClairs == null && couv.oeufsPourris == null;
-      const snapEmplacements =
-        couv.emplacements && couv.emplacements.length > 0
-          ? couv.emplacements.map((x) => ({ ...x }))
-          : [];
+      const snapEmplacementsAvant =
+        couv.emplacementsAvantMirage && couv.emplacementsAvantMirage.length > 0
+          ? couv.emplacementsAvantMirage.map(x => ({...x}))
+          : (couv.emplacements || []).map((x) => ({ ...x }));
+          
+      const finalEmplacements = emplacements.filter(emp => emp.machineId && emp.casierId && emp.quantite > 0);
 
       await updateCouvaison(couvaisonId, {
         oeufsClairs: clairs,
         oeufsPourris: pourris,
         causeEchecMajeure:
           clairs + pourris > 0 && cause !== 'Aucune' ? cause : undefined,
-        ...(premierEnregistrementMirage
-          ? {
-              emplacementsAvantMirage: snapEmplacements,
-              emplacementsApresMirage: snapEmplacements,
-            }
-          : {}),
+        emplacementsAvantMirage: snapEmplacementsAvant,
+        emplacementsApresMirage: finalEmplacements,
+        emplacements: finalEmplacements, // Met à jour l'emplacement global
       });
       onSuccess();
     } catch (err) {
@@ -95,12 +126,54 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
            <span className="font-semibold text-blue-900">Œufs fécondés (viables) :</span>
            <span className={`text-2xl font-bold ${oeufsFecondes < 0 ? 'text-red-500' : 'text-blue-700'}`}>{oeufsFecondes}</span>
          </div>
-         <div className="bg-green-50 p-3 rounded-lg border border-green-200 flex justify-between items-center">
+         <div className="bg-green-50 p-3 rounded-lg border border-green-200 flex justify-between items-center mb-6">
            <span className="font-semibold text-green-900">Taux de Fécondité (Qualité Lot) :</span>
            <span className="text-xl font-bold text-green-700">{tauxFecondite.toFixed(1)}%</span>
          </div>
 
-         <div className="flex justify-end space-x-3 pt-2">
+         <div className="pt-4 border-t border-brand-lightgray">
+           <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold text-brand-dark">Transférer / Réassigner les œufs viables</h3>
+              <span className={`text-sm font-bold ${totalPlaque !== oeufsFecondes ? 'text-red-500' : 'text-green-600'}`}>Assignés: {totalPlaque} / {oeufsFecondes}</span>
+           </div>
+           
+           <div className="space-y-3">
+              {emplacements.map((emp, idx) => {
+                const machineSelected = machines.find(m => m.id === emp.machineId);
+                return (
+                  <div key={idx} className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                     <select required value={emp.machineId} onChange={e => updateEmplacement(idx, 'machineId', e.target.value)} className="flex-1 min-w-[120px] rounded-md border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-orange outline-none bg-white">
+                        <option value="">-- Machine --</option>
+                        {machines.filter(m => m.enService).map(m => (
+                          <option key={m.id} value={m.id}>{m.nom} ({m.type})</option>
+                        ))}
+                     </select>
+                     <select required value={emp.casierId} onChange={e => updateEmplacement(idx, 'casierId', e.target.value)} disabled={!machineSelected} className="flex-1 min-w-[120px] rounded-md border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-orange outline-none bg-white">
+                        <option value="">-- Casier / Tiroir --</option>
+                        {machineSelected?.casiers?.map((c: any) => {
+                          const occ = getCasierOccupation(machineSelected.id, c.id);
+                          const dispo = c.capacite - occ;
+                          const affecteIci = emplacements.filter((e, i) => i !== idx && e.machineId === machineSelected.id && e.casierId === c.id).reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+                          const dispoReelle = dispo - affecteIci;
+                          return <option key={c.id} value={c.id} disabled={dispoReelle <= 0}>{c.nom} (Dispo: {dispoReelle}/{c.capacite})</option>
+                        })}
+                     </select>
+                     <input required type="number" min="1" max={oeufsFecondes} placeholder="Qté" value={emp.quantite} onChange={e => updateEmplacement(idx, 'quantite', parseInt(e.target.value))} className="w-20 rounded-md border border-gray-300 p-2 text-sm text-center focus:ring-2 focus:ring-brand-orange outline-none" />
+                     {idx > 0 ? (
+                       <button type="button" onClick={() => setEmplacements(emplacements.filter((_, i) => i !== idx))} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded font-bold">✕</button>
+                     ) : (
+                       <div className="w-9"></div>
+                     )}
+                  </div>
+                )
+              })}
+           </div>
+           <button type="button" onClick={handleAddEmplacement} className="mt-3 text-xs text-brand-orange font-semibold hover:underline border-0 bg-transparent">
+              + Ajouter une subdivision (dispatch sur un autre casier)
+           </button>
+         </div>
+
+         <div className="flex justify-end space-x-3 pt-4 border-t border-brand-lightgray">
             <button type="button" onClick={onCancel} className="px-4 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50">
               Annuler
             </button>
@@ -109,7 +182,7 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
                 Supprimer
               </button>
             )}
-            <button type="submit" disabled={oeufsRestants < 0} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={oeufsRestants < 0 || totalPlaque !== oeufsFecondes} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50">
               Valider le Mirage
             </button>
          </div>

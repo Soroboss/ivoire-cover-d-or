@@ -36,7 +36,7 @@ export function EclosionHub({
               : 'bg-gray-50 text-brand-muted hover:bg-gray-100'
           }`}
         >
-          Enregistrer l&apos;éclosion (démarrage)
+          Étape 1: Démarrage (Info Client)
         </button>
         <button
           type="button"
@@ -47,7 +47,7 @@ export function EclosionHub({
               : 'bg-gray-50 text-brand-muted hover:bg-gray-100'
           }`}
         >
-          Clôturer l&apos;éclosion
+          Étape 2: Saisie des Sorties & Clôture
         </button>
       </div>
 

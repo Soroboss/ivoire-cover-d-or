@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
+import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
+
+const normalizePhoneForWhatsApp = (phone?: string) => {
+  if (!phone) return '';
+  let cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
+  if (cleaned.length === 10) return '225' + cleaned;
+  return cleaned;
+};
 
 export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, updateCouvaison, deleteCouvaison } = useAppContext();
+  const { couvaisons, clients, transactions, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
+  const client = clients.find(c => c.id === couv?.clientId);
   
   const [nes, setNes] = useState(couv?.poussinsNes || 0);
   const [morts, setMorts] = useState(couv?.mortsEnCoque || 0);
   const [cause, setCause] = useState<any>(couv?.causeEchecMajeure || 'Aucune');
+  const [sendWhatsApp, setSendWhatsApp] = useState(true);
   const canDelete = currentUser?.role === 'Admin';
 
   const handleDelete = async () => {
@@ -42,8 +53,60 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const oeufsRestants = couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0);
+  const prevNes = couv.poussinsNes || 0;
+  const deltaNes = nes - prevNes;
+  const nonEclos = oeufsRestants - nes - morts;
+
+  const handlePartialSubmit = async () => {
+    try {
+      await updateCouvaison(couvaisonId, {
+        poussinsNes: nes,
+        mortsEnCoque: morts,
+        causeEchecMajeure:
+          (morts > 0 || nonEclos > 0) && cause !== 'Aucune' ? cause : couv.causeEchecMajeure,
+      });
+
+      if (deltaNes > 0 && sendWhatsApp && client?.telephone) {
+        const resteSurCeLot = resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire);
+        const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
+
+        let financeText = `\n\n📌 Point Financier :\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
+        if (resteGlobal > 0 && resteGlobal !== resteSurCeLot) {
+          financeText += `\n- Reste à payer TOTAL (tous vos lots confondus) : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
+        } else if (resteGlobal === 0) {
+          financeText += `\n- Reste à payer TOTAL : 0 FCFA (Soldé)`;
+        }
+
+        const whatsAppText = `Bonjour ${client.nom},\n\nBonne nouvelle pour votre lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) : ${deltaNes} poussins sont éclos et prêts à être récupérés ! (Total déjà sorti : ${nes} / ${oeufsRestants} viables).${financeText}\n\nMerci,\nL'équipe Ivoire Couvée d'Or.`;
+        try {
+          await addClientMessage({
+            clientId: client.id,
+            couvaisonId: couv.id,
+            canal: 'WhatsApp',
+            statut: 'Envoye',
+            template: 'sortie_eclosion',
+            message: whatsAppText,
+            sentByUserId: currentUser?.id,
+            sentByName: currentUser?.nom,
+          });
+        } catch { /* no-op */ }
+        const url = `https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(whatsAppText)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+
+      alert('Étape enregistrée avec succès !');
+      onSuccess();
+    } catch (err) {
+      alert((err as Error).message || 'Erreur lors de l\'enregistrement');
+    }
+  };
+
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const confirm = window.confirm("Ceci va clôturer définitivement l'éclosion pour ce lot. Continuer ?");
+    if (!confirm) return;
 
     try {
       await updateCouvaison(couvaisonId, {
@@ -53,41 +116,72 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         causeEchecMajeure:
           (morts > 0 || nonEclos > 0) && cause !== 'Aucune' ? cause : couv.causeEchecMajeure,
       });
+      alert('L\'éclosion de ce lot a été clôturée avec succès.');
       onSuccess();
     } catch (err) {
       alert((err as Error).message || 'Erreur lors de la clôture');
     }
   };
 
-  const clairs = couv.oeufsClairs || 0;
-  const pourris = couv.oeufsPourris || 0;
-  const oeufsRestants = couv.nombreOeufs - clairs - pourris;
-  const nonEclos = oeufsRestants - nes - morts;
+
 
   const maxFecondes = oeufsRestants;
   const successRateMachine = maxFecondes > 0 ? Math.round((nes / maxFecondes) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray max-w-lg mx-auto mt-4">
-      <h2 className="text-xl font-bold text-green-800 mb-2">Bilan de l'Éclosion</h2>
-      <p className="text-sm text-brand-muted mb-6">Il restait {oeufsRestants} œufs dans la machine après le mirage.</p>
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray max-w-xl mx-auto mt-4">
+      <h2 className="text-xl font-bold text-green-800 mb-2">Saisie des Sorties & Bilan</h2>
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6">
+        <div>
+           <div className="text-xs text-brand-muted uppercase tracking-wider font-semibold">Œufs Viables</div>
+           <div className="text-xl font-bold text-blue-900">{oeufsRestants}</div>
+        </div>
+        <div>
+           <div className="text-xs text-brand-muted uppercase tracking-wider font-semibold">Déjà sortis</div>
+           <div className="text-xl font-bold text-brand-dark">{prevNes}</div>
+        </div>
+        <div className="bg-green-100 rounded">
+           <div className="text-xs text-green-800 uppercase tracking-wider font-semibold pt-1 px-1">En Machine</div>
+           <div className="text-2xl font-black text-green-700">{nonEclos > 0 ? nonEclos : 0}</div>
+        </div>
+      </div>
+      
+      <form onSubmit={handleFinalSubmit} className="space-y-6">
          <div className="grid grid-cols-2 gap-4">
            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-             <label className="block text-sm font-semibold text-brand-dark mb-2 text-green-900">Poussins Nés Vivants</label>
+             <label className="block text-sm font-semibold text-brand-dark mb-2 text-green-900">Total Sortis (Cumul)</label>
              <input required type="number" min="0" max={oeufsRestants} value={nes} onChange={e => setNes(parseInt(e.target.value) || 0)} className="w-full rounded-md border border-green-300 p-2 text-center text-xl font-bold text-green-700 focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+             {deltaNes > 0 && (
+               <div className="mt-2 text-xs font-semibold text-green-700 bg-green-100 p-1.5 rounded text-center">
+                 +{deltaNes} nouvelle(s) sortie(s) à notifier
+               </div>
+             )}
            </div>
            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-             <label className="block text-sm font-semibold text-brand-dark mb-2 text-red-900">Morts en coque</label>
+             <label className="block text-sm font-semibold text-brand-dark mb-2 text-red-900">Total Morts en machine</label>
              <input required type="number" min="0" max={oeufsRestants - nes} value={morts} onChange={e => setMorts(parseInt(e.target.value) || 0)} className="w-full rounded-md border border-red-300 p-2 text-center text-lg text-red-700 focus:ring-2 focus:ring-red-500 outline-none bg-white" />
+             {(morts - (couv.mortsEnCoque || 0)) > 0 && (
+               <div className="mt-2 text-xs font-semibold text-red-700 bg-red-100 p-1.5 rounded text-center">
+                 +{(morts - (couv.mortsEnCoque || 0))} nouvelle(s) perte(s)
+               </div>
+             )}
            </div>
          </div>
          
+         {deltaNes > 0 && client?.telephone && (
+            <div className="flex items-center gap-2 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+              <input type="checkbox" id="sendWa" checked={sendWhatsApp} onChange={(e) => setSendWhatsApp(e.target.checked)} className="h-4 w-4 text-brand-orange rounded border-gray-300 focus:ring-brand-orange" />
+              <label htmlFor="sendWa" className="text-sm font-medium text-yellow-800 cursor-pointer flex-1">
+                Envoyer un message WhatsApp au client ({client.telephone}) pour l'informer des {deltaNes} poussins prêts.
+              </label>
+            </div>
+         )}
+         
          <div className="flex justify-between items-center text-sm px-2">
-            <span className="text-brand-gray">Pertes sêches (Machine/Soin) : <strong className={nonEclos < 0 ? 'text-red-500' : ''}>{nonEclos}</strong></span>
+            <span className="text-brand-gray">Pertes ou Restants (Non éclos) : <strong className={nonEclos < 0 ? 'text-red-500' : ''}>{nonEclos}</strong></span>
             <span className="font-bold text-brand-dark" title={`Calculé sur base de ${maxFecondes} œufs fécondés`}>
-               Efficacité Machine : <span className="text-green-600 text-lg">{successRateMachine}%</span>
+               Efficacité Globale : <span className="text-green-600 text-lg">{successRateMachine}%</span>
             </span>
          </div>
 
@@ -118,8 +212,11 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 Supprimer
               </button>
             )}
+            <button type="button" onClick={handlePartialSubmit} disabled={nonEclos < 0} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" title="Enregistrer sans clôturer">
+              Enregistrer l'étape
+            </button>
             <button type="submit" disabled={nonEclos < 0} className="px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors disabled:opacity-50">
-              Clôturer la Couvaison
+              Clôturer Définitivement
             </button>
          </div>
       </form>
