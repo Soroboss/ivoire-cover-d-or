@@ -239,7 +239,7 @@ const Couvaisons = () => {
                </tr>
             </thead>
             <tbody className="divide-y divide-brand-lightgray">
-               {filteredCouvaisons.length > 0 ? filteredCouvaisons.map(c => {
+                {filteredCouvaisons.length > 0 ? filteredCouvaisons.map(c => {
                  const client = clients.find(cl => cl.id === c.clientId);
                  const mirageFait = c.oeufsClairs != null || c.oeufsPourris != null;
                  const avantMirage = formatEmplacementsLigne(
@@ -260,46 +260,192 @@ const Couvaisons = () => {
                        {format(parseISO(c.dateReception), 'dd/MM/yyyy')}
                      </td>
                      <td className="px-6 py-4">
-                       <p className="font-medium">{c.nombreOeufs} {c.typeOeuf}s</p>
-                       <p className="text-xs text-brand-gray">{c.prixUnitaire} FCFA/u (Total: {c.nombreOeufs * c.prixUnitaire})</p>
+                        <div className="space-y-1">
+                          <p className="font-bold text-brand-dark">{c.nombreOeufs} {c.typeOeuf}s</p>
+                          <p className="text-[10px] text-brand-muted">{c.prixUnitaire} FCFA/u (Total: {(c.nombreOeufs * c.prixUnitaire).toLocaleString()} FCFA)</p>
+                        </div>
+                        
+                        {mirageFait && (
+                          <div className="mt-2 p-1.5 bg-blue-50 border border-blue-100 rounded text-[10px] leading-tight text-blue-800">
+                             <div className="flex justify-between font-bold"><span>Œufs Viables:</span> <span>{(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0))}</span></div>
+                             <div className="flex justify-between text-brand-muted mt-0.5"><span>Clairs/Pourris:</span> <span>{(c.oeufsClairs || 0) + (c.oeufsPourris || 0)}</span></div>
+                          </div>
+                        )}
+                        {c.dateEclosionDemarrage && (
+                          <div className="mt-1.5 p-1.5 bg-green-50 border border-green-100 rounded text-[10px] leading-tight text-green-800 font-medium">
+                             <div>Éclos: <span className="font-bold text-green-700">{c.poussinsNes || 0}</span> | Pertes: {c.mortsEnCoque || 0}</div>
+                             <div className="mt-1 pt-1 border-t border-green-200 flex justify-between">
+                               <span>Reste machine:</span> 
+                               <span className="font-black underline text-green-600">{(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0) - (c.poussinsNes || 0) - (c.mortsEnCoque || 0))}</span>
+                             </div>
+                          </div>
+                        )}
+                      </td>
+                     <td className="px-6 py-4">
+                        <div className="grid grid-cols-1 gap-1.5 min-w-[140px]">
+                           <div className="flex items-center gap-2 p-1 bg-gray-50 rounded border border-gray-100">
+                             <Calendar size={12} className="text-gray-400" />
+                             <div className="flex flex-col">
+                               <span className="text-[9px] text-brand-muted uppercase font-bold leading-none">Mise en machine</span>
+                               <span className="text-xs font-semibold text-brand-dark">{c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}</span>
+                             </div>
+                           </div>
+                           <div className="flex items-center gap-2 p-1 bg-blue-50 rounded border border-blue-100">
+                             <Eye size={12} className="text-blue-400" />
+                             <div className="flex flex-col">
+                               <span className="text-[9px] text-blue-800 uppercase font-bold leading-none">Date Mirage</span>
+                               <span className="text-xs font-semibold text-blue-700">{c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}</span>
+                             </div>
+                           </div>
+                           <div className="flex items-center gap-2 p-1 bg-green-50 rounded border border-green-100">
+                             <Egg size={12} className="text-green-400" />
+                             <div className="flex flex-col">
+                               <span className="text-[9px] text-green-800 uppercase font-bold leading-none">Date Éclosion</span>
+                               <span className="text-xs font-semibold text-green-700">{c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}</span>
+                             </div>
+                           </div>
+                           {c.dateEclosionDemarrage && (
+                             <div className="flex items-center gap-2 p-1 bg-amber-50 rounded border border-amber-100">
+                               <CheckCircle size={12} className="text-amber-500" />
+                               <div className="flex flex-col">
+                                 <span className="text-[9px] text-amber-800 uppercase font-bold leading-none">Démarrage Réel</span>
+                                 <span className="text-xs font-semibold text-amber-700">{format(parseISO(c.dateEclosionDemarrage), 'dd/MM/yyyy')}</span>
+                               </div>
+                             </div>
+                           )}
+                           {c.nomDepart && (
+                              <p className="text-[9px] text-brand-muted italic bg-white border border-dashed px-1 py-0.5 rounded text-center">
+                                Lot: {c.nomDepart}
+                              </p>
+                            )}
+                        </div>
+                        {mirageFait ? (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-[10px] text-slate-500">
+                              <span className="font-semibold text-brand-dark">Avant:</span> {avantMirage}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              <span className="font-semibold text-brand-dark">Après:</span> {apresMirage}
+                            </p>
+                          </div>
+                        ) : (
+                          c.emplacements &&
+                          c.emplacements.length > 0 && (
+                            <p className="text-[10px] text-slate-500 mt-2">
+                              <span className="font-semibold text-brand-dark">Tiroirs:</span>{' '}
+                              {formatEmplacementsLigne(c.emplacements, machines)}
+                            </p>
+                          )
+                        )}
+                      </td>
+                     <td className="px-6 py-4">
+                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                         c.statut === 'En attente' ? 'bg-yellow-100 text-yellow-900' :
+                         c.statut === 'En cours' ? 'bg-amber-100 text-amber-800' :
+                         c.statut === 'Terminé' ? 'bg-green-100 text-green-800' :
+                         'bg-gray-100 text-gray-800'
+                       }`}>
+                         {c.statut}
+                       </span>
                      </td>
-                     <td className="px-6 py-4 space-y-1">
-                       <p className="text-xs flex items-center gap-1 text-gray-600">
-                         <Calendar size={12}/> Machine: {c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}
-                       </p>
-                       <p className="text-xs flex items-center gap-1 text-blue-600 font-medium">
-                         Mirage: {c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}
-                       </p>
-                       <p className="text-xs flex items-center gap-1 text-green-600 font-medium">
-                         Éclosion: {c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}
-                       </p>
-                       {c.dateEclosionDemarrage && (
-                         <p className="text-xs flex items-center gap-1 text-amber-700 font-medium">
-                           Démarrage éclosion: {format(parseISO(c.dateEclosionDemarrage), 'dd/MM/yyyy')}
-                         </p>
+                     <td className="px-6 py-4 text-center space-x-2 sticky right-0 z-10 bg-white shadow-[rgba(0,0,0,0.1)_-4px_0_6px_-2px]">
+                       {c.statut === 'En attente' && (
+                         <div className="flex items-center justify-center gap-2">
+                           <button onClick={() => { setActiveId(c.id); setView('placement'); }} className="px-3 py-1 bg-brand-orange text-white text-xs font-semibold rounded hover:bg-brand-hover transition-colors whitespace-nowrap">
+                             Placer en machine
+                           </button>
+                           <button
+                             onClick={() => sendClientWhatsApp(
+                               client?.id,
+                               c.id,
+                               'reception_en_attente',
+                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la bonne réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\nIls sont actuellement en salle d'attente et seront prochainement placés en machine par l'équipe technique.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               client?.telephone,
+                             )}
+                             title="WhatsApp: Reçu en attente"
+                             className="p-2 bg-yellow-50 text-yellow-600 rounded-md hover:bg-yellow-100 transition-colors"
+                           >
+                             <MessageCircle size={18} />
+                           </button>
+                           {canDelete && (
+                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                               <Trash2 size={18} />
+                             </button>
+                           )}
+                         </div>
                        )}
-                       {c.nomDepart && (
-                         <p className="text-xs flex items-center gap-1 text-brand-muted">
-                           Nom départ: {c.nomDepart}
-                         </p>
+                       {c.statut === 'En cours' && (
+                         <div className="flex items-center justify-center gap-2">
+                           <button
+                             onClick={() => sendClientWhatsApp(
+                               client?.id,
+                               c.id,
+                               'planning_incubation',
+                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (réception +14 j.) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               client?.telephone,
+                             )}
+                             title="WhatsApp: Réception & Planning"
+                             className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                           >
+                             <MessageCircle size={18} />
+                           </button>
+                           <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
+                             <Eye size={18} />
+                           </button>
+                           {mirageFait && (
+                             <button
+                               onClick={() => sendClientWhatsApp(
+                                 client?.id,
+                                 c.id,
+                                 'bilan_mirage',
+                                 `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué avec succès.\n\n🔍 Résultats du mirage :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n\nL'incubation se poursuit pour les œufs viables. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                 client?.telephone,
+                               )}
+                               title="WhatsApp: Bilan Mirage"
+                               className="p-2 bg-teal-50 text-teal-600 rounded-md hover:bg-teal-100 transition-colors"
+                             >
+                               <MessageCircle size={18} />
+                             </button>
+                           )}
+                           <button
+                             onClick={() => handleOpenEclosionHub(c.id)}
+                             title="Éclosion : démarrage ou clôture (onglets)"
+                             className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
+                           >
+                             <Egg size={18} />
+                           </button>
+                           {canDelete && (
+                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                               <Trash2 size={18} />
+                             </button>
+                           )}
+                         </div>
                        )}
-                       {mirageFait ? (
-                         <>
-                           <p className="text-xs text-slate-600">
-                             <span className="font-semibold text-brand-dark">Tiroirs avant mirage :</span> {avantMirage}
-                           </p>
-                           <p className="text-xs text-slate-600">
-                             <span className="font-semibold text-brand-dark">Tiroirs après mirage :</span> {apresMirage}
-                           </p>
-                         </>
-                       ) : (
-                         c.emplacements &&
-                         c.emplacements.length > 0 && (
-                           <p className="text-xs text-slate-600">
-                             <span className="font-semibold text-brand-dark">Tiroirs :</span>{' '}
-                             {formatEmplacementsLigne(c.emplacements, machines)}
-                           </p>
-                         )
+                       {c.statut === 'Terminé' && (
+                          <div className="text-xs text-brand-muted flex items-center justify-center gap-3">
+                             <div className="flex flex-col items-center">
+                               <CheckCircle size={16} className="text-green-500 mb-1" />
+                               {c.poussinsNes}/{c.nombreOeufs}
+                             </div>
+                             <button
+                               onClick={() => sendClientWhatsApp(
+                                 client?.id,
+                                 c.id,
+                                 'bilan_eclosion',
+                                 `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🐥 Poussins viables (éclos) : ${c.poussinsNes}\n\nVous pouvez dès à présent passer retirer vos poussins. Merci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                 client?.telephone,
+                               )}
+                               title="WhatsApp: Bilan Éclosion"
+                               className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                             >
+                               <MessageCircle size={18} />
+                             </button>
+                             {canDelete && (
+                               <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                                 <Trash2 size={18} />
+                               </button>
+                             )}
+                          </div>
                        )}
                      </td>
                      <td className="px-6 py-4">

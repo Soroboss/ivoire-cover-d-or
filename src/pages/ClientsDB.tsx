@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
 import { format, parseISO } from 'date-fns';
-import { Search, ChevronLeft, User } from 'lucide-react';
+import { Search, ChevronLeft, User, Calendar, Eye, Egg } from 'lucide-react';
 import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
@@ -201,12 +201,26 @@ const ClientsDB = () => {
                           {c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-brand-dark">{c.nombreOeufs} {c.typeOeuf}s</div>
+                          <div className="font-bold text-brand-dark">{c.nombreOeufs} {c.typeOeuf}s</div>
                           <div className="text-xs text-brand-muted">{c.prixUnitaire} FCFA/u</div>
+                          
+                          {mirageFait && (
+                            <div className="mt-2 p-1 bg-blue-50 border border-blue-100 rounded text-[10px] leading-tight text-blue-800">
+                               <span className="font-bold">Viables:</span> {(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0))} 
+                            </div>
+                          )}
+                          {c.dateEclosionDemarrage && (
+                            <div className="mt-1 p-1 bg-green-50 border border-green-100 rounded text-[10px] leading-tight text-green-800">
+                               <div>Éclos: <span className="font-bold">{c.poussinsNes || 0}</span> | Morts: {c.mortsEnCoque || 0}</div>
+                               <div className="mt-1 pt-1 border-t border-green-200">
+                                 Reste: <span className="font-bold text-green-600">{(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0) - (c.poussinsNes || 0) - (c.mortsEnCoque || 0))}</span>
+                               </div>
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`px-2 py-1 text-[12px] font-semibold rounded-full ${
+                            className={`px-2 py-1 text-[11px] font-semibold rounded-full ${
                               c.statut === 'En cours'
                                 ? 'bg-amber-100 text-amber-800'
                                 : c.statut === 'Terminé'
@@ -220,21 +234,21 @@ const ClientsDB = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-xs text-brand-muted space-y-1">
-                            <div>Machine: <span className="text-brand-dark font-medium">{c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}</span></div>
-                            <div>Mirage: {c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}</div>
-                            <div>Éclosion: {c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}</div>
+                          <div className="text-[10px] text-brand-muted space-y-1.5">
+                            <div className="flex items-center gap-1"><Calendar size={10}/> Machine: <span className="text-brand-dark font-medium">{c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}</span></div>
+                            <div className="flex items-center gap-1"><Eye size={10}/> Mirage: {c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}</div>
+                            <div className="flex items-center gap-1"><Egg size={10}/> Éclosion: {c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}</div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-[11px] leading-tight text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 whitespace-normal">
+                          <div className="text-[10px] leading-tight text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 whitespace-normal">
                              {mirageFait ? (
                                <div className="space-y-1">
-                                 <p><span className="font-semibold text-brand-dark">Avant mirage :</span> {avantMirage || '-'}</p>
-                                 <p><span className="font-semibold text-brand-dark">Après mirage :</span> {apresMirage || '-'}</p>
+                                 <p><span className="font-semibold text-brand-dark">Avant:</span> {avantMirage || '-'}</p>
+                                 <p><span className="font-semibold text-brand-dark">Après:</span> {apresMirage || '-'}</p>
                                </div>
                              ) : c.emplacements && c.emplacements.length > 0 ? (
-                               <p><span className="font-semibold text-brand-dark">Tiroirs :</span> {avantMirage}</p>
+                               <p><span className="font-semibold text-brand-dark">Tiroirs:</span> {avantMirage}</p>
                              ) : (
                                <p className="italic text-slate-400">Non placé</p>
                              )}
