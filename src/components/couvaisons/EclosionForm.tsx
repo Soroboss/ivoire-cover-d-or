@@ -70,12 +70,23 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
       if (deltaNes > 0 && sendWhatsApp && client?.telephone) {
         const resteSurCeLot = resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire);
         const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
+        const ancienneDette = resteGlobal - resteSurCeLot;
 
-        let financeText = `\n\n📌 Point Financier :\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
-        if (resteGlobal > 0 && resteGlobal !== resteSurCeLot) {
-          financeText += `\n- Reste à payer TOTAL (tous vos lots confondus) : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
-        } else if (resteGlobal === 0) {
-          financeText += `\n- Reste à payer TOTAL : 0 FCFA (Soldé)`;
+        let financeText = `\n\n📌 Point Financier :`;
+        financeText += `\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
+        
+        if (ancienneDette > 0) {
+          financeText += `\n- Dettes sur autres lots : ${ancienneDette.toLocaleString('fr-FR')} FCFA`;
+        } else if (ancienneDette < 0) {
+          financeText += `\n- Crédit disponible : ${Math.abs(ancienneDette).toLocaleString('fr-FR')} FCFA`;
+        }
+        
+        if (resteGlobal > 0) {
+          financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
+        } else if (resteGlobal < 0) {
+          financeText += `\n- TOTAL SOLDE CLIENT : ${Math.abs(resteGlobal).toLocaleString('fr-FR')} FCFA (CRÉDIT)`;
+        } else {
+          financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : 0 FCFA (Soldé)`;
         }
 
         const whatsAppText = `Bonjour ${client.nom},\n\nBonne nouvelle pour votre lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) : ${deltaNes} poussins sont éclos et prêts à être récupérés ! (Total déjà sorti : ${nes} / ${oeufsRestants} viables).${financeText}\n\nMerci,\nL'équipe Ivoire Couvée d'Or.`;

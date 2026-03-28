@@ -1,7 +1,7 @@
 import type { Transaction, Couvaison } from '../types';
 
 export function getClientGlobalBalance(transactions: Transaction[], couvaisons: Couvaison[], clientId: string): number {
-  const clientCouvaisons = couvaisons.filter((c) => c.clientId === clientId);
+  const clientCouvaisons = couvaisons.filter((c) => c.clientId === clientId && c.statut !== 'Annulé');
   const totalDues = clientCouvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
   const t = transactions.filter((x) => x.clientId === clientId);
   const p = t.filter((x) => x.typeTransaction === 'Paiement').reduce((a, x) => a + x.montantTotal, 0);
