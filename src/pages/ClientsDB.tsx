@@ -5,15 +5,17 @@ import { Search, ChevronLeft, User, Calendar, Eye, Egg } from 'lucide-react';
 import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
+import { ClientEditModal } from '../components/clients/ClientEditModal';
 
 type FilterState = StatutCouvaison | 'Tous';
 
 const ClientsDB = () => {
-  const { clients, couvaisons, clientMessages, machines, updateClient } = useAppContext();
+  const { clients, couvaisons, clientMessages, machines } = useAppContext();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterState>('Tous');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const selectedClient = useMemo(
     () => clients.find(c => c.id === selectedClientId) || null,
@@ -124,22 +126,20 @@ const ClientsDB = () => {
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-sm text-brand-muted">{selectedClient?.telephone || ''}</p>
                   {selectedClient && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const nouveau = prompt(`Modifier le téléphone de ${selectedClient.nom} :`, selectedClient.telephone);
-                        if (nouveau && nouveau !== selectedClient.telephone) {
-                          try {
-                            await updateClient(selectedClient.id, { telephone: nouveau });
-                          } catch (err) {
-                            alert("Erreur lors de la mise à jour");
-                          }
-                        }
-                      }}
-                      className="text-[10px] font-bold text-brand-orange hover:underline px-1 py-0.5"
-                    >
-                      (Modifier)
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="text-[10px] font-bold text-brand-orange hover:underline px-1 py-0.5"
+                      >
+                        (Modifier)
+                      </button>
+                      <ClientEditModal 
+                        client={selectedClient}
+                        isOpen={isEditModalOpen}
+                        onClose={() => setIsEditModalOpen(false)}
+                      />
+                    </>
                   )}
                 </div>
               </div>

@@ -316,6 +316,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const deleteCouvaison = async (id: string) => {
+    // Audit de sécurité business : on ne permet pas la suppression si des paiements existent déjà.
+    const hasPayments = transactions.some(t => t.couvaisonId === id && t.typeTransaction === 'Paiement');
+    if (hasPayments) {
+      throw new Error("Impossible de supprimer ce lot : des paiements y sont déjà rattachés. Annulez les paiements ou le lot d'abord.");
+    }
+
     try {
       await callInsforgeFunction<{ success: boolean }>('couvaison_delete', { id })
 

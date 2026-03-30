@@ -18,6 +18,7 @@ import {
   Target,
   ArrowDownCircle,
   ArrowUpCircle,
+  Database,
 } from 'lucide-react';
 import {
   BarChart,
@@ -441,6 +442,42 @@ const Dashboard = () => {
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Taux de réussite</div>
                 <div className="text-[10px] text-slate-400 font-medium">(Poussins / Œufs fertiles)</div>
              </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm overflow-hidden">
+             <div className="flex items-center gap-3 mb-4 border-b border-slate-50 pb-3">
+                <div className="p-2 bg-brand-orange/10 rounded-lg text-brand-orange">
+                   <Database size={20} />
+                </div>
+                <div>
+                   <h3 className="font-bold text-brand-dark">Traçabilité Physique des Œufs (Lots Terminés)</h3>
+                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Croisement des flux : {perfStats.oeufs.toLocaleString()} œufs traités au total</p>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Entrée (Œufs mis)</p>
+                    <p className="text-lg font-black text-brand-dark">{perfStats.oeufs.toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
+                    <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1">Retrait Mirage (Clairs/Pourris)</p>
+                    <p className="text-lg font-black text-orange-600">{(perfStats.oeufs - perfStats.fertile).toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Morts en Coque / Échecs</p>
+                    <p className="text-lg font-black text-red-600">{(perfStats.fertile - perfStats.poussins).toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sortie (Poussins Viables)</p>
+                    <p className="text-lg font-black text-emerald-600">{perfStats.poussins.toLocaleString()}</p>
+                </div>
+             </div>
+             <p className="mt-4 text-[11px] text-slate-500 italic flex items-center gap-1">
+                <Sparkles size={12} className="text-brand-orange" />
+                La somme (Poussins + Morts + Retraits) = {(perfStats.poussins + (perfStats.fertile - perfStats.poussins) + (perfStats.oeufs - perfStats.fertile)).toLocaleString()}. 
+                L'équilibre est parfait avec les {perfStats.oeufs.toLocaleString()} œufs mis en machine.
+             </p>
           </div>
         </section>
       )}

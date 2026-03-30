@@ -24,6 +24,7 @@ import {
   sumAvoirsRemisesLot,
   totalAvoirsRemisesGlobal,
 } from '../lib/financeCalculations';
+import { Target, AlertTriangle } from 'lucide-react';
 
 const Finances = () => {
   const { transactions, couvaisons, clients, addClientMessage } = useAppContext();
@@ -185,6 +186,39 @@ const Finances = () => {
           >
             <Plus size={20} /> Nouvelle opération
           </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border-2 border-brand-orange/20 p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-brand-dark mb-4 flex items-center gap-2">
+          <Target className="text-brand-orange" size={20} />
+          Réconciliation Globale (Croisement Œufs / Argent)
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Potentialité Œufs</p>
+            <p className="text-xl font-black text-brand-dark">{couvaisonsScoped.filter(c => c.statut !== 'Annulé').reduce((acc, c) => acc + c.nombreOeufs, 0).toLocaleString()} œufs</p>
+            <p className="text-[10px] text-slate-500 italic">Lots non annulés sur la période</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">C.A. Théorique</p>
+            <p className="text-xl font-black text-brand-dark">{expectedTotal.toLocaleString()} F</p>
+            <p className="text-[10px] text-slate-500 italic">Total Œufs × Prix Unitaires</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audit des Paiements</p>
+            <p className="text-xl font-black text-green-600">{totalEncaisse.toLocaleString()} F</p>
+            <p className="text-[10px] text-slate-500 italic">Encaisse nette (Paiements - Déductions)</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reste à Recouvrer</p>
+            <p className="text-xl font-black text-red-600">{(expectedTotal - totalEncaisse - totalAvoirsRemises).toLocaleString()} F</p>
+            <p className="text-[10px] text-slate-500 italic">Post-Avoirs & Remises (-{totalAvoirsRemises.toLocaleString()} F)</p>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-medium text-brand-muted">
+           <AlertTriangle size={14} className="text-brand-orange" />
+           <span>Tout écart entre le C.A. Théorique et la somme (Paiements + Reste + Avoirs) doit être nul pour que la compatibilité soit parfaite.</span>
         </div>
       </div>
 

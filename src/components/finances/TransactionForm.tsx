@@ -9,6 +9,7 @@ import {
 } from '../../lib/financeCalculations';
 import { format, parseISO } from 'date-fns';
 import { ClientStatsSummary } from './ClientStatsSummary';
+import { ClientEditModal } from '../clients/ClientEditModal';
 
 interface LotInfo {
   id: string;
@@ -26,7 +27,7 @@ interface LotInfo {
 }
 
 export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
-  const { couvaisons, clients, addTransaction, transactions, updateClient } = useAppContext();
+  const { couvaisons, clients, addTransaction, transactions } = useAppContext();
 
   const [phoneSearch, setPhoneSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
   const [montant, setMontant] = useState<number | ''>('');
   const [type, setType] = useState<TypeTransaction>('Paiement');
   const [notes, setNotes] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const selectedClient = useMemo(
     () => (selectedClientId ? clients.find((c) => c.id === selectedClientId) : undefined),
@@ -287,21 +289,22 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
             <button
                type="button"
                title="Modifier les infos"
-               onClick={async () => {
-                 const nouveau = prompt(`Modifier le numéro de téléphone pour ${selectedClient.nom} :`, selectedClient.telephone);
-                 if (nouveau && nouveau !== selectedClient.telephone) {
-                   try {
-                     await updateClient(selectedClient.id, { telephone: nouveau });
-                     setPhoneSearch(nouveau);
-                   } catch(err) {
-                     alert("Erreur lors de la mise à jour");
-                   }
-                 }
-               }}
+               onClick={() => setIsEditModalOpen(true)}
                className="text-[10px] font-bold text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded border border-brand-orange/30"
             >
               Modifier n°
             </button>
+
+            {selectedClient && (
+              <ClientEditModal
+                client={selectedClient}
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                onSuccess={(updated) => {
+                  setPhoneSearch(updated.telephone);
+                }}
+              />
+            )}
           </div>
         )}
 
