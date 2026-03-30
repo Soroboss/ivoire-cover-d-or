@@ -9,7 +9,7 @@ import { formatEmplacementsLigne } from '../lib/casierLabels';
 type FilterState = StatutCouvaison | 'Tous';
 
 const ClientsDB = () => {
-  const { clients, couvaisons, clientMessages, machines } = useAppContext();
+  const { clients, couvaisons, clientMessages, machines, updateClient } = useAppContext();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,7 +121,27 @@ const ClientsDB = () => {
                 <h2 className="text-lg font-bold text-brand-dark">
                   {selectedClient ? selectedClient.nom : '—'}
                 </h2>
-                <p className="text-sm text-brand-muted mt-1">{selectedClient?.telephone || ''}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm text-brand-muted">{selectedClient?.telephone || ''}</p>
+                  {selectedClient && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nouveau = prompt(`Modifier le téléphone de ${selectedClient.nom} :`, selectedClient.telephone);
+                        if (nouveau && nouveau !== selectedClient.telephone) {
+                          try {
+                            await updateClient(selectedClient.id, { telephone: nouveau });
+                          } catch (err) {
+                            alert("Erreur lors de la mise à jour");
+                          }
+                        }
+                      }}
+                      className="text-[10px] font-bold text-brand-orange hover:underline px-1 py-0.5"
+                    >
+                      (Modifier)
+                    </button>
+                  )}
+                </div>
               </div>
               <button
                 type="button"

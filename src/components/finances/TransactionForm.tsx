@@ -6,7 +6,6 @@ import { normalizeTelephone } from '../../lib/phoneNormalize';
 import {
   netPayeLot,
   resteLot,
-  sumAvoirsRemisesLot,
 } from '../../lib/financeCalculations';
 import { format, parseISO } from 'date-fns';
 import { ClientStatsSummary } from './ClientStatsSummary';
@@ -20,13 +19,14 @@ interface LotInfo {
   statut: string;
   totalDue: number;
   netEncashed: number;
-  credits: number;
+  avoirs: number;
+  remises: number;
   balance: number;
   typeOeuf: string;
 }
 
 export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
-  const { couvaisons, clients, addTransaction, transactions } = useAppContext();
+  const { couvaisons, clients, addTransaction, transactions, updateClient } = useAppContext();
 
   const [phoneSearch, setPhoneSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -75,7 +75,8 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
       .map((c) => {
         const totalDue = c.nombreOeufs * c.prixUnitaire;
         const netEncashed = netPayeLot(transactions, c.id);
-        const credits = sumAvoirsRemisesLot(transactions, c.id);
+        const avoirs = transactions.filter(t => t.couvaisonId === c.id && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
+        const remises = transactions.filter(t => t.couvaisonId === c.id && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
         const balance = resteLot(transactions, c.id, totalDue);
         return { 
           id: c.id,
@@ -87,7 +88,8 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
           typeOeuf: c.typeOeuf,
           totalDue, 
           netEncashed, 
-          credits, 
+          avoirs,
+          remises,
           balance 
         };
       })
@@ -132,6 +134,14 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
 
   const totalNetEncashedSelected = useMemo(() => {
     return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.netEncashed, 0);
+  }, [clientLotsWithInfo, selectedLotIds]);
+
+  const totalAvoirsSelected = useMemo(() => {
+    return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.avoirs, 0);
+  }, [clientLotsWithInfo, selectedLotIds]);
+
+  const totalRemisesSelected = useMemo(() => {
+    return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.remises, 0);
   }, [clientLotsWithInfo, selectedLotIds]);
 
   const valMontant = typeof montant === 'number' ? montant : 0;
@@ -179,7 +189,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
 
         if (amountToApply > 0) {
           const np = lot.netEncashed + (type === 'Paiement' ? amountToApply : type === 'Deduction' ? -amountToApply : 0);
-          const nr = lot.credits + (type === 'Avoir' || type === 'Remise' ? amountToApply : 0);
+          const nr = (lot.avoirs + lot.remises) + (type === 'Avoir' || type === 'Remise' ? amountToApply : 0);
           const newReste = Math.max(0, lot.totalDue - np - nr);
 
           await addTransaction({
@@ -270,8 +280,28 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
         </div>
 
         {selectedClient && (
-          <div className="rounded-xl border border-brand-orange/25 bg-brand-cream/80 px-3 py-2 text-sm font-medium text-brand-dark">
-            {selectedClient.nom} · {selectedClient.telephone}
+          <div className="flex items-center justify-between rounded-xl border border-brand-orange/25 bg-brand-orange/5 px-3 py-2">
+            <div className="text-sm font-medium text-brand-dark">
+              {selectedClient.nom} · {selectedClient.telephone}
+            </div>
+            <button
+               type="button"
+               title="Modifier les infos"
+               onClick={async () => {
+                 const nouveau = prompt(`Modifier le numéro de téléphone pour ${selectedClient.nom} :`, selectedClient.telephone);
+                 if (nouveau && nouveau !== selectedClient.telephone) {
+                   try {
+                     await updateClient(selectedClient.id, { telephone: nouveau });
+                     setPhoneSearch(nouveau);
+                   } catch(err) {
+                     alert("Erreur lors de la mise à jour");
+                   }
+                 }
+               }}
+               className="text-[10px] font-bold text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded border border-brand-orange/30"
+            >
+              Modifier n°
+            </button>
           </div>
         )}
 
@@ -356,19 +386,62 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
 
         {/* Détails Financiers Groupés */}
         {selectedLotIds.length > 0 && (
-          <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
-            <div className="flex justify-between font-bold text-brand-dark mb-1 underline">
-              <span>Total Sélectionné ({selectedLotIds.length} lot{selectedLotIds.length > 1 ? 's' : ''})</span>
+          <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-[11px] relative group">
+            <div className="flex justify-between font-bold text-brand-dark mb-2 border-b border-slate-200 pb-1">
+              <span>PRÉ-RÉGLEMENT ({selectedLotIds.length} lot{selectedLotIds.length > 1 ? 's' : ''})</span>
+              <button 
+                type="button"
+                onClick={() => {
+                  if (!selectedClient) return;
+                  const totalDue = clientLotsWithInfo.filter(l => selectedLotIds.includes(l.id)).reduce((s,l) => s + l.totalDue, 0);
+                  const msg = `🧾 *SITUATION FINANCIÈRE*\n\n` +
+                    `👤 Client: *${selectedClient.nom}*\n` +
+                    `📦 Lots: ${selectedLotIds.length}\n\n` +
+                    `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
+                    `🎁 *Remise:* ${totalRemisesSelected > 0 ? totalRemisesSelected.toLocaleString() + ' F' : '-'}\n` +
+                    `📑 *Avoir:* ${totalAvoirsSelected > 0 ? totalAvoirsSelected.toLocaleString() + ' F' : '-'}\n` +
+                    `✅ *Net déjà encaissé:* ${totalNetEncashedSelected.toLocaleString()} F\n\n` +
+                    `🚩 *RESTE TOTAL À PAYER:* *${totalBalanceSelected.toLocaleString()} F*\n\n` +
+                    `💸 *Montant versé ce Jour:* ${valMontant > 0 ? valMontant.toLocaleString() + ' F' : '...'}\n\n` +
+                    `_Merci de votre confiance !_`;
+                  
+                  const url = `https://wa.me/${selectedClient.telephone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                  window.open(url, '_blank');
+                }}
+                className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-bold"
+              >
+                <Phone size={14} /> Partager WhatsApp
+              </button>
             </div>
+            
             <div className="flex justify-between">
               <span className="text-slate-500">Montant total dû :</span>
               <span className="font-semibold">{clientLotsWithInfo.filter(l => selectedLotIds.includes(l.id)).reduce((s,l) => s + l.totalDue, 0).toLocaleString()} F</span>
             </div>
-            <div className="flex justify-between text-green-700">
+            
+            {(totalAvoirsSelected > 0 || totalRemisesSelected > 0) && (
+              <div className="space-y-1">
+                {totalAvoirsSelected > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Avoir cumulé :</span>
+                    <span className="font-semibold">-{totalAvoirsSelected.toLocaleString()} F</span>
+                  </div>
+                )}
+                {totalRemisesSelected > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Remise cumulée :</span>
+                    <span className="font-semibold">-{totalRemisesSelected.toLocaleString()} F</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-between text-emerald-600">
               <span>Net déjà encaissé :</span>
               <span className="font-semibold">{totalNetEncashedSelected.toLocaleString()} F</span>
             </div>
-            <div className="flex justify-between border-t border-slate-200 mt-1 pt-1 font-bold text-brand-orange text-sm">
+            
+            <div className="flex justify-between border-t border-slate-200 mt-2 pt-2 font-black text-brand-orange text-sm">
               <span>Reste total à payer :</span>
               <span>{totalBalanceSelected.toLocaleString()} F</span>
             </div>

@@ -48,6 +48,7 @@ interface AppState {
   addSalaireAgent: (a: Omit<SalarieAgent, 'id' | 'createdAt'>) => Promise<void>;
   updateSalaireAgent: (id: string, updates: Partial<Omit<SalarieAgent, 'id' | 'createdAt'>>) => Promise<void>;
   deleteSalaireAgent: (id: string) => Promise<void>;
+  updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string) => void;
 }
 
@@ -452,6 +453,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addLog('MODIFICATION', 'Salarié', `Mise à jour fiche ${res.agent.nom} (ID…${id.slice(-4)}).`)
   }
 
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    const res = await callInsforgeFunction<{ client: Client }>('client_update', { id, updates })
+    if (!res.client) {
+      throw new Error('Echec de mise à jour client côté backend (client_update).')
+    }
+    setClients(prev => prev.map(c => (c.id === id ? res.client : c)))
+    addLog('MODIFICATION', 'Client', `Mise à jour des infos de ${res.client.nom} (ID…${id.slice(-4)}).`)
+  }
+
   const deleteSalaireAgent = async (id: string) => {
     try {
       await callInsforgeFunction<{ success: boolean }>('salaire_agent_delete', { id })
@@ -490,6 +500,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSalaireAgent,
         updateSalaireAgent,
         deleteSalaireAgent,
+        updateClient,
         addLog,
       }}
     >

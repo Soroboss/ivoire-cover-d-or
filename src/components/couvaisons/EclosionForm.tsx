@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
-import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
+import { resteLot, netPayeLot } from '../../lib/financeCalculations';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
   if (!phone) return '';
@@ -68,28 +68,22 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
       });
 
       if (deltaNes > 0 && sendWhatsApp && client?.telephone) {
-        const resteSurCeLot = resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire);
-        const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
-        const ancienneDette = resteGlobal - resteSurCeLot;
+        const totalDue = couv.nombreOeufs * couv.prixUnitaire;
+        const netEncashed = netPayeLot(transactions, couvaisonId);
+        const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
+        const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
+        const balance = resteLot(transactions, couvaisonId, totalDue);
 
-        let financeText = `\n\n📌 Point Financier :`;
-        financeText += `\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
-        
-        if (ancienneDette > 0) {
-          financeText += `\n- Dettes sur autres lots : ${ancienneDette.toLocaleString('fr-FR')} FCFA`;
-        } else if (ancienneDette < 0) {
-          financeText += `\n- Crédit disponible : ${Math.abs(ancienneDette).toLocaleString('fr-FR')} FCFA`;
-        }
-        
-        if (resteGlobal > 0) {
-          financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
-        } else if (resteGlobal < 0) {
-          financeText += `\n- TOTAL SOLDE CLIENT : ${Math.abs(resteGlobal).toLocaleString('fr-FR')} FCFA (CRÉDIT)`;
-        } else {
-          financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : 0 FCFA (Soldé)`;
-        }
-
-        const whatsAppText = `Bonjour ${client.nom},\n\nBonne nouvelle pour votre lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) : ${deltaNes} poussins sont éclos et prêts à être récupérés ! (Total déjà sorti : ${nes} / ${oeufsRestants} viables).${financeText}\n\nMerci,\nL'équipe Ivoire Couvée d'Or.`;
+        const whatsAppText = `🧾 *SITUATION FINANCIÈRE*\n\n` +
+          `👤 Client: *${client.nom}*\n` +
+          `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
+          `📅 Éclosion: ${deltaNes} nouveaux poussins (Total: ${nes}/${oeufsRestants})\n\n` +
+          `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
+          `🎁 *Remise:* ${remises > 0 ? remises.toLocaleString() + ' F' : '-'}\n` +
+          `📑 *Avoir:* ${avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-'}\n` +
+          `✅ *Net déjà encaissé:* ${netEncashed.toLocaleString()} F\n\n` +
+          `🚩 *RESTE TOTAL À PAYER:* *${balance.toLocaleString()} F*\n\n` +
+          `_Merci de votre confiance !_`;
         try {
           await addClientMessage({
             clientId: client.id,
@@ -155,6 +149,47 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         <div className="bg-green-100 rounded">
            <div className="text-xs text-green-800 uppercase tracking-wider font-semibold pt-1 px-1">En Machine</div>
            <div className="text-2xl font-black text-green-700">{nonEclos > 0 ? nonEclos : 0}</div>
+        </div>
+      </div>
+
+      <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50 relative group">
+        <div className="flex justify-between items-center mb-2 border-b border-slate-200 pb-1">
+          <h3 className="text-xs font-black text-brand-dark uppercase tracking-wider">État Financier du Lot</h3>
+          {client?.telephone && (
+            <button
+              type="button"
+              onClick={() => {
+                const totalDue = couv.nombreOeufs * couv.prixUnitaire;
+                const netEncashed = netPayeLot(transactions, couvaisonId);
+                const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
+                const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
+                const balance = resteLot(transactions, couvaisonId, totalDue);
+                
+                const msg = `🧾 *SITUATION FINANCIÈRE*\n\n` +
+                  `👤 Client: *${client.nom}*\n` +
+                  `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
+                  `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
+                  `🎁 *Remise:* ${remises > 0 ? remises.toLocaleString() + ' F' : '-'}\n` +
+                  `📑 *Avoir:* ${avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-'}\n` +
+                  `✅ *Net déjà encaissé:* ${netEncashed.toLocaleString()} F\n\n` +
+                  `🚩 *RESTE TOTAL À PAYER:* *${balance.toLocaleString()} F*\n\n` +
+                  `_Merci de votre confiance !_`;
+                
+                window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+            >
+              Envoyer Bilan WhatsApp
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-y-1 text-[11px]">
+          <span className="text-slate-500">Montant dû :</span>
+          <span className="text-right font-semibold">{(couv.nombreOeufs * couv.prixUnitaire).toLocaleString()} F</span>
+          <span className="text-slate-500">Net encaissé :</span>
+          <span className="text-right font-semibold text-emerald-600">{netPayeLot(transactions, couvaisonId).toLocaleString()} F</span>
+          <span className="border-t border-slate-200 mt-1 pt-1 font-bold text-brand-orange">Reste à payer :</span>
+          <span className="border-t border-slate-200 mt-1 pt-1 text-right font-bold text-brand-orange">{resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire).toLocaleString()} F</span>
         </div>
       </div>
       
