@@ -5,7 +5,8 @@ import { CouvaisonForm } from '../components/couvaisons/CouvaisonForm';
 import { MirageForm } from '../components/couvaisons/MirageForm';
 import { EclosionHub } from '../components/couvaisons/EclosionHub';
 import { PlacementForm } from '../components/couvaisons/PlacementForm';
-import type { StatutCouvaison } from '../types';
+import { ClientFinanceCardModal } from '../components/clients/ClientFinanceCardModal';
+import type { StatutCouvaison, Client } from '../types';
 import { format, parseISO } from 'date-fns';
 import { Search, Filter, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2 } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
@@ -31,6 +32,7 @@ const Couvaisons = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [receptionFrom, setReceptionFrom] = useState('');
   const [receptionTo, setReceptionTo] = useState('');
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const canDelete = currentUser?.role === 'Admin';
 
   const filteredCouvaisons = useMemo(() => {
@@ -253,8 +255,14 @@ const Couvaisons = () => {
                  return (
                    <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                      <td className="px-6 py-4">
-                       <p className="font-semibold text-brand-dark">{client?.nom || 'Inconnu'}</p>
-                       <p className="text-xs text-brand-muted">{client?.telephone}</p>
+                       <button 
+                         onClick={() => client && setViewingClient(client)}
+                         className="text-left group transition-all"
+                         title="Voir le profil financier du client"
+                       >
+                         <p className="font-semibold text-brand-dark group-hover:text-brand-orange underline decoration-brand-orange/20 decoration-2 underline-offset-2 transition-all">{client?.nom || 'Inconnu'}</p>
+                         <p className="text-xs text-brand-muted group-hover:text-brand-dark">{client?.telephone}</p>
+                       </button>
                      </td>
                      <td className="px-6 py-4 text-sm font-medium text-brand-dark">
                        {format(parseISO(c.dateReception), 'dd/MM/yyyy')}
@@ -468,6 +476,14 @@ const Couvaisons = () => {
               onSuccess={() => { setView('list'); setActiveId(null); }}
             />
           </div>
+        )}
+
+        {viewingClient && (
+          <ClientFinanceCardModal 
+            client={viewingClient} 
+            isOpen={!!viewingClient} 
+            onClose={() => setViewingClient(null)} 
+          />
         )}
       </div>
     </div>

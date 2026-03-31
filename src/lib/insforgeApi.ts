@@ -1,4 +1,4 @@
-const DEFAULT_OSS_HOST = 'https://d5rjfctn.us-east.insforge.app'
+const DEFAULT_OSS_HOST = 'https://bzna2rx5.eu-central.insforge.app'
 const OSS_HOST = (import.meta.env.VITE_INSFORGE_OSS_HOST as string | undefined) ?? DEFAULT_OSS_HOST
 
 // Si la variable Vercel/Vite n’est pas injectée, on fallback sur la valeur du projet.

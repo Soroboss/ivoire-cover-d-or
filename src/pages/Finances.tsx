@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { TransactionForm } from '../components/finances/TransactionForm';
+import { ClientFinanceCardModal } from '../components/clients/ClientFinanceCardModal';
 import { format, parseISO } from 'date-fns';
+import type { Client } from '../types';
 import {
   Plus,
   ArrowDownRight,
@@ -32,6 +34,7 @@ const Finances = () => {
   const [showForm, setShowForm] = useState(false);
   const [receptionFrom, setReceptionFrom] = useState('');
   const [receptionTo, setReceptionTo] = useState('');
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
 
   /** Lots dont la date de réception est dans l’intervalle (ou tout si pas de filtre). */
   const couvaisonsScoped = useMemo(() => {
@@ -311,7 +314,14 @@ const Finances = () => {
             <tbody className="divide-y divide-brand-lightgray">
               {unpaidLots.length > 0 ? unpaidLots.map((u) => (
                 <tr key={u.couvaison.id}>
-                  <td className="px-6 py-3 font-medium text-brand-dark">{u.client?.nom || 'Inconnu'}</td>
+                  <td className="px-6 py-3">
+                     <button 
+                       onClick={() => u.client && setViewingClient(u.client)}
+                       className="font-medium text-brand-dark hover:text-brand-orange underline decoration-brand-orange/20 underline-offset-2 transition-all"
+                     >
+                       {u.client?.nom || 'Inconnu'}
+                     </button>
+                   </td>
                   <td className="px-6 py-3 text-sm text-brand-dark">
                     {format(parseISO(u.couvaison.dateReception), 'dd/MM/yyyy')}
                   </td>
@@ -381,7 +391,14 @@ const Finances = () => {
                  return (
                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
                      <td className="px-6 py-4 text-brand-muted">{format(parseISO(t.dateTransaction), 'dd/MM/yyyy HH:mm')}</td>
-                     <td className="px-6 py-4 font-medium text-brand-dark">{client?.nom || 'Inconnu'}</td>
+                     <td className="px-6 py-4">
+                       <button 
+                         onClick={() => client && setViewingClient(client)}
+                        className="font-medium text-brand-dark hover:text-brand-orange underline decoration-brand-orange/20 underline-offset-2 transition-all"
+                       >
+                         {client?.nom || 'Inconnu'}
+                       </button>
+                     </td>
                      <td className="px-6 py-4 text-sm text-brand-muted">
                        {couv ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '—'}
                      </td>
@@ -411,6 +428,14 @@ const Finances = () => {
           </table>
         </div>
       </div>
+
+      {viewingClient && (
+        <ClientFinanceCardModal 
+          client={viewingClient} 
+          isOpen={!!viewingClient} 
+          onClose={() => setViewingClient(null)} 
+        />
+      )}
     </div>
   );
 };

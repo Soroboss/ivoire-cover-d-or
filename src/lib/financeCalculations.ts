@@ -1,5 +1,61 @@
 import type { Transaction, Couvaison } from '../types';
 
+export interface ClientDetailedFinance {
+  totalDu: number;
+  avoir: number;
+  remise: number;
+  netEncaisse: number;
+  resteAPayer: number;
+  verseJour: number;
+}
+
+export function getClientDetailedFinance(
+  transactions: Transaction[],
+  couvaisons: Couvaison[],
+  clientId: string
+): ClientDetailedFinance {
+  const clientCouvaisons = couvaisons.filter((c) => c.clientId === clientId && c.statut !== 'Annulé');
+  const clientTransactions = transactions.filter((t) => t.clientId === clientId);
+
+  const totalDu = clientCouvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
+
+  const avoir = clientTransactions
+    .filter((t) => t.typeTransaction === 'Avoir')
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
+  const remise = clientTransactions
+    .filter((t) => t.typeTransaction === 'Remise')
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
+  const paiements = clientTransactions
+    .filter((t) => t.typeTransaction === 'Paiement')
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
+  const deductions = clientTransactions
+    .filter((t) => t.typeTransaction === 'Deduction')
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
+  const netEncaisse = Math.max(0, paiements - deductions);
+
+  // Reste = Total Dû - Net Encaissé - Avoirs - Remises
+  const resteAPayer = Math.max(0, totalDu - netEncaisse - avoir - remise);
+
+  // Versé ce jour (basé sur la date locale de la transaction)
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const verseJour = clientTransactions
+    .filter((t) => t.typeTransaction === 'Paiement' && t.dateTransaction.startsWith(today))
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
+  return {
+    totalDu,
+    avoir,
+    remise,
+    netEncaisse,
+    resteAPayer,
+    verseJour,
+  };
+}
+
 export function getClientGlobalBalance(transactions: Transaction[], couvaisons: Couvaison[], clientId: string): number {
   const clientCouvaisons = couvaisons.filter((c) => c.clientId === clientId && c.statut !== 'Annulé');
   const totalDues = clientCouvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
