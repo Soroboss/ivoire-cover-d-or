@@ -26,14 +26,14 @@ export const ClientStatsSummary: React.FC<Props> = ({ clientId }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 mb-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mt-4 mb-4">
       {items.map((item, idx) => (
-        <div key={idx} className={`p-4 rounded-2xl border border-white/40 shadow-sm ${item.bg} flex flex-col transition-all hover:scale-[1.02] duration-200`}>
+        <div key={idx} className={`p-3 sm:p-4 rounded-2xl border border-white/40 shadow-sm ${item.bg} flex flex-col transition-all hover:scale-[1.02] duration-200 min-h-[90px]`}>
           <div className="flex items-center gap-1.5 mb-2">
             {item.icon}
-            <p className="text-[10px] font-black tracking-wider text-slate-500 uppercase drop-shadow-sm truncate">{item.label}</p>
+            <p className="text-[9px] sm:text-[10px] font-black tracking-widest text-slate-500 uppercase drop-shadow-sm leading-tight">{item.label}</p>
           </div>
-          <p className={`text-lg font-black ${item.color}`}>{item.value.toLocaleString()} <span className="text-[10px] opacity-70">F</span></p>
+          <p className={`text-base sm:text-lg font-black ${item.color} mt-auto`}>{item.value.toLocaleString()} <span className="text-[9px] opacity-70">F</span></p>
         </div>
       ))}
     </div>

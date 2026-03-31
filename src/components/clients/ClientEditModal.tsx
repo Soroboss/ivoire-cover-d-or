@@ -14,6 +14,7 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({ client, isOpen
   const { updateClient } = useAppContext();
   const [nom, setNom] = useState(client.nom);
   const [telephone, setTelephone] = useState(client.telephone);
+  const [clientIdExt, setClientIdExt] = useState(client.clientIdExt || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +22,7 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({ client, isOpen
     if (isOpen) {
       setNom(client.nom);
       setTelephone(client.telephone);
+      setClientIdExt(client.clientIdExt || '');
       setError(null);
     }
   }, [isOpen, client]);
@@ -37,8 +39,8 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({ client, isOpen
     setLoading(true);
     setError(null);
     try {
-      await updateClient(client.id, { nom, telephone });
-      if (onSuccess) onSuccess({ ...client, nom, telephone });
+      await updateClient(client.id, { nom, telephone, clientIdExt });
+      if (onSuccess) onSuccess({ ...client, nom, telephone, clientIdExt });
       onClose();
     } catch (err) {
       setError("Erreur lors de la mise à jour. Veuillez réessayer.");
@@ -83,19 +85,35 @@ export const ClientEditModal: React.FC<ClientEditModalProps> = ({ client, isOpen
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-brand-muted flex items-center gap-2">
-              <Phone size={14} className="text-brand-orange" />
-              Numéro de téléphone
-            </label>
-            <input
-              type="text"
-              inputMode="tel"
-              value={telephone}
-              onChange={(e) => setTelephone(e.target.value)}
-              placeholder="Ex: 0707070707"
-              className="input-modern"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-brand-muted flex items-center gap-2">
+                <Phone size={14} className="text-brand-orange" />
+                Téléphone
+              </label>
+              <input
+                type="text"
+                inputMode="tel"
+                value={telephone}
+                onChange={(e) => setTelephone(e.target.value)}
+                placeholder="Ex: 0707070707"
+                className="input-modern"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-brand-muted flex items-center gap-2">
+                <span className="font-bold text-brand-orange text-xs">ID#</span>
+                ID Unique
+              </label>
+              <input
+                type="text"
+                value={clientIdExt}
+                onChange={(e) => setClientIdExt(e.target.value)}
+                placeholder="Ex: CL-001"
+                className="input-modern bg-slate-50"
+              />
+            </div>
           </div>
 
           {error && (

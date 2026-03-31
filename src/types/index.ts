@@ -70,6 +70,7 @@ export interface Client {
   id: string;
   nom: string;
   telephone: string;
+  clientIdExt?: string;
 }
 
 export interface Couvaison {

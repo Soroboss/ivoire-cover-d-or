@@ -51,7 +51,11 @@ export default async function (req: Request): Promise<Response> {
       ((
         await client.database
           .from('clients')
-          .insert({ nom: clientInfos.nom, telephone: clientInfos.telephone })
+          .insert({
+            nom: clientInfos.nom,
+            telephone: clientInfos.telephone,
+            client_id_ext: `CL-${Math.floor(Date.now() / 1000).toString(36).toUpperCase()}`
+          })
           .select()
       ).data?.[0] as any)
 

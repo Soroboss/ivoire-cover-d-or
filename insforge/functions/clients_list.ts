@@ -33,11 +33,12 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    // Match app interface: {id, nom, telephone}
+    // Match app interface: {id, nom, telephone, clientIdExt}
     const clients = (data ?? []).map((r: any) => ({
       id: r.id,
       nom: r.nom,
       telephone: r.telephone,
+      clientIdExt: r.client_id_ext
     }))
 
     return new Response(JSON.stringify({ clients }), {

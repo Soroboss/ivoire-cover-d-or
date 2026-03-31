@@ -50,6 +50,7 @@ export default async function (req: Request): Promise<Response> {
           id: r.id,
           nom: r.nom,
           telephone: r.telephone,
+          clientIdExt: r.client_id_ext
         }
       : null
 
