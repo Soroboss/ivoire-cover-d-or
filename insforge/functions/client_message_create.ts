@@ -41,7 +41,37 @@ export default async function (req: Request): Promise<Response> {
       sent_at: body.sentAt ?? new Date().toISOString(),
     }
 
-    const { data, error } = await client.database.from('client_messages').insert(payload).select('*')
+    // Idempotency check
+    const idempotencyKey = body.idempotencyKey ?? null
+    if (idempotencyKey) {
+      const { data: existing } = await client.database
+        .from('client_messages')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle()
+
+      if (existing) {
+        const r: any = existing
+        const message = {
+          id: r.id,
+          clientId: r.client_id,
+          couvaisonId: r.couvaison_id ?? undefined,
+          canal: r.canal,
+          statut: r.statut,
+          template: r.template ?? undefined,
+          message: r.message,
+          sentByUserId: r.sent_by_user_id ?? undefined,
+          sentByName: r.sent_by_name ?? undefined,
+          sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : new Date().toISOString(),
+        }
+        return new Response(JSON.stringify({ message }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    const { data, error } = await client.database.from('client_messages').insert({ ...payload, idempotency_key: idempotencyKey }).select('*')
     if (error || !data?.[0]) {
       return new Response(JSON.stringify({ error: error?.message || 'Insert failed' }), {
         status: 500,

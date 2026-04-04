@@ -73,6 +73,21 @@ export interface Client {
   clientIdExt?: string;
 }
 
+export interface ClientFinancialSummary {
+  clientId: string;
+  nom: string;
+  telephone: string;
+  clientIdExt?: string;
+  totalDu: number;
+  avoir: number;
+  remise: number;
+  netEncaisse: number;
+  resteAPayer: number;
+  /** Crédit client : montant versé en trop (paiements > total dû). Si > 0, afficher «Avoir» */
+  avoirClient: number;
+  verseJour: number;
+}
+
 export interface Couvaison {
   id: string;
   clientId: string;
@@ -104,6 +119,7 @@ export interface Couvaison {
   emplacementsApresMirage?: { machineId: string, casierId: string, quantite: number }[];
   causeEchecMajeure?: CauseEchec;
   notesEchec?: string;
+  idempotencyKey?: string;
 }
 
 export type TypeTransaction = 'Paiement' | 'Avoir' | 'Remise' | 'Deduction';
@@ -118,6 +134,7 @@ export interface Transaction {
   dateTransaction: string;
   typeTransaction: TypeTransaction;
   notes?: string;
+  idempotencyKey?: string;
 }
 
 export interface ReceiptArchive {
@@ -148,6 +165,7 @@ export interface ClientMessage {
   sentByUserId?: string;
   sentByName?: string;
   sentAt: string;
+  idempotencyKey?: string;
 }
 
 /** Catégories de charges (hors flux clients) — loyer, énergie, masse salariale, etc. */
@@ -194,6 +212,7 @@ export interface Depense {
   montant: number;
   notes?: string;
   createdAt: string;
+  idempotencyKey?: string;
 }
 
 /**
@@ -213,4 +232,5 @@ export interface SalarieAgent {
   reductionChargesFamilleDefaut: number;
   notes?: string;
   createdAt: string;
+  idempotencyKey?: string;
 }

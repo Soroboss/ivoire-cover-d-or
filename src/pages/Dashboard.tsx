@@ -122,7 +122,7 @@ const EmptyChart = ({ children }: { children: React.ReactNode }) => (
 );
 
 const Dashboard = () => {
-  const { couvaisons, transactions, clients, machines, depenses } = useAppContext();
+  const { couvaisons, transactions, clients, machines, depenses, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
   const isCaisse = currentUser?.role === 'Réception/Caisse';
 
@@ -204,6 +204,11 @@ const Dashboard = () => {
   const comparisonSeries = useMemo(
     () => buildComparisonSeries(scopedTransactions, scopedDepenses),
     [scopedTransactions, scopedDepenses],
+  );
+
+  const totalResteARecouvrer = useMemo(
+    () => clientSummaries.reduce((s, c) => s + Math.max(0, c.resteAPayer), 0),
+    [clientSummaries],
   );
 
   const todayAlerts = couvaisons
@@ -539,6 +544,13 @@ const Dashboard = () => {
               subtitle="Transactions enregistrées"
               icon={<TrendingUp size={22} />}
               variant="violet"
+            />
+            <KpiCard
+              title="Reste à Recouvrer"
+              value={`${totalResteARecouvrer.toLocaleString()} FCFA`}
+              subtitle="Créances clients totales"
+              icon={<Wallet size={22} />}
+              variant="orange"
             />
           </div>
 

@@ -131,7 +131,11 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
   };
 
   const totalBalanceSelected = useMemo(() => {
-    return clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id)).reduce((sum, l) => sum + l.balance, 0);
+    const selectedLots = clientLotsWithInfo.filter((l) => selectedLotIds.includes(l.id));
+    const totalDue = selectedLots.reduce((sum, l) => sum + l.totalDue, 0);
+    const totalPaid = selectedLots.reduce((sum, l) => sum + l.netEncashed, 0);
+    const totalCredits = selectedLots.reduce((sum, l) => sum + l.avoirs + l.remises, 0);
+    return Math.max(0, totalDue - totalPaid - totalCredits);
   }, [clientLotsWithInfo, selectedLotIds]);
 
   const totalNetEncashedSelected = useMemo(() => {

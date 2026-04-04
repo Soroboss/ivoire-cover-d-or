@@ -48,14 +48,103 @@ const ClientsDB = () => {
       .slice(0, 8);
   }, [clientMessages, selectedClientId]);
 
+  const stats = useMemo(() => {
+    const totalClients = clients.length;
+    const totalEggs = couvaisons.reduce((sum, c) => sum + (c.nombreOeufs || 0), 0);
+    
+    // Calcul des œufs fécondés (on prend les œufs restants après mirage pour les lots où le mirage a été fait)
+    const fertileEggs = couvaisons.reduce((sum, c) => {
+      if (c.oeufsClairs != null || c.oeufsPourris != null) {
+        return sum + (c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0));
+      }
+      return sum;
+    }, 0);
+
+    // Calcul du meilleur client (celui avec le plus grand volume total d'œufs)
+    const clientVolumes = couvaisons.reduce((acc, c) => {
+      acc[c.clientId] = (acc[c.clientId] || 0) + c.nombreOeufs;
+      return acc;
+    }, {} as Record<string, number>);
+
+    let bestClientName = "—";
+    let maxVol = 0;
+    Object.entries(clientVolumes).forEach(([id, vol]) => {
+      if (vol > maxVol) {
+        maxVol = vol;
+        const cl = clients.find(c => c.id === id);
+        if (cl) bestClientName = cl.nom;
+      }
+    });
+
+    return { totalClients, totalEggs, fertileEggs, bestClientName, maxVol };
+  }, [clients, couvaisons]);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-brand-dark">Base de données - Clients</h1>
-          <p className="text-sm text-brand-muted mt-1">
-            Cliquez sur un client pour voir toutes ses opérations de couvaison (de la première à la dernière).
-          </p>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/50 to-brand-orange/[0.04] p-6 shadow-soft sm:p-8">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-orange/10 blur-3xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-orange to-brand-hover text-white shadow-lg">
+              <User size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-orange/80">CRM & Database</p>
+              <h1 className="font-display text-2xl font-black tracking-tight text-brand-dark sm:text-3xl">
+                Base de données Clients
+              </h1>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Gérez vos partenaires et suivez l&apos;historique de leurs prestations en un clin d&apos;œil.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-50 transition-transform group-hover:scale-150" />
+            <div className="relative">
+              <p className="text-[9px] font-black uppercase tracking-widest text-blue-500">Total Partenaires</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-900">{stats.totalClients}</span>
+                <span className="text-xs font-bold text-blue-600/70">ACTIFS</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-amber-100 bg-white p-5 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-amber-50 transition-transform group-hover:scale-150" />
+            <div className="relative">
+              <p className="text-[9px] font-black uppercase tracking-widest text-amber-500">Œufs Traités</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-900">{stats.totalEggs.toLocaleString()}</span>
+                <span className="text-xs font-bold text-amber-600/70">UNITÉS</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-50 transition-transform group-hover:scale-150" />
+            <div className="relative">
+              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Fécondité Globale</p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-900">{stats.fertileEggs.toLocaleString()}</span>
+                <span className="text-xs font-bold text-emerald-600/70">VIABLES</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-purple-100 bg-white p-5 shadow-sm transition-all hover:scale-[1.02] hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-purple-50 transition-transform group-hover:scale-150" />
+            <div className="relative">
+              <p className="text-[9px] font-black uppercase tracking-widest text-purple-500">Meilleur Client</p>
+              <div className="mt-1 flex flex-col">
+                <span className="truncate text-xl font-black text-slate-900">{stats.bestClientName}</span>
+                <span className="text-[10px] font-bold text-purple-600/70 uppercase">{stats.maxVol.toLocaleString()} œufs au total</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

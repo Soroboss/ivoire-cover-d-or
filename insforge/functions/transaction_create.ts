@@ -34,7 +34,33 @@ export default async function (req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { data, error } = await client.database.from('transactions').insert(payload).select('*')
+    // Idempotency check
+    const idempotencyKey = body.idempotencyKey ?? null
+    if (idempotencyKey) {
+      const { data: existing } = await client.database
+        .from('transactions')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle()
+
+      if (existing) {
+        const r: any = existing
+        const transaction = {
+          id: r.id,
+          couvaisonId: r.couvaison_id,
+          clientId: r.client_id,
+          montantTotal: Number(r.montant_total) || 0,
+          acomptes_verses: Number(r.acomptes_verses) || 0,
+          reste_a_payer: Number(r.reste_a_payer) || 0,
+          dateTransaction: r.date_transaction ? new Date(r.date_transaction).toISOString() : new Date().toISOString(),
+          typeTransaction: r.type_transaction,
+          notes: r.notes ?? undefined,
+        }
+        return new Response(JSON.stringify({ transaction }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
+    const { data, error } = await client.database.from('transactions').insert({ ...payload, idempotency_key: idempotencyKey }).select('*')
     if (error || !data?.[0]) {
       return new Response(JSON.stringify({ error: error?.message || 'Insert failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

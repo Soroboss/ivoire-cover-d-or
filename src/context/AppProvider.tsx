@@ -10,6 +10,7 @@ import type {
   ClientMessage,
   Depense,
   SalarieAgent,
+  ClientFinancialSummary,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
@@ -25,6 +26,7 @@ interface AppState {
   receiptArchives: ReceiptArchive[];
   clientMessages: ClientMessage[];
   depenses: Depense[];
+  clientSummaries: ClientFinancialSummary[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
   /** Plusieurs lots (types d’œufs différents) pour une même réception client — une synchro API à la fin */
   addCouvaisonsBatch: (
@@ -72,8 +74,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [depenses, setDepenses] = useState<Depense[]>([]);
 
   const [salaireAgents, setSalaireAgents] = useState<SalarieAgent[]>([]);
+  const [clientSummaries, setClientSummaries] = useState<ClientFinancialSummary[]>([]);
 
-  // Charge les données depuis InsForge au démarrage.
+  const refreshSummaries = async () => {
+    try {
+      const res = await callInsforgeFunction<{ summaries: ClientFinancialSummary[] }>('client_financial_summary_list', {});
+      setClientSummaries(res.summaries);
+    } catch (e) {
+      console.error('Erreur lors du rafraîchissement des résumés financiers:', e);
+    }
+  };
+
+  // Charge les données depuis InsForge au démarrage — tout en parallèle pour la performance.
   useEffect(() => {
     (async () => {
       const seedMachines: Array<Omit<Machine, 'id'>> = [
@@ -99,77 +111,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       ]
 
-      try {
-        const clientsRes = await callInsforgeFunction<{ clients: Client[] }>('clients_list', {})
-        setClients(clientsRes.clients)
-      } catch {
-        // no-op
-      }
+      // Chargement parallèle — toutes les requêtes lancées simultanément.
+      const [
+        clientsResult,
+        couvResult,
+        machinesResult,
+        txResult,
+        logsResult,
+        receiptResult,
+        messagesResult,
+        depResult,
+        agResult,
+      ] = await Promise.allSettled([
+        callInsforgeFunction<{ clients: Client[] }>('clients_list', {}),
+        callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
+        callInsforgeFunction<{ machines: Machine[] }>('machines_list', {}),
+        callInsforgeFunction<{ transactions: Transaction[] }>('transactions_list', {}),
+        callInsforgeFunction<{ logs: AuditLog[] }>('logs_list', {}),
+        callInsforgeFunction<{ archives: ReceiptArchive[] }>('receipt_archives_list', {}),
+        callInsforgeFunction<{ messages: ClientMessage[] }>('client_messages_list', {}),
+        callInsforgeFunction<{ depenses: Depense[] }>('depenses_list', {}),
+        callInsforgeFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {}),
+      ]);
 
-      try {
-        const couvRes = await callInsforgeFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {})
-        setCouvaisons(couvRes.couvaisons)
-      } catch {
-        // no-op
-      }
+      if (clientsResult.status === 'fulfilled') setClients(clientsResult.value.clients);
+      if (couvResult.status === 'fulfilled') setCouvaisons(couvResult.value.couvaisons);
+      if (txResult.status === 'fulfilled') setTransactions(txResult.value.transactions);
+      if (logsResult.status === 'fulfilled') setLogs(logsResult.value.logs);
+      if (receiptResult.status === 'fulfilled') setReceiptArchives(receiptResult.value.archives);
+      if (messagesResult.status === 'fulfilled') setClientMessages(messagesResult.value.messages);
+      if (depResult.status === 'fulfilled') setDepenses(depResult.value.depenses);
+      if (agResult.status === 'fulfilled') setSalaireAgents(agResult.value.agents);
 
-      try {
-        const machinesRes = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
-        if (machinesRes.machines.length === 0) {
+      if (machinesResult.status === 'fulfilled') {
+        if (machinesResult.value.machines.length === 0) {
           // Seed uniquement si la table est vide.
-          await Promise.all(seedMachines.map(m => callInsforgeFunction('machine_create', m)))
-          const machinesRes2 = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {})
-          setMachines(machinesRes2.machines)
+          await Promise.all(seedMachines.map(m => callInsforgeFunction('machine_create', m)));
+          const machinesRes2 = await callInsforgeFunction<{ machines: Machine[] }>('machines_list', {});
+          setMachines(machinesRes2.machines);
         } else {
-          setMachines(machinesRes.machines)
+          setMachines(machinesResult.value.machines);
         }
-      } catch {
-        // no-op
       }
 
-      try {
-        const txRes = await callInsforgeFunction<{ transactions: Transaction[] }>('transactions_list', {})
-        setTransactions(txRes.transactions)
-      } catch {
-        // no-op
-      }
-
-      try {
-        const logsRes = await callInsforgeFunction<{ logs: AuditLog[] }>('logs_list', {})
-        setLogs(logsRes.logs)
-      } catch {
-        // no-op
-      }
-
-      try {
-        const receiptRes = await callInsforgeFunction<{ archives: ReceiptArchive[] }>('receipt_archives_list', {})
-        setReceiptArchives(receiptRes.archives)
-      } catch {
-        // no-op
-      }
-
-      try {
-        const messagesRes = await callInsforgeFunction<{ messages: ClientMessage[] }>('client_messages_list', {})
-        setClientMessages(messagesRes.messages)
-      } catch {
-        // no-op
-      }
-
-      try {
-        const depRes = await callInsforgeFunction<{ depenses: Depense[] }>('depenses_list', {})
-        setDepenses(depRes.depenses)
-      } catch {
-        // no-op
-      }
-
-      try {
-        const agRes = await callInsforgeFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {})
-        setSalaireAgents(agRes.agents)
-      } catch {
-        // no-op
-      }
+      void refreshSummaries();
     })()
   }, [])
+
 
   const addLog = (action: AuditLog['action'], target: string, details: string) => {
     if (!currentUser) return;
@@ -193,6 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
       couv,
       clientInfos,
+      idempotencyKey: uuidv4(),
     })
 
     if (!res.couvaison) {
@@ -206,6 +195,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setClients(clientsRes.clients)
     setCouvaisons(couvRes.couvaisons)
+    void refreshSummaries();
 
     addLog('CRÉATION', 'Couvaison', `Réception de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) pour ${clientInfos.nom}.`)
   }
@@ -225,6 +215,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await callInsforgeFunction<{ couvaison: Couvaison }>('couvaison_create', {
         couv,
         clientInfos,
+        idempotencyKey: uuidv4(),
       })
       if (res.couvaison) {
         createdLots.push(res.couvaison);
@@ -240,6 +231,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dateTransaction: new Date().toISOString(),
         typeTransaction: 'Remise',
         notes: `Remise accordée lors de la réception`,
+        idempotencyKey: uuidv4(),
       });
     }
 
@@ -258,6 +250,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
            dateTransaction: new Date().toISOString(),
            typeTransaction: 'Paiement',
            notes: `Règlement dettes antérieures (pendant réception nouveaux lots)`,
+           idempotencyKey: uuidv4(),
          });
          remaining -= toPayOld;
        }
@@ -276,6 +269,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                dateTransaction: new Date().toISOString(),
                typeTransaction: 'Paiement',
                notes: `Acompte réception - Lot ${lot.typeOeuf}`,
+               idempotencyKey: uuidv4(),
              });
              remaining -= val;
            }
@@ -288,6 +282,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setClients(clientsRes.clients)
     setCouvaisons(couvRes.couvaisons)
+    void refreshSummaries();
     const summary = valid.map((c) => `${c.nombreOeufs} ${c.typeOeuf}`).join(', ')
     addLog('CRÉATION', 'Couvaison', `Réception multiple (${valid.length} lot(s)): ${summary} pour ${clientInfos.nom}.`)
   }
@@ -304,6 +299,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCouvaisons(prev => prev.map(c => (c.id === id ? res.couvaison : c)))
+    void refreshSummaries();
     const changes: string[] = []
     if (updates.statut && updates.statut !== before?.statut) changes.push(`statut ${before?.statut ?? '-'} -> ${updates.statut}`)
     if (updates.dateMiseEnMachine) changes.push('mise en machine enregistrée')
@@ -338,6 +334,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ])
       setClients(clientsRes.clients)
       setCouvaisons(couvRes.couvaisons)
+      void refreshSummaries();
     } catch {
       // Si la suppression backend échoue, on ne modifie pas l'état.
       throw new Error('Echec de suppression côté backend')
@@ -345,13 +342,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    const res = await callInsforgeFunction<{ transaction: Transaction }>('transaction_create', transaction)
+    const res = await callInsforgeFunction<{ transaction: Transaction }>('transaction_create', {
+      ...transaction,
+      idempotencyKey: uuidv4(),
+    })
 
     if (!res.transaction) {
       throw new Error('Echec de création côté backend (transaction_create).')
     }
 
     setTransactions(prev => [...prev, res.transaction])
+    void refreshSummaries();
     addLog('CRÉATION', 'Facture', `${transaction.typeTransaction} de ${transaction.montantTotal} F (Saisie comptable).`)
   }
 
@@ -403,6 +404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const payload = {
       ...message,
       sentAt: message.sentAt ?? new Date().toISOString(),
+      idempotencyKey: uuidv4(),
     }
     const res = await callInsforgeFunction<{ message: ClientMessage }>('client_message_create', payload)
     if (!res.message) {
@@ -412,7 +414,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addDepense = async (d: Omit<Depense, 'id' | 'createdAt'>) => {
-    const res = await callInsforgeFunction<{ depense: Depense }>('depense_create', d)
+    const res = await callInsforgeFunction<{ depense: Depense }>('depense_create', {
+      ...d,
+      idempotencyKey: uuidv4(),
+    })
     if (!res.depense) {
       throw new Error('Echec de création dépense (depense_create).')
     }
@@ -440,7 +445,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addSalaireAgent = async (a: Omit<SalarieAgent, 'id' | 'createdAt'>) => {
-    const res = await callInsforgeFunction<{ agent: SalarieAgent }>('salaire_agent_create', a)
+    const res = await callInsforgeFunction<{ agent: SalarieAgent }>('salaire_agent_create', {
+      ...a,
+      idempotencyKey: uuidv4(),
+    })
     if (!res.agent) {
       throw new Error('Echec de création fiche salarié (salaire_agent_create).')
     }
@@ -508,6 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteSalaireAgent,
         updateClient,
         addLog,
+        clientSummaries,
       }}
     >
       {children}

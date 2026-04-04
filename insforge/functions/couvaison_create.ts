@@ -66,7 +66,48 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    // 2) Insert couvaison
+    // 2) Idempotency check
+    const idempotencyKey = body.idempotencyKey ?? null
+    if (idempotencyKey) {
+      const { data: existing } = await client.database
+        .from('couvaisons')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle()
+
+      if (existing) {
+        const r = existing
+        const couvaison = {
+          id: r.id,
+          clientId: r.client_id,
+          typeOeuf: r.type_oeuf,
+          nombreOeufs: r.nombre_oeufs,
+          prixUnitaire: r.prix_unitaire,
+          dateReception: r.date_reception ? new Date(r.date_reception).toISOString() : r.date_reception,
+          dateMiseEnMachine: r.date_mise_en_machine ? new Date(r.date_mise_en_machine).toISOString() : undefined,
+          dateMiragePrevue: r.date_mirage_prevue ? new Date(r.date_mirage_prevue).toISOString() : undefined,
+          dateEclosionPrevue: r.date_eclosion_prevue ? new Date(r.date_eclosion_prevue).toISOString() : undefined,
+          dateEclosionDemarrage: r.date_eclosion_demarrage ? new Date(r.date_eclosion_demarrage).toISOString() : undefined,
+          nomDepart: r.nom_depart ?? undefined,
+          statut: r.statut,
+          oeufsClairs: r.oeufs_clairs ?? undefined,
+          oeufsPourris: r.oeufs_pourris ?? undefined,
+          poussins_nes: r.poussins_nes ?? undefined,
+          mortsEnCoque: r.morts_en_coque ?? undefined,
+          emplacements: r.emplacements ?? undefined,
+          emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
+          emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
+          causeEchecMajeure: r.cause_echec_majeure ?? undefined,
+          notesEchec: r.notes_echec ?? undefined,
+        }
+        return new Response(JSON.stringify({ couvaison }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // 3) Insert couvaison
     const { data: inserted, error: insertErr } = await client.database
       .from('couvaisons')
       .insert({
@@ -90,6 +131,7 @@ export default async function (req: Request): Promise<Response> {
         emplacements_apres_mirage: couv.emplacementsApresMirage ?? null,
         cause_echec_majeure: couv.causeEchecMajeure ?? null,
         notes_echec: couv.notesEchec ?? null,
+        idempotency_key: idempotencyKey,
       })
       .select('*')
 

@@ -42,7 +42,36 @@ export default async function (req: Request): Promise<Response> {
       notes: body.notes != null ? String(body.notes) : null,
     }
 
-    const { data, error } = await client.database.from('salaire_agents').insert(payload).select('*')
+    // Idempotency check
+    const idempotencyKey = body.idempotencyKey ?? null
+    if (idempotencyKey) {
+      const { data: existing } = await client.database
+        .from('salaire_agents')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle()
+
+      if (existing) {
+        const r: any = existing
+        const agent = {
+          id: r.id,
+          nom: r.nom,
+          fonction: r.fonction ?? undefined,
+          matricule: r.matricule ?? undefined,
+          numeroCnps: r.numero_cnps ?? undefined,
+          salaireMensuelBrut: Number(r.salaire_mensuel_brut) || 0,
+          primesDefaut: Number(r.primes_defaut) || 0,
+          autresGainsDefaut: Number(r.autres_gains_defaut) || 0,
+          retenuesDiversesDefaut: Number(r.retenues_diverses_defaut) || 0,
+          reductionChargesFamilleDefaut: Number(r.reduction_ricf_defaut) || 0,
+          notes: r.notes ?? undefined,
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+        }
+        return new Response(JSON.stringify({ agent }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
+    const { data, error } = await client.database.from('salaire_agents').insert({ ...payload, idempotency_key: idempotencyKey }).select('*')
     if (error || !data?.[0]) {
       return new Response(JSON.stringify({ error: error?.message || 'Insert failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

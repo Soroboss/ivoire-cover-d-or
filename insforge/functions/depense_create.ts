@@ -36,7 +36,31 @@ export default async function (req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: 'Libellé requis' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { data, error } = await client.database.from('depenses').insert(payload).select('*')
+    // Idempotency check
+    const idempotencyKey = body.idempotencyKey ?? null
+    if (idempotencyKey) {
+      const { data: existing } = await client.database
+        .from('depenses')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle()
+
+      if (existing) {
+        const r: any = existing
+        const depense = {
+          id: r.id,
+          dateDepense: r.date_depense ? new Date(r.date_depense).toISOString() : new Date().toISOString(),
+          categorie: r.categorie,
+          libelle: r.libelle,
+          montant: Number(r.montant) || 0,
+          notes: r.notes ?? undefined,
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+        }
+        return new Response(JSON.stringify({ depense }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+    }
+
+    const { data, error } = await client.database.from('depenses').insert({ ...payload, idempotency_key: idempotencyKey }).select('*')
     if (error || !data?.[0]) {
       return new Response(JSON.stringify({ error: error?.message || 'Insert failed' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

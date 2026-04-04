@@ -6,6 +6,7 @@ export interface ClientDetailedFinance {
   remise: number;
   netEncaisse: number;
   resteAPayer: number;
+  avoirClient: number;
   verseJour: number;
 }
 
@@ -38,7 +39,9 @@ export function getClientDetailedFinance(
   const netEncaisse = Math.max(0, paiements - deductions);
 
   // Reste = Total Dû - Net Encaissé - Avoirs - Remises
-  const resteAPayer = Math.max(0, totalDu - netEncaisse - avoir - remise);
+  const balanceValue = totalDu - netEncaisse - avoir - remise;
+  const resteAPayer = Math.max(0, balanceValue);
+  const avoirClient = Math.max(0, -balanceValue);
 
   // Versé ce jour (basé sur la date locale de la transaction)
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -52,6 +55,7 @@ export function getClientDetailedFinance(
     remise,
     netEncaisse,
     resteAPayer,
+    avoirClient,
     verseJour,
   };
 }
