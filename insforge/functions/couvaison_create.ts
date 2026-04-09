@@ -46,18 +46,34 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const clientRow =
-      existingClient ??
-      ((
-        await client.database
-          .from('clients')
-          .insert({
-            nom: clientInfos.nom,
-            telephone: clientInfos.telephone,
-            client_id_ext: `CL-${Math.floor(Date.now() / 1000).toString(36).toUpperCase()}`
-          })
-          .select()
-      ).data?.[0] as any)
+    // Get client count for ID generation if creating new
+    let clientRow: any = existingClient;
+    
+    if (!clientRow) {
+      const { data: allClients } = await client.database
+        .from('clients')
+        .select('id', { count: 'exact' });
+      
+      const nextId = (allClients?.length || 0) + 1;
+      const clientIdExt = `#ICO${nextId}`;
+
+      const { data: created, error: createErr } = await client.database
+        .from('clients')
+        .insert({
+          nom: clientInfos.nom,
+          telephone: clientInfos.telephone,
+          client_id_ext: clientIdExt
+        })
+        .select();
+      
+      if (createErr) {
+        return new Response(JSON.stringify({ error: createErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      clientRow = created?.[0];
+    }
 
     if (!clientRow?.id) {
       return new Response(JSON.stringify({ error: 'Failed to resolve client' }), {

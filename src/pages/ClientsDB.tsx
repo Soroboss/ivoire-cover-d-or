@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
+import { useAuth } from '../context/AuthContext';
 import { format, parseISO } from 'date-fns';
-import { Search, ChevronLeft, User, Calendar, Eye, Egg } from 'lucide-react';
+import { Search, ChevronLeft, User, Calendar, Eye, Egg, RefreshCw, Loader2 } from 'lucide-react';
 import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { ClientEditModal } from '../components/clients/ClientEditModal';
+import { callInsforgeFunction } from '../lib/insforgeApi';
 
 type FilterState = StatutCouvaison | 'Tous';
 
@@ -16,6 +18,26 @@ const ClientsDB = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterState>('Tous');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'Admin';
+
+  const handleMigrateIds = async () => {
+    if (!window.confirm("Voulez-vous renommer tous les IDs clients au format #ICOxxx ?")) return;
+    setIsMigrating(true);
+    try {
+      const res = await callInsforgeFunction<{ success: boolean, migrated: number }>('clients_migrate_ids', {});
+      if (res.success) {
+        alert(`${res.migrated} clients mis à jour avec succès.`);
+        window.location.reload();
+      }
+    } catch (err) {
+      alert("Erreur lors de la migration: " + (err as Error).message);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   const selectedClient = useMemo(
     () => clients.find(c => c.id === selectedClientId) || null,
@@ -98,6 +120,17 @@ const ClientsDB = () => {
               </p>
             </div>
           </div>
+
+          {isAdmin && (
+            <button
+              onClick={handleMigrateIds}
+              disabled={isMigrating}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            >
+              {isMigrating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              Migration IDs (#ICO)
+            </button>
+          )}
         </div>
 
         {/* Stats Grid */}

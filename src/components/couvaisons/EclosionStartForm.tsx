@@ -72,7 +72,8 @@ const EclosionStartForm = ({
     const ancienneDette = resteGlobal - resteSurCeLot;
     
     const base = `votre éclosion pour le lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) a démarré, préparez-vous à venir récupérer vos poussins.`;
-    const greeting = `Bonjour ${client?.nom || ''}`;
+    const clientCode = client?.clientIdExt ? ` (${client.clientIdExt})` : '';
+    const greeting = `Bonjour ${client?.nom || ''}${clientCode}`;
     
     let financeText = `\n\n📌 Point Financier :`;
     financeText += `\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
@@ -91,7 +92,7 @@ const EclosionStartForm = ({
       financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : 0 FCFA (Soldé)`;
     }
 
-    return `${greeting},\n\n${base}${financeText}\n\nMerci pour votre confiance !\nL'équipe Ivoire Couvée d'Or.`;
+    return `${greeting},\n\n${base}${financeText}\n\n📦 *Venez chercher demain après midi.*\n\nMerci pour votre confiance !\n*L'équipe Ivoire Couvée d'Or.*`;
   }, [client?.nom, client?.id, couv, couvaisonId, transactions, couvaisons]);
 
   const whatsAppUrl = useMemo(() => {

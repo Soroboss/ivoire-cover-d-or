@@ -75,7 +75,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         const balance = resteLot(transactions, couvaisonId, totalDue);
 
         const whatsAppText = `🧾 *SITUATION FINANCIÈRE*\n\n` +
-          `👤 Client: *${client.nom}*\n` +
+          `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
           `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
           `📅 Éclosion: ${deltaNes} nouveaux poussins (Total: ${nes}/${oeufsRestants})\n\n` +
           `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
@@ -83,7 +83,9 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
           `📑 *Avoir:* ${avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-'}\n` +
           `✅ *Net déjà encaissé:* ${netEncashed.toLocaleString()} F\n\n` +
           `🚩 *RESTE TOTAL À PAYER:* *${balance.toLocaleString()} F*\n\n` +
-          `_Merci de votre confiance !_`;
+          `📦 *Venez chercher demain après midi.*\n\n` +
+          `_Merci de votre confiance !_\n` +
+          `*L'équipe Ivoire Couvée d'Or.*`;
         try {
           await addClientMessage({
             clientId: client.id,
@@ -166,14 +168,16 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 const balance = resteLot(transactions, couvaisonId, totalDue);
                 
                 const msg = `🧾 *SITUATION FINANCIÈRE*\n\n` +
-                  `👤 Client: *${client.nom}*\n` +
+                  `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
                   `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
                   `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
                   `🎁 *Remise:* ${remises > 0 ? remises.toLocaleString() + ' F' : '-'}\n` +
                   `📑 *Avoir:* ${avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-'}\n` +
                   `✅ *Net déjà encaissé:* ${netEncashed.toLocaleString()} F\n\n` +
                   `🚩 *RESTE TOTAL À PAYER:* *${balance.toLocaleString()} F*\n\n` +
-                  `_Merci de votre confiance !_`;
+                  `📦 *Venez chercher demain après midi.*\n\n` +
+                  `_Merci de votre confiance !_\n` +
+                  `*L'équipe Ivoire Couvée d'Or.*`;
                 
                 window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');
               }}

@@ -9,40 +9,16 @@ const corsHeaders = {
 
 export default async function (req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
+  
   try {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
     const client = createClient({ baseUrl, anonKey })
-    const body = await req.json().catch(() => ({} as any))
 
-    const { id, updates } = body
-
-    if (!id || !updates) {
-      return new Response(JSON.stringify({ error: 'Missing id or updates' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Map frontend keys to backend database columns
-    const dbUpdates: any = { ...updates }
-    if (dbUpdates.clientIdExt !== undefined) {
-      dbUpdates.client_id_ext = dbUpdates.clientIdExt
-      delete dbUpdates.clientIdExt
-    }
-
-    const { data: updated, error } = await client.database
+    const { data: clients, error } = await client.database
       .from('clients')
-      .update(dbUpdates)
-      .eq('id', id)
       .select('*')
+      .order('created_at', { ascending: true })
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -51,18 +27,25 @@ export default async function (req: Request): Promise<Response> {
       })
     }
 
-    const r = updated?.[0]
-    const updatedClient = r
-      ? {
-          id: r.id,
-          nom: r.nom,
-          telephone: r.telephone,
-          clientIdExt: r.client_id_ext
+    const updates = []
+    for (let i = 0; i < clients.length; i++) {
+      const c = clients[i]
+      const newId = `#ICO${i + 1}`
+      
+      if (c.client_id_ext !== newId) {
+        const { error: updateErr } = await client.database
+          .from('clients')
+          .update({ client_id_ext: newId })
+          .eq('id', c.id)
+        
+        if (!updateErr) {
+          updates.push({ id: c.id, old: c.client_id_ext, new: newId })
         }
-      : null
+      }
+    }
 
-    return new Response(JSON.stringify({ client: updatedClient }), {
-      status: updatedClient ? 200 : 500,
+    return new Response(JSON.stringify({ success: true, migrated: updates.length, list: updates }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

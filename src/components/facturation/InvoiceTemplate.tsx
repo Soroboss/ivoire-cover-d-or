@@ -74,6 +74,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
             </h3>
             <p className="text-lg font-semibold">{client.nom}</p>
             <p className="mt-2 text-sm">
+              <strong>ID Client:</strong> {client.clientIdExt || '—'}<br/>
               <strong>Tél:</strong> {client.telephone}
             </p>
           </div>
