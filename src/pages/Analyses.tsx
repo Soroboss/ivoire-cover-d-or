@@ -12,7 +12,7 @@ import {
 import { format, parseISO, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { resteLot } from '../lib/financeCalculations';
-import { callInsforgeFunction } from '../lib/insforgeApi';
+import { callBackendFunction } from '../lib/insforgeApi';
 import ReactMarkdown from 'react-markdown';
 
 // ─── Couleurs ───────────────────────────────────────────────────────────────
@@ -97,6 +97,7 @@ const Analyses = () => {
   const [activeTab, setActiveTab] = useState<'global' | 'clients' | 'machines' | 'tendances' | 'ai'>('global');
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const completed = useMemo(() => couvaisons.filter(c => c.statut === 'Terminé'), [couvaisons]);
 
@@ -115,14 +116,15 @@ const Analyses = () => {
         trends: tendances
       };
 
-      const res = await callInsforgeFunction<{ analysis: string }>('expertia', {
+      const res = await callBackendFunction<{ analysis: string }>('expertia', {
         dataToAnalyze,
         context: "Rapport mensuel de performance du couvoir."
       });
       setAiReport(res.analysis);
       setActiveTab('ai');
     } catch (err) {
-      alert("Erreur lors de l'analyse IA : " + (err as Error).message);
+      setError("Une erreur est survenue lors de l'analyse de vos données. Veuillez réessayer ultérieurement.");
+      console.error(err);
     } finally {
       setIsAnalyzing(false);
     }
@@ -701,7 +703,14 @@ const Analyses = () => {
 
           {/* ── TAB: AI EXPERT ───────────────────────────────────────────── */}
           {activeTab === 'ai' && (
-            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-700">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 items-center text-red-700">
+                  <AlertOctagon size={20} />
+                  <p className="text-sm font-medium">{error}</p>
+                  <button onClick={() => setError(null)} className="ml-auto text-xs underline">Ignorer</button>
+                </div>
+              )}
               <div className="bg-gradient-to-br from-purple-900 to-indigo-950 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -mr-20 -mt-20"></div>
                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
@@ -710,8 +719,8 @@ const Analyses = () => {
                   </div>
                   <div>
                     <h2 className="text-3xl font-black mb-2">Conseiller Digital Expert IA</h2>
-                    <p className="text-purple-100 text-lg opacity-80 max-w-2xl">
-                      Analyse multidimensionnelle effectuée par l'intelligence artificielle d'Insforge Pro. 
+                    <p className="text-purple-100 text-sm max-w-2xl opacity-90">
+                      Analyse multidimensionnelle effectuée par l'intelligence artificielle intégrée d'Ivoire Couvée d'Or. 
                       Votre rapport est basé sur les tendances de fertilisation, les scores de paiement et la performance machines.
                     </p>
                   </div>

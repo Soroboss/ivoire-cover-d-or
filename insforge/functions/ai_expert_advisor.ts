@@ -10,22 +10,31 @@ export default async function (req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
 
   try {
+    const { dataToAnalyze, context } = await req.json().catch(() => ({}))
+    if (!dataToAnalyze) throw new Error('Donnees manquantes')
+
     const client = createClient({
       baseUrl: Deno.env.get('INSFORGE_BASE_URL') || '',
       anonKey: Deno.env.get('ANON_KEY') || '',
     })
 
-    const body = await req.json().catch(() => ({}))
-    const { dataToAnalyze } = body
+    const prompt = `
+      Tu es l'expert senior de Ivoire Couvée d'Or.
+      Analyse ces données : ${JSON.stringify(dataToAnalyze)}
+      Contexte : ${context || 'Performance globale'}.
+      Fais un rapport détaillé avec recommandations stratégiques (Résumé, Technique, Financier, Recommandations).
+    `
 
-    if (!dataToAnalyze) {
-      return new Response(JSON.stringify({ error: 'Missing data' }), { status: 400, headers: corsHeaders })
-    }
+    // GPT-4o-mini est ultra rapide et efficace pour ce genre d'analyse
+    const aiResponse = await client.ai.chat.completions.create({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Tu es l expert IA de Ivoire Couvée d Or.' },
+        { role: 'user', content: prompt }
+      ]
+    })
 
-    // TEST: On commente l'appel AI pour voir si c'est la source du INVALID_INPUT
-    // const aiResponse = await client.ai.chat.completions.create({ ... })
-
-    return new Response(JSON.stringify({ analysis: "Test deployment successful without AI call." }), {
+    return new Response(JSON.stringify({ analysis: aiResponse.choices[0].message.content }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

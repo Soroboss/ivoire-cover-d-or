@@ -7,7 +7,7 @@ import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { ClientEditModal } from '../components/clients/ClientEditModal';
-import { callInsforgeFunction } from '../lib/insforgeApi';
+import { callBackendFunction } from '../lib/insforgeApi';
 
 type FilterState = StatutCouvaison | 'Tous';
 
@@ -27,7 +27,7 @@ const ClientsDB = () => {
     if (!window.confirm("Voulez-vous renommer tous les IDs clients au format #ICOxxx ?")) return;
     setIsMigrating(true);
     try {
-      const res = await callInsforgeFunction<{ success: boolean, migrated: number }>('clients_migrate_ids', {});
+      const res = await callBackendFunction<{ success: boolean, migrated: number }>('clients_migrate_ids', {});
       if (res.success) {
         alert(`${res.migrated} clients mis à jour avec succès.`);
         window.location.reload();

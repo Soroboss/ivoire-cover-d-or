@@ -121,7 +121,7 @@ const Landing = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Performance</p>
-                  <p className="text-sm font-bold text-slate-900">+21% de succès</p>
+                  <p className="text-sm font-bold text-slate-900">55 - 70 % de succès</p>
                 </div>
               </div>
               <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3">

@@ -1,28 +1,36 @@
-const DEFAULT_OSS_HOST = 'https://bzna2rx5.eu-central.insforge.app'
-const OSS_HOST = (import.meta.env.VITE_INSFORGE_OSS_HOST as string | undefined) ?? DEFAULT_OSS_HOST
+const DEFAULT_HOST = 'https://bzna2rx5.eu-central.insforge.app'
+const API_HOST = (import.meta.env.VITE_INSFORGE_OSS_HOST as string | undefined) ?? DEFAULT_HOST
 
-// Si la variable Vercel/Vite n’est pas injectée, on fallback sur la valeur du projet.
-if (!import.meta.env.VITE_INSFORGE_OSS_HOST) {
-  console.warn('VITE_INSFORGE_OSS_HOST manquant (fallback utilisé)')
-}
-
-export async function callInsforgeFunction<T = unknown>(
+export async function callBackendFunction<T = unknown>(
   slug: string,
   body?: unknown,
 ): Promise<T> {
-  if (!OSS_HOST) throw new Error('VITE_INSFORGE_OSS_HOST manquant')
+  const payload = body !== undefined ? JSON.stringify(body) : JSON.stringify({});
+  const directUrl = `https://bzna2rx5.functions.insforge.app/${slug}`;
+  const ossUrl = `${API_HOST}/functions/${slug}`;
 
-  const res = await fetch(`${OSS_HOST}/functions/${slug}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : JSON.stringify({}),
-  })
+  try {
+    let res = await fetch(directUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+    });
 
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const msg = json?.error || `HTTP ${res.status}`
-    throw new Error(msg)
+    if (!res.ok) {
+      res = await fetch(ossUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+    }
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error("Impossible de joindre le service d'analyse.");
+    }
+    return json as T;
+  } catch (err) {
+    throw new Error("Une erreur de communication est survenue.");
   }
-  return json as T
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../types';
-import { callInsforgeFunction } from '../lib/insforgeApi';
+import { callBackendFunction } from '../lib/insforgeApi';
 import { enrichUserFromApi, defaultPermissionsForRole } from '../lib/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUsersLoading(true);
       setUsersError(null);
       try {
-        const res = await callInsforgeFunction<{ users: Record<string, unknown>[] }>('users_list', {});
+        const res = await callBackendFunction<{ users: Record<string, unknown>[] }>('users_list', {});
         setUsers(res.users.map((u) => enrichUserFromApi(u as never)));
       } catch (e) {
         setUsersError((e as Error).message || 'Impossible de charger les utilisateurs depuis le serveur.');
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (username: string, pass: string) => {
     try {
-      const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('login', {
+      const res = await callBackendFunction<{ user: Record<string, unknown> }>('login', {
         username,
         password: pass,
       });
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       actif: u.actif ?? true,
       permissions: u.permissions ?? defaultPermissionsForRole(u.role),
     };
-    const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('users_add', payload);
+    const res = await callBackendFunction<{ user: Record<string, unknown> }>('users_add', payload);
     const nu = enrichUserFromApi(res.user as never);
     setUsers((prev) => [...prev, nu]);
   };
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ...updates,
       },
     };
-    const res = await callInsforgeFunction<{ user: Record<string, unknown> }>('users_update', payload);
+    const res = await callBackendFunction<{ user: Record<string, unknown> }>('users_update', payload);
     const nu = enrichUserFromApi(res.user as never);
 
     setUsers((prev) => prev.map((u) => (u.id === id ? nu : u)));
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const deleteUser = async (id: string) => {
-    await callInsforgeFunction('users_delete', { id });
+    await callBackendFunction('users_delete', { id });
     setUsers((prev) => prev.filter((u) => u.id !== id));
   };
 
