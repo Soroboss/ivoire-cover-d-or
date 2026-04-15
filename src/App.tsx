@@ -18,9 +18,9 @@ import { useAuth } from './context/AuthContext';
 import { hasPermission } from './lib/permissions';
 
 function App() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, usersLoading } = useAuth();
 
-  if (loading) {
+  if (usersLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>

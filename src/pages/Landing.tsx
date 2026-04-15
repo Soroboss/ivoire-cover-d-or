@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APP_DOMAIN, APP_NAME, APP_TAGLINE, APP_EMAIL } from '../lib/appConfig';
 import { 

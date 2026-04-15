@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import type { Client, Machine, Casier } from '../../types';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
