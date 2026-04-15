@@ -1,316 +1,661 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
-import { BrainCircuit, Lightbulb, AlertOctagon, CheckCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BrainCircuit, Lightbulb, AlertOctagon, CheckCircle, TrendingUp,
+  TrendingDown, Star, AlertTriangle, Award, Users, Egg, ThumbsUp,
+  ThumbsDown, MessageCircle, ChevronsUp, ChevronsDown, Minus, Info
+} from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { format, parseISO, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { resteLot } from '../lib/financeCalculations';
 
-interface Diagnostic {
-  type: 'danger' | 'warning' | 'success';
-  title: string;
-  message: string;
-}
+// ─── Couleurs ───────────────────────────────────────────────────────────────
+const COLORS = ['#EA580C', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899'];
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 100) : 0);
+
+const badge = (rate: number) => {
+  if (rate >= 75) return { label: '⭐ Excellent', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+  if (rate >= 60) return { label: '✅ Bon', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+  if (rate >= 45) return { label: '⚠️ Moyen', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+  return { label: '🔴 Faible', color: 'bg-red-100 text-red-800 border-red-200' };
+};
+
+// ─── Composant Badge taux ─────────────────────────────────────────────────────
+const RateBadge = ({ rate }: { rate: number }) => {
+  const b = badge(rate);
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${b.color}`}>
+      {b.label}
+    </span>
+  );
+};
+
+// ─── Composant KPI card ───────────────────────────────────────────────────────
+const KpiCard = ({ icon, label, value, sub, trend }: {
+  icon: React.ReactNode; label: string; value: string | number; sub?: string; trend?: 'up' | 'down' | 'neutral';
+}) => (
+  <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 flex items-start gap-4">
+    <div className="w-12 h-12 rounded-2xl bg-brand-orange/10 flex items-center justify-center text-brand-orange shrink-0">
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">{label}</p>
+      <p className="text-2xl font-black text-slate-900 mt-0.5">{value}</p>
+      {sub && (
+        <p className={`text-xs mt-1 font-medium flex items-center gap-1 ${
+          trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-red-500' : 'text-slate-400'
+        }`}>
+          {trend === 'up' && <TrendingUp size={12} />}
+          {trend === 'down' && <TrendingDown size={12} />}
+          {trend === 'neutral' && <Minus size={12} />}
+          {sub}
+        </p>
+      )}
+    </div>
+  </div>
+);
+
+// ─── Composant Diagnostic Card ───────────────────────────────────────────────
+const DiagCard = ({ type, title, message, conseil }: {
+  type: 'danger' | 'warning' | 'success' | 'info';
+  title: string; message: string; conseil?: string;
+}) => {
+  const styles = {
+    danger: { bg: 'bg-red-50 border-red-200', icon: <AlertOctagon className="text-red-500 shrink-0 mt-0.5" size={20} />, titleC: 'text-red-800', textC: 'text-red-700' },
+    warning: { bg: 'bg-amber-50 border-amber-200', icon: <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />, titleC: 'text-amber-800', textC: 'text-amber-700' },
+    success: { bg: 'bg-emerald-50 border-emerald-200', icon: <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={20} />, titleC: 'text-emerald-800', textC: 'text-emerald-700' },
+    info: { bg: 'bg-blue-50 border-blue-200', icon: <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />, titleC: 'text-blue-800', textC: 'text-blue-700' },
+  }[type];
+
+  return (
+    <div className={`p-4 rounded-xl border ${styles.bg} flex gap-3 items-start`}>
+      {styles.icon}
+      <div>
+        <h3 className={`font-bold text-sm ${styles.titleC}`}>{title}</h3>
+        <p className={`text-xs mt-1 leading-relaxed ${styles.textC}`}>{message}</p>
+        {conseil && (
+          <div className="mt-2 pt-2 border-t border-current/10">
+            <p className={`text-xs font-semibold ${styles.textC}`}>💡 Conseil expert : {conseil}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Page Principale ─────────────────────────────────────────────────────────
 const Analyses = () => {
-  const { couvaisons, clients, machines } = useAppContext();
-  
-  const rules = useMemo(() => {
-    const completed = couvaisons.filter(c => c.statut === 'Terminé');
-    const logs: Diagnostic[] = [];
-    
+  const { couvaisons, clients, machines, transactions } = useAppContext();
+  const [activeTab, setActiveTab] = useState<'global' | 'clients' | 'machines' | 'tendances'>('global');
+
+  const completed = useMemo(() => couvaisons.filter(c => c.statut === 'Terminé'), [couvaisons]);
+
+  // ── KPIs globaux ──────────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const totalEggs = completed.reduce((a, c) => a + c.nombreOeufs, 0);
+    const totalClairs = completed.reduce((a, c) => a + (c.oeufsClairs || 0), 0);
+    const totalPourris = completed.reduce((a, c) => a + (c.oeufsPourris || 0), 0);
+    const totalNes = completed.reduce((a, c) => a + (c.poussinsNes || 0), 0);
+    const totalMorts = completed.reduce((a, c) => a + (c.mortsEnCoque || 0), 0);
+    const totalFertiles = totalEggs - totalClairs - totalPourris;
+    const tauxFertilite = pct(totalFertiles, totalEggs);
+    const tauxEclosion = pct(totalNes, totalFertiles);
+    const tauxGlobal = pct(totalNes, totalEggs);
+    const tauxInfertilite = pct(totalClairs, totalEggs);
+    const tauxContamination = pct(totalPourris, totalEggs);
+    const tauxMortsEnCoque = pct(totalMorts, totalFertiles);
+
+    // Revenus totaux
+    const totalRevenu = completed.reduce((a, c) => a + c.nombreOeufs * c.prixUnitaire, 0);
+    const totalPaye = transactions
+      .filter(t => t.typeTransaction === 'Paiement')
+      .reduce((a, t) => a + t.montantTotal, 0);
+    const totalImpaye = completed.reduce((a, c) => {
+      return a + resteLot(transactions, c.id, c.nombreOeufs * c.prixUnitaire);
+    }, 0);
+
+    return {
+      totalEggs, totalNes, totalFertiles, totalClairs, totalPourris, totalMorts,
+      tauxFertilite, tauxEclosion, tauxGlobal, tauxInfertilite, tauxContamination, tauxMortsEnCoque,
+      totalRevenu, totalPaye, totalImpaye,
+      nbLots: completed.length,
+      nbClients: [...new Set(completed.map(c => c.clientId))].length,
+    };
+  }, [completed, transactions]);
+
+  // ── Diagnostics experts ──────────────────────────────────────────────────
+  const diagnostics = useMemo(() => {
+    const logs: { type: 'danger' | 'warning' | 'success' | 'info'; title: string; message: string; conseil?: string }[] = [];
+
     if (completed.length === 0) {
-      return [{ type: 'warning' as const, title: 'Données Insuffisantes', message: 'Il n\'y a pas encore assez de couvaisons terminées pour générer des conseils experts.' }];
+      return [{ type: 'info' as const, title: 'Données insuffisantes', message: 'Aucune couvaison terminée pour le moment. Les diagnostics apparaîtront dès que des lots seront clôturés.' }];
     }
 
-    // 1. Infertility Rule (Œufs clairs)
-    const totalEggs = completed.reduce((acc, c) => acc + c.nombreOeufs, 0);
-    const totalClairs = completed.reduce((acc, c) => acc + (c.oeufsClairs || 0), 0);
-    const pctClairs = totalEggs > 0 ? (totalClairs / totalEggs) * 100 : 0;
-    
-    if (pctClairs > 15) {
-      logs.push({
-        type: 'danger',
-        title: `Alerte Infertilité (${pctClairs.toFixed(1)}% d'œufs clairs)`,
-        message: "Demandez à vos éleveurs de revoir leur ratio Mâles/Femelles (1 coq pour 10 poules selon la race) et de corriger les potentielles carences (Vitamine E, Sélénium)."
-      });
+    // Fertilité
+    if (kpis.tauxInfertilite > 20) {
+      logs.push({ type: 'danger', title: `🔴 Infertilité critique : ${kpis.tauxInfertilite}% d'œufs clairs`, message: `Plus d'1 œuf sur 5 est non fécondé. Ce niveau dépasse largement le seuil acceptable de 15% dans l'industrie avicole.`, conseil: 'Exigez de vos clients un ratio mâles/femelles correct (1 coq pour 8-10 poules). Vérifiez l\'âge des reproducteurs (idéal : 24-50 semaines). Recommandez des compléments en Vitamine E et Sélénium.' });
+    } else if (kpis.tauxInfertilite > 15) {
+      logs.push({ type: 'warning', title: `⚠️ Infertilité élevée : ${kpis.tauxInfertilite}% d'œufs clairs`, message: `Le taux d'infertilité est au-dessus du seuil optimal de 10-12%. Cela réduit directement votre rentabilité.`, conseil: 'Conseillez vos clients éleveurs sur la gestion du troupeau reproducteur. Un suivi de la qualité des œufs à la réception peut aussi aider.' });
+    } else if (kpis.tauxInfertilite < 10) {
+      logs.push({ type: 'success', title: `✅ Excellente fertilité : ${100 - kpis.tauxInfertilite}%`, message: 'Le taux de fertilité est supérieur à 90%. Vos clients fournissent des œufs de très bonne qualité génétique.' });
     }
 
-    // 2. Morts en coque (Hatching phase issue)
-    const totalFrt = totalEggs - totalClairs - completed.reduce((acc, c) => acc + (c.oeufsPourris || 0), 0);
-    const totalMorts = completed.reduce((acc, c) => acc + (c.mortsEnCoque || 0), 0);
-    const pctMorts = totalFrt > 0 ? (totalMorts / totalFrt) * 100 : 0;
-    
-    if (pctMorts > 8) {
-      logs.push({
-        type: 'danger',
-        title: `Anomalie Éclosoir (${pctMorts.toFixed(1)}% morts en coque)`,
-        message: "L'humidité ou l'oxygénation dans l'éclosoir (les 3 derniers jours) est inadaptée. Les poussins s'épuisent avant de percer la coquille. Vérifiez vos entrées d'air."
-      });
+    // Contamination
+    if (kpis.tauxContamination > 5) {
+      logs.push({ type: 'danger', title: `🦠 Contamination bactérienne : ${kpis.tauxContamination}% d'œufs pourris`, message: 'Présence anormale d\'oeufs pourris. Un taux > 3% indique une hygiène insuffisante au niveau de la collecte ou de la conservation.', conseil: 'Exigez que les œufs soient ramassés 2x/jour et stockés à 15-18°C. Suspectez un problème de désinfection de vos incubateurs. Effectuez un fumigation au formaldéhyde ou peroxyde d\'hydrogène.' });
+    } else if (kpis.tauxContamination > 3) {
+      logs.push({ type: 'warning', title: `⚠️ Contamination modérée : ${kpis.tauxContamination}%`, message: 'Quelques cas de contamination détectés au mirage. À surveiller.', conseil: 'Renforcez la désinfection des œufs à la réception (trempage bref dans une solution de Virkon). Vérifiez la propreté des pondoirs chez vos clients.' });
     }
 
-    // 3. Infections
-    const totalPourris = completed.reduce((acc, c) => acc + (c.oeufsPourris || 0), 0);
-    const pctPourris = totalEggs > 0 ? (totalPourris / totalEggs) * 100 : 0;
-    
-    if (pctPourris > 3) {
-      logs.push({
-        type: 'warning',
-        title: `Alerte Hygiène (${pctPourris.toFixed(1)}% d'œufs contaminés)`,
-        message: "Forte présence bactérienne identifiée au mirage. Exigez de vos clients un ramassage plus régulier et une désinfection stricte des pondoirs."
-      });
+    // Morts en coque
+    if (kpis.tauxMortsEnCoque > 10) {
+      logs.push({ type: 'danger', title: `💀 Mortalité en coque critique : ${kpis.tauxMortsEnCoque}%`, message: 'Plus de 10% des embryons fécondés meurent pendant l\'éclosion. Cela indique un problème grave dans l\'éclosoir (humidité, température, aération).', conseil: 'Calibrez l\'humidité de l\'éclosoir à 65-70% (phase éclosion). Vérifiez le capteur de CO2 — un excès asphyxie les poussins. Réduisez les retournements en phase J18-J20.' });
+    } else if (kpis.tauxMortsEnCoque > 5) {
+      logs.push({ type: 'warning', title: `⚠️ Mortalité en coque élevée : ${kpis.tauxMortsEnCoque}%`, message: 'Le seuil acceptable est de 2-5%. Ce niveau dépasse légèrement les normes industrie.', conseil: 'Augmentez l\'humidité légèrement en phase d\'éclosion. Évitez d\'ouvrir trop souvent l\'éclosoir qui provoque des chutes de température.' });
+    }
+
+    // Taux global
+    if (kpis.tauxGlobal >= 70) {
+      logs.push({ type: 'success', title: `🏆 Performance globale excellente : ${kpis.tauxGlobal}%`, message: `Votre taux d'éclosion global est dans le top 15% de l'industrie avicole africaine. Félicitations à toute l'équipe !`, conseil: 'Maintenez vos protocoles actuels. Documentez vos procédures pour former de nouveaux techniciens.' });
+    } else if (kpis.tauxGlobal < 40) {
+      logs.push({ type: 'danger', title: `🔴 Performance globale critique : ${kpis.tauxGlobal}%`, message: `Moins de 40% des œufs donnent un poussin vivant. Ce niveau très bas nécessite une revue complète de vos processus.`, conseil: 'Consultez un technicien avicole externe pour un audit complet. Vérifiez simultanément : qualité des œufs reçus, paramètres machines, protocoles de manipulation.' });
+    }
+
+    // Impayés
+    const pctImpaye = kpis.totalRevenu > 0 ? Math.round((kpis.totalImpaye / kpis.totalRevenu) * 100) : 0;
+    if (pctImpaye > 25) {
+      logs.push({ type: 'danger', title: `💸 Impayés critiques : ${pctImpaye}% du CA non encaissé`, message: `${kpis.totalImpaye.toLocaleString()} FCFA restent à recouvrer. Ce niveau de créances menace la trésorerie de l'activité.`, conseil: 'Identifiez les mauvais payeurs via l\'onglet "Clients". Imposez un acompte minimum de 50% à la réception pour les nouveaux clients.' });
+    } else if (pctImpaye > 15) {
+      logs.push({ type: 'warning', title: `⚠️ Impayés élevés : ${pctImpaye}% non encaissé`, message: `${kpis.totalImpaye.toLocaleString()} FCFA en attente de règlement.`, conseil: 'Activez les relances WhatsApp automatiques pour les clients en retard. Proposez des facilités de paiement en 2 fois.' });
     }
 
     if (logs.length === 0) {
-      logs.push({
-        type: 'success',
-        title: "Performances Excellentes",
-        message: "Les indicateurs zootechniques de fertilité et d'incubation sont tous dans les standards de la haute performance de l'industrie."
-      });
+      logs.push({ type: 'success', title: '🏆 Tous les indicateurs sont verts !', message: 'Fertilité, éclosion, hygiène et finances : tous les paramètres sont dans les normes d\'excellence de l\'industrie avicole professionnelle. Continuez ainsi !' });
     }
 
     return logs;
-  }, [couvaisons]);
+  }, [completed, kpis]);
 
-  const birdStats = useMemo(() => {
-    const stats: Record<string, { eggs: number, clairs: number, hat: number }> = {};
-    couvaisons.filter(c => c.statut === 'Terminé').forEach(c => {
-       if(!stats[c.typeOeuf]) stats[c.typeOeuf] = { eggs: 0, clairs: 0, hat: 0 };
-       stats[c.typeOeuf].eggs += c.nombreOeufs;
-       stats[c.typeOeuf].clairs += (c.oeufsClairs || 0) + (c.oeufsPourris || 0);
-       stats[c.typeOeuf].hat += (c.poussinsNes || 0);
+  // ── Analyse clients ──────────────────────────────────────────────────────
+  const clientAnalysis = useMemo(() => {
+    const stats: Record<string, {
+      eggs: number; clairs: number; pourris: number; nes: number;
+      lots: number; revenu: number; impaye: number; lastDate: string;
+    }> = {};
+
+    completed.forEach(c => {
+      if (!stats[c.clientId]) stats[c.clientId] = { eggs: 0, clairs: 0, pourris: 0, nes: 0, lots: 0, revenu: 0, impaye: 0, lastDate: '' };
+      const s = stats[c.clientId];
+      s.eggs += c.nombreOeufs;
+      s.clairs += c.oeufsClairs || 0;
+      s.pourris += c.oeufsPourris || 0;
+      s.nes += c.poussinsNes || 0;
+      s.lots += 1;
+      const total = c.nombreOeufs * c.prixUnitaire;
+      s.revenu += total;
+      s.impaye += resteLot(transactions, c.id, total);
+      if (!s.lastDate || c.dateReception > s.lastDate) s.lastDate = c.dateReception;
     });
-    return Object.entries(stats).map(([name, data]) => ({
-       name,
-       Fecondite: data.eggs > 0 ? Math.round(((data.eggs - data.clairs) / data.eggs) * 100) : 0,
-       Eclosion: (data.eggs - data.clairs) > 0 ? Math.round((data.hat / (data.eggs - data.clairs)) * 100) : 0
-    }));
-  }, [couvaisons]);
 
-  const clientStats = useMemo(() => {
-    const stats: Record<string, { eggs: number, hat: number }> = {};
-    couvaisons.filter(c => c.statut === 'Terminé').forEach(c => {
-       if(!stats[c.clientId]) stats[c.clientId] = { eggs: 0, hat: 0 };
-       stats[c.clientId].eggs += c.nombreOeufs;
-       stats[c.clientId].hat += (c.poussinsNes || 0);
+    return Object.entries(stats).map(([id, s]) => {
+      const client = clients?.find(cl => cl.id === id);
+      const tauxFertilite = pct(s.eggs - s.clairs - s.pourris, s.eggs);
+      const tauxEclosion = pct(s.nes, s.eggs);
+      const pctImpaye = s.revenu > 0 ? Math.round((s.impaye / s.revenu) * 100) : 0;
+
+      // Score composite : 60% éclosion + 20% fertilité + 20% paiement
+      const scorePaiement = 100 - Math.min(pctImpaye, 100);
+      const score = Math.round(tauxEclosion * 0.6 + tauxFertilite * 0.2 + scorePaiement * 0.2);
+
+      // Catégorisation
+      let categorie: 'premium' | 'bon' | 'moyen' | 'risque';
+      if (score >= 70) categorie = 'premium';
+      else if (score >= 55) categorie = 'bon';
+      else if (score >= 40) categorie = 'moyen';
+      else categorie = 'risque';
+
+      // Message personnalisé
+      let message = '';
+      if (categorie === 'premium') message = `Félicitations ! Vous êtes l'un de nos meilleurs clients avec un taux d'éclosion de ${tauxEclosion}%. Votre rigueur dans la sélection et la conservation des œufs fait vraiment la différence. Nous vous remercions de votre confiance !`;
+      else if (categorie === 'bon') message = `Très bonne collaboration ! Votre taux de réussite de ${tauxEclosion}% est au-dessus de la moyenne. Quelques ajustements mineurs sur la conservation des œufs pourraient vous faire passer dans la catégorie excellence.`;
+      else if (categorie === 'moyen') message = `Votre taux d'éclosion de ${tauxEclosion}% est en dessous de notre moyenne. Nous vous conseillons de revoir le ramassage des œufs (2x/jour) et l'alimentation de vos reproducteurs.`;
+      else message = `Votre profil présente plusieurs points de vigilance : taux d'éclosion de ${tauxEclosion}% et ${pctImpaye}% d'impayés. Un accompagnement s'impose pour améliorer ensemble vos résultats.`;
+
+      return {
+        id, name: client?.nom || 'Inconnu', telephone: client?.telephone,
+        eggs: s.eggs, nes: s.nes, lots: s.lots,
+        tauxFertilite, tauxEclosion, pctImpaye,
+        revenu: s.revenu, impaye: s.impaye,
+        score, categorie, message, lastDate: s.lastDate,
+      };
+    }).sort((a, b) => b.score - a.score);
+  }, [completed, clients, transactions]);
+
+  // ── Tendances mensuelles (6 mois) ─────────────────────────────────────────
+  const tendances = useMemo(() => {
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = subMonths(new Date(), 5 - i);
+      return { start: startOfMonth(d), end: endOfMonth(d), label: format(d, 'MMM yy', { locale: fr }) };
     });
-    return Object.entries(stats).map(([id, data]) => {
-       const client = clients?.find(cl => cl.id === id);
-       return {
-         name: client?.nom || 'Inconnu',
-         TauxReussite: data.eggs > 0 ? Math.round((data.hat / data.eggs) * 100) : 0
-       };
-    }).sort((a,b) => b.TauxReussite - a.TauxReussite).slice(0, 10);
-  }, [couvaisons, clients]);
 
-  const machineStats = useMemo(() => {
-    const agg: Record<string, { eggs: number; hatchedApprox: number; lots: number }> = {};
-
-    couvaisons
-      .filter(c => c.statut === 'Terminé' && (c.emplacements?.length || 0) > 0)
-      .forEach(c => {
-        const emps = c.emplacements || [];
-        const totalAssigned = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
-        if (totalAssigned <= 0) return;
-        emps.forEach(emp => {
-          const q = Number(emp.quantite) || 0;
-          if (q <= 0) return;
-          const machineId = emp.machineId;
-          if (!agg[machineId]) agg[machineId] = { eggs: 0, hatchedApprox: 0, lots: 0 };
-          agg[machineId].eggs += q;
-          agg[machineId].hatchedApprox += ((c.poussinsNes || 0) * q) / totalAssigned;
-          agg[machineId].lots += 1;
-        });
+    return months.map(m => {
+      const lots = completed.filter(c => {
+        try { return isWithinInterval(parseISO(c.dateReception), { start: m.start, end: m.end }); } catch { return false; }
       });
+      const eggs = lots.reduce((a, c) => a + c.nombreOeufs, 0);
+      const nes = lots.reduce((a, c) => a + (c.poussinsNes || 0), 0);
+      const ca = lots.reduce((a, c) => a + c.nombreOeufs * c.prixUnitaire, 0);
+      return {
+        mois: m.label,
+        Lots: lots.length,
+        Éclosion: pct(nes, eggs),
+        CA: Math.round(ca / 1000), // en k FCFA
+      };
+    });
+  }, [completed]);
 
-    return Object.entries(agg)
-      .map(([machineId, data]) => {
-        const m = machines.find(mm => mm.id === machineId);
-        const successRate = data.eggs > 0 ? Math.round((data.hatchedApprox / data.eggs) * 100) : 0;
-        return {
-          machineId,
-          machineName: m?.nom || `Machine ${machineId.slice(-4)}`,
-          type: m?.type || 'N/A',
-          eggs: Math.round(data.eggs),
-          hatched: Math.round(data.hatchedApprox),
-          successRate,
-        };
-      })
-      .sort((a, b) => b.successRate - a.successRate);
-  }, [couvaisons, machines]);
+  // ── Répartition par type d'œuf ─────────────────────────────────────────────
+  const pieData = useMemo(() => {
+    const stats: Record<string, number> = {};
+    completed.forEach(c => { stats[c.typeOeuf] = (stats[c.typeOeuf] || 0) + c.nombreOeufs; });
+    return Object.entries(stats).map(([name, value]) => ({ name, value }));
+  }, [completed]);
 
-  const casierStats = useMemo(() => {
-    const agg: Record<string, { machineId: string; casierId: string; eggs: number; hatchedApprox: number }> = {};
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  const tabs = [
+    { key: 'global', label: 'Vue Globale', icon: <BrainCircuit size={16} /> },
+    { key: 'clients', label: 'Analyse Clients', icon: <Users size={16} /> },
+    { key: 'machines', label: 'Machines & Tiroirs', icon: <Egg size={16} /> },
+    { key: 'tendances', label: 'Tendances', icon: <TrendingUp size={16} /> },
+  ] as const;
 
-    couvaisons
-      .filter(c => c.statut === 'Terminé' && (c.emplacements?.length || 0) > 0)
-      .forEach(c => {
-        const emps = c.emplacements || [];
-        const totalAssigned = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
-        if (totalAssigned <= 0) return;
-        emps.forEach(emp => {
-          const q = Number(emp.quantite) || 0;
-          if (q <= 0) return;
-          const key = `${emp.machineId}:${emp.casierId}`;
-          if (!agg[key]) {
-            agg[key] = { machineId: emp.machineId, casierId: emp.casierId, eggs: 0, hatchedApprox: 0 };
-          }
-          agg[key].eggs += q;
-          agg[key].hatchedApprox += ((c.poussinsNes || 0) * q) / totalAssigned;
-        });
-      });
-
-    return Object.values(agg)
-      .map((data) => {
-        const machine = machines.find(m => m.id === data.machineId);
-        const casier = machine?.casiers.find(c => c.id === data.casierId);
-        const successRate = data.eggs > 0 ? Math.round((data.hatchedApprox / data.eggs) * 100) : 0;
-        return {
-          key: `${data.machineId}:${data.casierId}`,
-          machineName: machine?.nom || `Machine ${data.machineId.slice(-4)}`,
-          casierName: casier?.nom || `Casier ${data.casierId.slice(-4)}`,
-          eggs: Math.round(data.eggs),
-          hatched: Math.round(data.hatchedApprox),
-          successRate,
-        };
-      })
-      .sort((a, b) => b.successRate - a.successRate)
-      .slice(0, 12);
-  }, [couvaisons, machines]);
-
+  // ──────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-           <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-             <BrainCircuit size={28} className="text-brand-orange" />
-             Système Expert & Conseils
-           </h1>
-           <p className="text-sm text-brand-muted mt-1">Interprétations automatisées basées sur l'agronomie pour orienter vos décisions.</p>
+          <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
+            <BrainCircuit size={28} className="text-brand-orange" />
+            Système Expert & Intelligence Avicole
+          </h1>
+          <p className="text-sm text-brand-muted mt-1">
+            Analyses zootechniques approfondies, classement clients et conseils d'experts basés sur vos données réelles.
+          </p>
+        </div>
+        <div className="text-right text-xs text-slate-400">
+          <p>{kpis.nbLots} lots analysés</p>
+          <p>{kpis.nbClients} clients actifs</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray overflow-hidden flex flex-col">
-           <div className="bg-brand-dark p-4 flex items-center justify-between text-white">
-              <h2 className="font-semibold flex items-center gap-2 tracking-wide"><Lightbulb className="text-yellow-400" size={20} /> Diagnostic Croisé Automatique</h2>
-           </div>
-           <div className="p-6 space-y-4 flex-1">
-             {rules.map((rule, idx) => (
-                <div key={idx} className={`p-4 rounded-lg flex gap-4 items-start ${rule.type === 'danger' ? 'bg-red-50 border border-red-100' : rule.type === 'warning' ? 'bg-amber-50 border border-amber-100' : 'bg-green-50 border border-green-100'}`}>
-                   {rule.type === 'success' ? <CheckCircle className="text-green-600 mt-0.5" size={24} /> : <AlertOctagon className={rule.type === 'danger' ? 'text-red-500 mt-0.5' : 'text-amber-500 mt-0.5'} size={24} />}
-                   <div>
-                     <h3 className={`font-bold ${rule.type === 'danger' ? 'text-red-800' : rule.type === 'warning' ? 'text-amber-800' : 'text-green-800'}`}>{rule.title}</h3>
-                     <p className={`text-sm mt-1 leading-relaxed ${rule.type === 'danger' ? 'text-red-700' : rule.type === 'warning' ? 'text-amber-700' : 'text-green-700'}`}>{rule.message}</p>
-                   </div>
+      {/* KPIs Rapides */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard icon={<Egg size={24} />} label="Taux Éclosion Global" value={`${kpis.tauxGlobal}%`} sub={kpis.tauxGlobal >= 60 ? 'Au-dessus de la moyenne' : 'En dessous de la moyenne'} trend={kpis.tauxGlobal >= 60 ? 'up' : 'down'} />
+        <KpiCard icon={<TrendingUp size={24} />} label="Taux Fertilité" value={`${kpis.tauxFertilite}%`} sub={`${kpis.tauxInfertilite}% d'œufs clairs`} trend={kpis.tauxFertilite >= 85 ? 'up' : kpis.tauxFertilite >= 75 ? 'neutral' : 'down'} />
+        <KpiCard icon={<Award size={24} />} label="Revenus Totaux" value={`${Math.round(kpis.totalRevenu / 1000)}k FCFA`} sub={`${Math.round(kpis.totalImpaye / 1000)}k FCFA non encaissés`} trend={kpis.totalImpaye / kpis.totalRevenu < 0.15 ? 'up' : 'down'} />
+        <KpiCard icon={<Users size={24} />} label="Clients Analysés" value={kpis.nbClients} sub={`${clientAnalysis.filter(c => c.categorie === 'premium').length} clients premium`} trend="neutral" />
+      </div>
+
+      {/* Onglets */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex border-b border-slate-100 overflow-x-auto">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
+                activeTab === t.key
+                  ? 'text-brand-orange border-brand-orange bg-brand-orange/5'
+                  : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {t.icon}{t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6">
+
+          {/* ── TAB: VUE GLOBALE ─────────────────────────────────────────── */}
+          {activeTab === 'global' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Diagnostics */}
+                <div className="space-y-3">
+                  <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <Lightbulb size={18} className="text-yellow-500" />
+                    Diagnostic Expert Automatique
+                  </h2>
+                  {diagnostics.map((d, i) => (
+                    <DiagCard key={i} {...d} />
+                  ))}
                 </div>
-             ))}
-           </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-           <h2 className="text-lg font-semibold text-brand-dark mb-4">Performance Qualitatives par Type (Lot)</h2>
-           <p className="text-xs text-brand-muted mb-6">Comparaison des seuils de Fécondité (Éleveur) vs Éclosion (Incubateur) purs.</p>
-           <div className="h-72">
-             <ResponsiveContainer width="100%" height="100%">
-                {birdStats.length > 0 ? (
-                 <BarChart data={birdStats}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                   <YAxis unit="%" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                   <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                   <Bar dataKey="Fecondite" name="Fécondité (Souche)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                   <Bar dataKey="Eclosion" name="Éclosion (Machine)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                 </BarChart>
-                ) : (
-                  <div className="flex bg-brand-lightgray/50 rounded-lg h-full items-center justify-center text-brand-muted">Données insuffisantes</div>
-                )}
-             </ResponsiveContainer>
-           </div>
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-         <h2 className="text-lg font-semibold text-brand-dark mb-4">Taux d'Éclosion par Client (Top 10)</h2>
-         <p className="text-xs text-brand-muted mb-6">Comparatif de réussite globale par éleveur pour cibler ceux nécessitant des visites terrain.</p>
-         <div className="h-72">
-           <ResponsiveContainer width="100%" height="100%">
-              {clientStats.length > 0 ? (
-               <BarChart data={clientStats} layout="vertical" margin={{ left: 20 }}>
-                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
-                 <XAxis type="number" unit="%" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF'}} />
-                 <YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} tick={{fill: '#374151', fontSize: 12}} />
-                 <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                 <Bar dataKey="TauxReussite" name="Réussite Globale" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20} />
-               </BarChart>
+                {/* Graphique par type d'œuf */}
+                <div className="space-y-4">
+                  <h2 className="text-base font-bold text-slate-800">Performance par Type d'Œuf</h2>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {pieData.length > 0 ? (
+                        <PieChart>
+                          <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                            {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip formatter={(v: number) => [`${v} œufs`, 'Volume']} />
+                          <Legend />
+                        </PieChart>
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-slate-400 text-sm">Pas encore de données</div>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Métriques détaillées */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Infertilité</p>
+                      <p className={`text-xl font-black mt-1 ${kpis.tauxInfertilite > 15 ? 'text-red-600' : 'text-emerald-600'}`}>{kpis.tauxInfertilite}%</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Seuil : &lt; 12%</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Contamination</p>
+                      <p className={`text-xl font-black mt-1 ${kpis.tauxContamination > 3 ? 'text-red-600' : 'text-emerald-600'}`}>{kpis.tauxContamination}%</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Seuil : &lt; 3%</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Morts/Coque</p>
+                      <p className={`text-xl font-black mt-1 ${kpis.tauxMortsEnCoque > 8 ? 'text-red-600' : 'text-emerald-600'}`}>{kpis.tauxMortsEnCoque}%</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Seuil : &lt; 5%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB: CLIENTS ─────────────────────────────────────────────── */}
+          {activeTab === 'clients' && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap gap-3 items-center justify-between">
+                <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <Users size={18} className="text-brand-orange" />
+                  Classement & Analyse Individuelle de chaque Client
+                </h2>
+                <div className="flex gap-2 flex-wrap text-xs font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">⭐ Premium ≥ 70pts</span>
+                  <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">✅ Bon 55-70</span>
+                  <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠️ Moyen 40-55</span>
+                  <span className="px-2.5 py-1 rounded-full bg-red-100 text-red-700 border border-red-200">🔴 Risque &lt; 40</span>
+                </div>
+              </div>
+
+              {clientAnalysis.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">Aucun lot terminé à analyser.</div>
               ) : (
-                <div className="flex bg-brand-lightgray/50 rounded-lg h-full items-center justify-center text-brand-muted">Données insuffisantes</div>
+                <div className="space-y-4">
+                  {clientAnalysis.map((c, i) => (
+                    <div key={c.id} className={`rounded-2xl border p-5 transition-all ${
+                      c.categorie === 'premium' ? 'border-emerald-200 bg-emerald-50/30' :
+                      c.categorie === 'bon' ? 'border-blue-200 bg-blue-50/20' :
+                      c.categorie === 'moyen' ? 'border-amber-200 bg-amber-50/20' :
+                      'border-red-200 bg-red-50/20'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        {/* Nom + rang */}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-white text-sm shrink-0 ${
+                            i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-slate-400' : i === 2 ? 'bg-amber-700' : 'bg-slate-300'
+                          }`}>
+                            {i < 3 ? ['🥇','🥈','🥉'][i] : `#${i+1}`}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900">{c.name}</p>
+                            <p className="text-xs text-slate-400">{c.telephone} • {c.lots} lot(s) • {c.eggs.toLocaleString()} œufs</p>
+                          </div>
+                        </div>
+
+                        {/* Score + badge */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <p className="text-3xl font-black text-slate-900">{c.score}</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-semibold">Score /100</p>
+                          </div>
+                          <div className={`px-3 py-1.5 rounded-full text-sm font-bold border ${
+                            c.categorie === 'premium' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                            c.categorie === 'bon' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                            c.categorie === 'moyen' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                            'bg-red-100 text-red-800 border-red-300'
+                          }`}>
+                            {c.categorie === 'premium' ? '⭐ Premium' : c.categorie === 'bon' ? '✅ Bon' : c.categorie === 'moyen' ? '⚠️ Moyen' : '🔴 À risque'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Métriques */}
+                      <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        <div className="text-center bg-white/70 rounded-xl p-2.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Éclosion</p>
+                          <p className={`text-lg font-black ${c.tauxEclosion >= 60 ? 'text-emerald-700' : c.tauxEclosion >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{c.tauxEclosion}%</p>
+                        </div>
+                        <div className="text-center bg-white/70 rounded-xl p-2.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Fertilité</p>
+                          <p className={`text-lg font-black ${c.tauxFertilite >= 80 ? 'text-emerald-700' : c.tauxFertilite >= 70 ? 'text-amber-600' : 'text-red-600'}`}>{c.tauxFertilite}%</p>
+                        </div>
+                        <div className="text-center bg-white/70 rounded-xl p-2.5 border border-slate-100">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Impayés</p>
+                          <p className={`text-lg font-black ${c.pctImpaye < 10 ? 'text-emerald-700' : c.pctImpaye < 25 ? 'text-amber-600' : 'text-red-600'}`}>{c.pctImpaye}%</p>
+                        </div>
+                        <div className="text-center bg-white/70 rounded-xl p-2.5 border border-slate-100 hidden sm:block">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">CA Total</p>
+                          <p className="text-sm font-black text-slate-700">{Math.round(c.revenu / 1000)}k F</p>
+                        </div>
+                      </div>
+
+                      {/* Message expert */}
+                      <div className={`mt-4 p-3 rounded-xl text-sm leading-relaxed flex gap-2 items-start ${
+                        c.categorie === 'premium' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' :
+                        c.categorie === 'bon' ? 'bg-blue-50 text-blue-800 border border-blue-100' :
+                        c.categorie === 'moyen' ? 'bg-amber-50 text-amber-800 border border-amber-100' :
+                        'bg-red-50 text-red-800 border border-red-100'
+                      }`}>
+                        {c.categorie === 'premium' ? <ThumbsUp size={16} className="shrink-0 mt-0.5" /> :
+                         c.categorie === 'bon' ? <ThumbsUp size={16} className="shrink-0 mt-0.5" /> :
+                         c.categorie === 'moyen' ? <MessageCircle size={16} className="shrink-0 mt-0.5" /> :
+                         <ThumbsDown size={16} className="shrink-0 mt-0.5" />}
+                        <span>{c.message}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-           </ResponsiveContainer>
-         </div>
-      </div>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-          <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Machines</h2>
-          <p className="text-xs text-brand-muted mb-4">Taux d'éclosion estimé par machine (lots terminés avec placements).</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-brand-gray border-b border-brand-lightgray">
-                <tr>
-                  <th className="py-2 pr-3">Machine</th>
-                  <th className="py-2 pr-3">Type</th>
-                  <th className="py-2 pr-3 text-right">Œufs</th>
-                  <th className="py-2 pr-3 text-right">Éclos</th>
-                  <th className="py-2 text-right">Taux</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-lightgray">
-                {machineStats.length > 0 ? machineStats.map((m) => (
-                  <tr key={m.machineId}>
-                    <td className="py-2 pr-3 font-medium text-brand-dark">{m.machineName}</td>
-                    <td className="py-2 pr-3 text-brand-muted">{m.type}</td>
-                    <td className="py-2 pr-3 text-right">{m.eggs}</td>
-                    <td className="py-2 pr-3 text-right">{m.hatched}</td>
-                    <td className="py-2 text-right font-semibold">{m.successRate}%</td>
-                  </tr>
-                )) : (
-                  <tr><td className="py-3 text-brand-muted" colSpan={5}>Données insuffisantes</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          {/* ── TAB: MACHINES ────────────────────────────────────────────── */}
+          {activeTab === 'machines' && (
+            <div className="space-y-6">
+              <h2 className="text-base font-bold text-slate-800">Performance des Machines & Casiers</h2>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-brand-lightgray">
-          <h2 className="text-lg font-semibold text-brand-dark mb-3">KPI Casiers</h2>
-          <p className="text-xs text-brand-muted mb-4">Top casiers selon performance d'éclosion estimée.</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-brand-gray border-b border-brand-lightgray">
-                <tr>
-                  <th className="py-2 pr-3">Machine</th>
-                  <th className="py-2 pr-3">Casier</th>
-                  <th className="py-2 pr-3 text-right">Œufs</th>
-                  <th className="py-2 pr-3 text-right">Éclos</th>
-                  <th className="py-2 text-right">Taux</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-lightgray">
-                {casierStats.length > 0 ? casierStats.map((c) => (
-                  <tr key={c.key}>
-                    <td className="py-2 pr-3 text-brand-dark">{c.machineName}</td>
-                    <td className="py-2 pr-3 text-brand-muted">{c.casierName}</td>
-                    <td className="py-2 pr-3 text-right">{c.eggs}</td>
-                    <td className="py-2 pr-3 text-right">{c.hatched}</td>
-                    <td className="py-2 text-right font-semibold">{c.successRate}%</td>
-                  </tr>
-                )) : (
-                  <tr><td className="py-3 text-brand-muted" colSpan={5}>Données insuffisantes</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              {/* Machines */}
+              <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Machine</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-right">Œufs</th>
+                      <th className="px-4 py-3 text-right">Éclos</th>
+                      <th className="px-4 py-3 text-center">Taux</th>
+                      <th className="px-4 py-3 text-center">Évaluation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {(() => {
+                      const agg: Record<string, { eggs: number; hatched: number; lots: number }> = {};
+                      completed.filter(c => (c.emplacements?.length || 0) > 0).forEach(c => {
+                        const emps = c.emplacements || [];
+                        const total = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+                        if (!total) return;
+                        emps.forEach(emp => {
+                          const q = Number(emp.quantite) || 0;
+                          if (!agg[emp.machineId]) agg[emp.machineId] = { eggs: 0, hatched: 0, lots: 0 };
+                          agg[emp.machineId].eggs += q;
+                          agg[emp.machineId].hatched += ((c.poussinsNes || 0) * q) / total;
+                          agg[emp.machineId].lots += 1;
+                        });
+                      });
+                      const rows = Object.entries(agg).map(([id, d]) => {
+                        const m = machines.find(mm => mm.id === id);
+                        return { id, name: m?.nom || id, type: m?.type || '?', eggs: Math.round(d.eggs), hatched: Math.round(d.hatched), rate: pct(d.hatched, d.eggs) };
+                      }).sort((a, b) => b.rate - a.rate);
+                      if (!rows.length) return (
+                        <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">Aucune donnée de placement disponible.</td></tr>
+                      );
+                      return rows.map(r => (
+                        <tr key={r.id} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-3 font-bold text-slate-800">{r.name}</td>
+                          <td className="px-4 py-3 text-slate-500">{r.type}</td>
+                          <td className="px-4 py-3 text-right">{r.eggs.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right text-emerald-600 font-semibold">{r.hatched.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-center font-black text-slate-900">{r.rate}%</td>
+                          <td className="px-4 py-3 text-center"><RateBadge rate={r.rate} /></td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Diagnostics machines */}
+              {(() => {
+                const agg: Record<string, { eggs: number; hatched: number }> = {};
+                completed.filter(c => (c.emplacements?.length || 0) > 0).forEach(c => {
+                  const emps = c.emplacements || [];
+                  const total = emps.reduce((s, e) => s + (Number(e.quantite) || 0), 0);
+                  if (!total) return;
+                  emps.forEach(emp => {
+                    const q = Number(emp.quantite) || 0;
+                    if (!agg[emp.machineId]) agg[emp.machineId] = { eggs: 0, hatched: 0 };
+                    agg[emp.machineId].eggs += q;
+                    agg[emp.machineId].hatched += ((c.poussinsNes || 0) * q) / total;
+                  });
+                });
+                const rows = Object.entries(agg).map(([id, d]) => {
+                  const m = machines.find(mm => mm.id === id);
+                  return { name: m?.nom || id, rate: pct(d.hatched, d.eggs) };
+                });
+                const worst = rows.sort((a, b) => a.rate - b.rate)[0];
+                const best = rows.sort((a, b) => b.rate - a.rate)[0];
+                if (!worst) return null;
+                return (
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-sm text-slate-600 uppercase tracking-wider">Recommandations sur les machines</h3>
+                    {worst.rate < 50 && (
+                      <DiagCard type="danger" title={`Machine sous-performante : ${worst.name} (${worst.rate}%)`} message={`Cette machine affiche un taux d'éclosion insuffisant. Cela peut indiquer un problème de thermostat, de ventilation ou d'étanchéité.`} conseil="Effectuez une calibration complète de la machine : température 37.5-38°C (incubateur), 37.2-37.5°C (éclosoir). Vérifiez les joints et la ventilation. Faites tourner cette machine à vide une semaine pour tests." />
+                    )}
+                    {best && best.rate >= 70 && (
+                      <DiagCard type="success" title={`Meilleure machine : ${best.name} (${best.rate}%)`} message={`Cette machine donne d'excellents résultats. Ses paramètres de fonctionnement sont un modèle à suivre.`} conseil="Notez les réglages exacts de cette machine (température, humidité, fréquence de retournement) et essayez de les répliquer sur les autres appareils." />
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ── TAB: TENDANCES ───────────────────────────────────────────── */}
+          {activeTab === 'tendances' && (
+            <div className="space-y-6">
+              <h2 className="text-base font-bold text-slate-800">Évolution sur 6 mois</h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Évolution taux éclosion */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-600 mb-3">Taux d'Éclosion (%)</h3>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={tendances}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <YAxis unit="%" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 100]} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                        <Line type="monotone" dataKey="Éclosion" stroke="#EA580C" strokeWidth={3} dot={{ fill: '#EA580C', r: 5 }} activeDot={{ r: 7 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* CA mensuel */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-600 mb-3">Chiffre d'Affaires (k FCFA)</h3>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={tendances}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <YAxis unit="k" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} formatter={(v: number) => [`${v}k FCFA`, 'CA']} />
+                        <Bar dataKey="CA" fill="#EA580C" radius={[6, 6, 0, 0]} name="CA" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nombre de lots */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-600 mb-3">Nombre de Lots par Mois</h3>
+                <div className="h-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tendances}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                      <Bar dataKey="Lots" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Lots" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Interprétation des tendances */}
+              <div className="space-y-3">
+                <h3 className="font-bold text-sm text-slate-600 uppercase tracking-wider">Interprétation des tendances</h3>
+                {(() => {
+                  const last3 = tendances.slice(-3);
+                  const first3 = tendances.slice(0, 3);
+                  const avgRecent = last3.reduce((a, t) => a + t['Éclosion'], 0) / 3;
+                  const avgOld = first3.reduce((a, t) => a + t['Éclosion'], 0) / 3;
+                  const delta = Math.round(avgRecent - avgOld);
+
+                  const caRecent = last3.reduce((a, t) => a + t.CA, 0);
+                  const caOld = first3.reduce((a, t) => a + t.CA, 0);
+
+                  return (
+                    <>
+                      {delta > 5 && <DiagCard type="success" title={`📈 Progression de la performance : +${delta}pts`} message={`Votre taux d'éclosion s'est amélioré en moyenne de ${delta} points sur les 3 derniers mois comparés aux 3 mois précédents. Vos ajustements techniques portent leurs fruits.`} conseil="Capitalisez sur ce qui fonctionne. Documentez les changements récents (nouveau protocole, machine, personnel) pour comprendre ce qui a provoqué cette amélioration." />}
+                      {delta < -5 && <DiagCard type="danger" title={`📉 Dégradation de la performance : ${delta}pts`} message={`Le taux d'éclosion a chuté de ${Math.abs(delta)} points sur les 3 derniers mois. Une investigation est nécessaire.`} conseil="Analysez les causes : nouveau fournisseur d'œufs ? Problème de maintenance machine ? Changement de personnel ? Saison sèche (humidité)?" />}
+                      {Math.abs(delta) <= 5 && <DiagCard type="info" title="Performance stable" message={`Vos résultats sont stables sur les 6 derniers mois. Pas de régression notable, mais aussi peu d'amélioration.`} conseil="Essayez un paramètre à la fois : augmentez légèrement l'humidité à l'éclosion, testez un nouveau protocole de désinfection, ou cibler de nouveaux clients avec des œufs de meilleure qualité." />}
+                      {caRecent > caOld * 1.2 && <DiagCard type="success" title="💰 Croissance du CA" message={`Le chiffre d'affaires des 3 derniers mois est supérieur de ${Math.round(((caRecent - caOld) / caOld) * 100)}% à la période précédente.`} />}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
   );
 };
+
 export default Analyses;
