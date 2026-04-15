@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Domaine officiel
+Sitemap: https://ivoirecouveedor.com/sitemap.xml
+
+# Bloquer l'accès aux routes privées
+Disallow: /dashboard
+Disallow: /couvaisons
+Disallow: /finances
+Disallow: /tresorerie
+Disallow: /clients
+Disallow: /analyses
+Disallow: /utilisateurs
+Disallow: /admin
+Disallow: /login

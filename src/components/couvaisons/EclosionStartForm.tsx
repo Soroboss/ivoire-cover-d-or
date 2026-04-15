@@ -74,8 +74,10 @@ const EclosionStartForm = ({
     const base = `votre éclosion pour le lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) a démarré, préparez-vous à venir récupérer vos poussins.`;
     const clientCode = client?.clientIdExt ? ` (${client.clientIdExt})` : '';
     const greeting = `Bonjour ${client?.nom || ''}${clientCode}`;
+    const dateDepot = couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-';
     
-    let financeText = `\n\n📌 Point Financier :`;
+    let financeText = `\n\n📅 Date de dépôt des œufs : ${dateDepot}`;
+    financeText += `\n\n📌 Point Financier :`;
     financeText += `\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
     
     if (ancienneDette > 0) {

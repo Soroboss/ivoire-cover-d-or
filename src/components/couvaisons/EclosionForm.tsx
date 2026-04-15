@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { resteLot, netPayeLot } from '../../lib/financeCalculations';
+import { format, parseISO } from 'date-fns';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
   if (!phone) return '';
@@ -77,6 +78,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         const whatsAppText = `🧾 *SITUATION FINANCIÈRE*\n\n` +
           `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
           `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
+          `📅 Date de dépôt des œufs : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n` +
           `📅 Éclosion: ${deltaNes} nouveaux poussins (Total: ${nes}/${oeufsRestants})\n\n` +
           `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
           `🎁 *Remise:* ${remises > 0 ? remises.toLocaleString() + ' F' : '-'}\n` +
@@ -169,7 +171,8 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 
                 const msg = `🧾 *SITUATION FINANCIÈRE*\n\n` +
                   `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
-                  `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
+                  `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
+                  `📅 Date de dépôt des œufs : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n\n` +
                   `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
                   `🎁 *Remise:* ${remises > 0 ? remises.toLocaleString() + ' F' : '-'}\n` +
                   `📑 *Avoir:* ${avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-'}\n` +
