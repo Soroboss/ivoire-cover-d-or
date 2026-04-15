@@ -115,7 +115,7 @@ const Analyses = () => {
         trends: tendances
       };
 
-      const res = await callInsforgeFunction<{ analysis: string }>('ai_expert_advisor', {
+      const res = await callInsforgeFunction<{ analysis: string }>('expertia', {
         dataToAnalyze,
         context: "Rapport mensuel de performance du couvoir."
       });
