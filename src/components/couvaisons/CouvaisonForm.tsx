@@ -8,7 +8,8 @@ import type { TypeOeuf } from '../../types';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
 import { normalizeTelephone } from '../../lib/phoneNormalize';
 import { getClientGlobalBalance } from '../../lib/financeCalculations';
-import { AlertCircle, CreditCard, Wallet, Calculator } from 'lucide-react';
+import { AlertCircle, CreditCard, Wallet, Calculator, Edit2 } from 'lucide-react';
+import { ClientEditModal } from '../clients/ClientEditModal';
 
 
 type LotLine = {
@@ -37,6 +38,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   const [dateReception, setDateReception] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [acompte, setAcompte] = useState<number>(0);
   const [remise, setRemise] = useState<number>(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const matchingClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -198,11 +200,35 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
                 onChange={(e) => setClientTel(e.target.value)}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange focus:border-transparent outline-none transition-all"
               />
-              <p className={`mt-1 text-xs ${isClientRegistered ? 'text-green-700' : 'text-brand-muted'}`}>
-                {isClientRegistered
-                  ? 'Client existant détecté.'
-                  : 'Nouveau client : il sera créé à l’enregistrement.'}
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className={`text-xs ${isClientRegistered ? 'text-green-700 font-bold' : 'text-brand-muted'}`}>
+                  {isClientRegistered
+                    ? 'Client existant détecté.'
+                    : 'Nouveau client : il sera créé à l’enregistrement.'}
+                </p>
+                {isClientRegistered && selectedClientId && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded transition-all border border-brand-orange/20"
+                    >
+                      <Edit2 size={10} /> Modifier info/n°
+                    </button>
+                    {clients.find(c => c.id === selectedClientId) && (
+                      <ClientEditModal
+                        client={clients.find(c => c.id === selectedClientId)!}
+                        isOpen={isEditModalOpen}
+                        onClose={() => setIsEditModalOpen(false)}
+                        onSuccess={(updated) => {
+                          setClientNom(updated.nom);
+                          setClientTel(updated.telephone);
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             {isClientRegistered && (
               <div className={`p-4 rounded-lg border transition-all ${currentBalance > 0 ? 'bg-red-50 border-red-200' : currentBalance < 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>

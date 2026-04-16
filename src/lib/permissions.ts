@@ -35,7 +35,7 @@ export function defaultPermissionsForRole(role: Role): PermissionKey[] {
     case 'Réception/Caisse':
       return ['dashboard', 'couvaisons', 'clients', 'finances', 'factures', 'historique'];
     case 'Finance':
-      return ['dashboard', 'finances', 'factures', 'historique'];
+      return ['dashboard', 'clients', 'couvaisons', 'finances', 'factures', 'historique'];
     case 'Comptable':
       return ['dashboard', 'finances', 'factures', 'analyses', 'historique'];
     case 'Logistique':

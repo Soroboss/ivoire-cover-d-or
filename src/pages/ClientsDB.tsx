@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { format, parseISO } from 'date-fns';
-import { Search, ChevronLeft, User, Calendar, Eye, Egg, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, ChevronLeft, User, Calendar, Eye, Egg, RefreshCw, Loader2, Edit2 } from 'lucide-react';
 import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
@@ -252,9 +252,9 @@ const ClientsDB = () => {
                       <button
                         type="button"
                         onClick={() => setIsEditModalOpen(true)}
-                        className="text-[10px] font-bold text-brand-orange hover:underline px-1 py-0.5"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-orange/10 text-brand-orange hover:bg-brand-orange hover:text-white font-bold text-[10px] uppercase tracking-wider transition-all border border-brand-orange/20 shadow-sm"
                       >
-                        (Modifier)
+                        <Edit2 size={12} /> Modifier les infos du client
                       </button>
                       <ClientEditModal 
                         client={selectedClient}
