@@ -114,27 +114,10 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
               return (
                 <tr key={c.id} className="border-b border-gray-100 break-inside-avoid">
                   <td className="px-4 py-4 text-sm">
-                    <div className="font-medium underline decoration-brand-orange/20 decoration-2 underline-offset-2">Incubation de {c.typeOeuf}s</div>
-                    <div className="mt-1 text-xs text-brand-muted flex items-center gap-2">
-                       <span>Reçu le: {format(parseISO(c.dateReception), 'dd/MM/yy')}</span>
-                       <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                       <span>Machine: {c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yy') : 'En attente'}</span>
+                    <div className="font-bold text-brand-dark">Incubation de {c.typeOeuf}s</div>
+                    <div className="mt-0.5 text-xs text-brand-muted">
+                       Reçu le: {format(parseISO(c.dateReception), 'dd/MM/yyyy')}
                     </div>
-                    {mirageFait ? (
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <div className="text-[10px] text-slate-500 bg-slate-50 p-1 rounded">
-                          <span className="font-semibold text-slate-700 block mb-0.5">Tiroirs avant mirage :</span> {avant}
-                        </div>
-                        <div className="text-[10px] text-slate-500 bg-orange-50 p-1 rounded border border-orange-100/50">
-                          <span className="font-semibold text-orange-700 block mb-0.5">Tiroirs après mirage :</span> {apres}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-1.5 text-[10px] text-slate-500 italic">
-                        <span className="font-semibold text-slate-700 not-italic">Tiroirs assignés :</span>{' '}
-                        {formatEmplacementsLigne(c.emplacements, machines)}
-                      </div>
-                    )}
                   </td>
                   <td className="px-4 py-4 text-center text-sm font-medium">{c.nombreOeufs}</td>
                   <td className="px-4 py-4 text-right text-sm">{c.prixUnitaire.toLocaleString()} F</td>

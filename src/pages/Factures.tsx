@@ -98,6 +98,32 @@ const Factures = () => {
       // Use the built-in HTML handler for better multi-page support and margins
       await doc.html(invoiceRef.current as HTMLElement, {
         callback: function (doc) {
+          const totalPages = doc.internal.getNumberOfPages();
+          
+          for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            
+            // --- REPEATED HEADER ---
+            // Orange accent line at the very top
+            doc.setDrawColor(241, 146, 33); // brand-orange
+            doc.setLineWidth(1.5);
+            doc.line(10, 10, 200, 10);
+            
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`IVOIRE COUVÉE D'OR - FACTURE N° ${invoiceNumber}`, 10, 15);
+            doc.text(`Client : ${client.nom}`, 10, 19);
+
+            // --- REPEATED FOOTER ---
+            doc.setDrawColor(230, 230, 230);
+            doc.setLineWidth(0.5);
+            doc.line(10, 285, 200, 285);
+            
+            doc.setFontSize(7);
+            doc.text("Korhogo-Natio près de l'usine de coton SICO SA | Tél: 01 03 03 64 62", 10, 290);
+            doc.text(`Page ${i} sur ${totalPages}`, 200, 290, { align: 'right' });
+          }
+
           if (shouldDownload) {
             doc.save(fileName);
           } else {
@@ -105,10 +131,10 @@ const Factures = () => {
           }
         },
         x: 10,
-        y: 10,
-        width: 190, // A4 width (210) - 20mm margins
-        windowWidth: 800, // Match the preview container width for accurate scaling
-        autoPaging: 'text', // Better for not cutting text in half
+        y: 20, // Start lower to accommodate the fixed header
+        width: 190, 
+        windowWidth: 800, 
+        autoPaging: 'text',
       });
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
