@@ -6,6 +6,7 @@ import { Download, FileText, Printer, CheckCircle, Edit2, Save, X, Trash2 } from
 import { netEncaisseByClient, totalAvoirRemiseByClient } from '../lib/financeCalculations';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { format, parseISO } from 'date-fns';
 
 const Factures = () => {
   const { clients, couvaisons, transactions, machines, addReceiptArchive, updateCouvaison } = useAppContext();
