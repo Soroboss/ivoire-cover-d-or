@@ -5,6 +5,7 @@ import { InvoiceTemplate } from '../components/facturation/InvoiceTemplate';
 import { Download, FileText, Printer, CheckCircle, Edit2, Save, X, Trash2 } from 'lucide-react';
 import { netEncaisseByClient, totalAvoirRemiseByClient } from '../lib/financeCalculations';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
 
 const ADRESSE_ETABLISSEMENT = "Korhogo-Natio près de l'usine de coton SICO SA";
@@ -132,11 +133,13 @@ const Factures = () => {
             window.open(doc.output('bloburl'), '_blank');
           }
         },
+        html2canvas: html2canvas as any,
         x: 10,
-        y: 20, 
+        y: 10, 
         width: 190, 
         windowWidth: 800, 
         autoPaging: 'text',
+        margin: [10, 10, 10, 10], // Margin TOP, LEFT, BOTTOM, RIGHT
       });
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
@@ -407,6 +410,7 @@ const Factures = () => {
 
                 <div className="overflow-auto bg-gray-100/50 p-4 sm:p-8 rounded-xl border border-brand-lightgray shadow-inner">
                    <InvoiceTemplate
+                      ref={invoiceRef}
                       preview
                       client={client}
                       couvaisons={clientCouvaisons}
@@ -420,19 +424,6 @@ const Factures = () => {
         </div>
       </div>
 
-      {/* Template utilisé uniquement pour la génération PDF (hors écran) */}
-      {client && clientCouvaisons.length > 0 && (
-        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px', pointerEvents: 'none' }}>
-             <InvoiceTemplate
-              ref={invoiceRef}
-              client={client}
-              couvaisons={clientCouvaisons}
-              transactions={clientTransactions}
-              invoiceNumber={invoiceNumber}
-              totalGlobalRemaining={dueAmountGen}
-            />
-        </div>
-      )}
     </div>
   );
 };
