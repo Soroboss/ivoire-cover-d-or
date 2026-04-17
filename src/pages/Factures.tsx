@@ -25,7 +25,7 @@ const Factures = () => {
   const invoiceNumber = client ? `FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}` : ''
 
   const startEditing = () => {
-    const initial = {};
+    const initial: Record<string, { nombreOeufs: number, prixUnitaire: number }> = {};
     clientCouvaisons.forEach(c => {
       initial[c.id] = { nombreOeufs: c.nombreOeufs, prixUnitaire: c.prixUnitaire };
     });
