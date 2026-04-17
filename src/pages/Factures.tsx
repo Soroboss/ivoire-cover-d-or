@@ -8,6 +8,9 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
 
+const ADRESSE_ETABLISSEMENT =
+  "Korhogo-Natio près de l'usine de coton SICO SA";
+
 const Factures = () => {
   const { clients, couvaisons, transactions, addReceiptArchive, updateCouvaison } = useAppContext();
   const { currentUser } = useAuth();
@@ -21,6 +24,7 @@ const Factures = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
   const client = clients.find(c => c.id === selectedClient);
   
@@ -87,7 +91,6 @@ const Factures = () => {
     if (!invoiceRef.current || !client) return;
     setIsGenerating(true);
     try {
-      // Configure PDF
       const doc = new jsPDF({
         orientation: 'p',
         unit: 'mm',
@@ -96,22 +99,71 @@ const Factures = () => {
 
       const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`;
 
-      // Use the built-in HTML handler for better multi-page support and margins
       await doc.html(invoiceRef.current as HTMLElement, {
         callback: function (doc) {
-          if (shouldDownload) {
-            doc.save(fileName);
-          } else {
-            window.open(doc.output('bloburl'), '_blank');
-          }
+          const totalPages = (doc as any).internal.getNumberOfPages();
+          const logo = new Image();
+          logo.src = logoUrl;
+          
+          logo.onload = () => {
+            for (let i = 1; i <= totalPages; i++) {
+              doc.setPage(i);
+              
+              // Draw Logo
+              doc.addImage(logo, 'PNG', 10, 5, 20, 20);
+              
+              // Add Header Background / Line
+              doc.setDrawColor(255, 107, 0); // brand-orange
+              doc.setLineWidth(0.5);
+              doc.line(10, 32, 200, 32);
+              
+              // Add Title on every page
+              doc.setFontSize(14);
+              doc.setTextColor(255, 107, 0);
+              doc.setFont('helvetica', 'bold');
+              doc.text('IVOIRE COUVÉE D\'OR', 35, 18);
+              
+              doc.setFontSize(10);
+              doc.setTextColor(100);
+              doc.setFont('helvetica', 'normal');
+              doc.text('FACTURE PROFESSIONNELLE', 35, 24);
+              
+              doc.setFontSize(8);
+              doc.text(`Réf: ${invoiceNumber}  |  Client: ${client.nom}`, 35, 29);
+              
+              // Page Number
+              doc.setFontSize(8);
+              doc.setTextColor(150);
+              doc.text(`Page ${i} / ${totalPages}`, 180, 29);
+              
+              // Add Address Footer on every page
+              doc.setFontSize(7);
+              doc.text(ADRESSE_ETABLISSEMENT, 10, 285);
+              doc.text('Tél: 01 03 03 64 62', 10, 289);
+            }
+
+            if (shouldDownload) {
+              doc.save(fileName);
+            } else {
+              window.open(doc.output('bloburl'), '_blank');
+            }
+          };
+
+          logo.onerror = () => {
+             if (shouldDownload) {
+              doc.save(fileName);
+            } else {
+              window.open(doc.output('bloburl'), '_blank');
+            }
+          };
         },
         html2canvas: html2canvas as any,
         x: 10,
-        y: 10, 
+        y: 40,
         width: 190, 
         windowWidth: 800, 
         autoPaging: 'text',
-        margin: [10, 10, 10, 10], // Margin TOP, LEFT, BOTTOM, RIGHT
+        margin: [40, 10, 20, 10], // TOP, LEFT, BOTTOM, RIGHT
       });
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)

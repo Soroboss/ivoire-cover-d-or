@@ -30,8 +30,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
         style={preview ? { minHeight: '1100px' } : { position: 'absolute', top: -9999, left: -9999, minHeight: '1100px' }}
       >
         <div className="px-12 pt-10">
-          {/* Header Section */}
-          <div className="flex justify-between items-start mb-4">
+          {/* Header Section - Ignored in PDF, replaced by manual repeating header */}
+          <div className="flex justify-between items-start mb-4" data-html2canvas-ignore="true">
             <div className="flex gap-4 items-center">
               <img
                 src={logoUrl}
