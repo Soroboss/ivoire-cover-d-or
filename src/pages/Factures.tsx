@@ -8,6 +8,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
 
+const ADRESSE_ETABLISSEMENT = "Korhogo-Natio près de l'usine de coton SICO SA";
+
 const Factures = () => {
   const { clients, couvaisons, transactions, machines, addReceiptArchive, updateCouvaison } = useAppContext();
   const { currentUser } = useAuth();
