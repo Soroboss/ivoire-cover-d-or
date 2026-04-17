@@ -5,13 +5,12 @@ import { InvoiceTemplate } from '../components/facturation/InvoiceTemplate';
 import { Download, FileText, Printer, CheckCircle, Edit2, Save, X, Trash2 } from 'lucide-react';
 import { netEncaisseByClient, totalAvoirRemiseByClient } from '../lib/financeCalculations';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
 
 const ADRESSE_ETABLISSEMENT = "Korhogo-Natio près de l'usine de coton SICO SA";
 
 const Factures = () => {
-  const { clients, couvaisons, transactions, machines, addReceiptArchive, updateCouvaison } = useAppContext();
+  const { clients, couvaisons, transactions, addReceiptArchive, updateCouvaison } = useAppContext();
   const { currentUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -101,7 +100,7 @@ const Factures = () => {
       // Use the built-in HTML handler for better multi-page support and margins
       await doc.html(invoiceRef.current as HTMLElement, {
         callback: function (doc) {
-          const totalPages = doc.internal.getNumberOfPages();
+          const totalPages = doc.getNumberOfPages();
           
           for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i);
@@ -123,7 +122,7 @@ const Factures = () => {
             doc.line(10, 285, 200, 285);
             
             doc.setFontSize(7);
-            doc.text("Korhogo-Natio près de l'usine de coton SICO SA | Tél: 01 03 03 64 62", 10, 290);
+            doc.text(`${ADRESSE_ETABLISSEMENT} | Tél: 01 03 03 64 62`, 10, 290);
             doc.text(`Page ${i} sur ${totalPages}`, 200, 290, { align: 'right' });
           }
 
@@ -133,9 +132,8 @@ const Factures = () => {
             window.open(doc.output('bloburl'), '_blank');
           }
         },
-        html2canvas: html2canvas,
         x: 10,
-        y: 20, // Start lower to accommodate the fixed header
+        y: 20, 
         width: 190, 
         windowWidth: 800, 
         autoPaging: 'text',
@@ -414,7 +412,6 @@ const Factures = () => {
                       couvaisons={clientCouvaisons}
                       transactions={clientTransactions}
                       invoiceNumber={invoiceNumber}
-                      machines={machines}
                       totalGlobalRemaining={dueAmountGen}
                     />
                 </div>
@@ -432,7 +429,6 @@ const Factures = () => {
               couvaisons={clientCouvaisons}
               transactions={clientTransactions}
               invoiceNumber={invoiceNumber}
-              machines={machines}
               totalGlobalRemaining={dueAmountGen}
             />
         </div>

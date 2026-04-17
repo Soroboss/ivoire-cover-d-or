@@ -1,7 +1,6 @@
 import { forwardRef } from 'react';
-import type { Couvaison, Client, Transaction, Machine } from '../../types';
+import type { Couvaison, Client, Transaction } from '../../types';
 import { netEncaisseByClient, totalAvoirRemiseByClient } from '../../lib/financeCalculations';
-import { formatEmplacementsLigne } from '../../lib/casierLabels';
 import { format, parseISO } from 'date-fns';
 
 const ADRESSE_ETABLISSEMENT =
@@ -12,13 +11,12 @@ interface InvoiceProps {
   couvaisons: Couvaison[];
   transactions: Transaction[];
   invoiceNumber: string;
-  machines?: Machine[];
   preview?: boolean;
   totalGlobalRemaining?: number;
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
-  ({ client, couvaisons, transactions, invoiceNumber, machines = [], preview = false, totalGlobalRemaining }, ref) => {
+  ({ client, couvaisons, transactions, invoiceNumber, preview = false, totalGlobalRemaining }, ref) => {
     const totalAmount = couvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
     const totalPaid = netEncaisseByClient(transactions, client.id);
     const totalCredits = totalAvoirRemiseByClient(transactions, client.id);
@@ -102,15 +100,6 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
           </thead>
           <tbody>
             {couvaisons.map((c) => {
-              const mirageFait = c.oeufsClairs != null || c.oeufsPourris != null;
-              const avant = formatEmplacementsLigne(
-                mirageFait ? c.emplacementsAvantMirage ?? c.emplacements : c.emplacements,
-                machines,
-              );
-              const apres = formatEmplacementsLigne(
-                mirageFait ? c.emplacementsApresMirage ?? c.emplacements : undefined,
-                machines,
-              );
               return (
                 <tr key={c.id} className="border-b border-gray-100 break-inside-avoid">
                   <td className="px-4 py-4 text-sm">
