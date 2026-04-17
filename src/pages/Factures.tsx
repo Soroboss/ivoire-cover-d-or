@@ -16,12 +16,39 @@ const Factures = () => {
   const [success, setSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedCouvaisons, setEditedCouvaisons] = useState<Record<string, { nombreOeufs: number, prixUnitaire: number }>>({});
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const client = clients.find(c => c.id === selectedClient);
-  const clientCouvaisons = couvaisons.filter(c => c.clientId === selectedClient);
-  const clientTransactions = transactions.filter(t => t.clientId === selectedClient);
+  
+  // All-time data for general balance
+  const clientCouvaisonsTotal = couvaisons.filter(c => c.clientId === selectedClient);
+  const clientTransactionsTotal = transactions.filter(t => t.clientId === selectedClient);
+
+  // Filtered data for the specific invoice/period
+  const clientCouvaisons = clientCouvaisonsTotal.filter(c => {
+    if (!startDate && !endDate) return true;
+    const date = c.dateReception.substring(0, 10);
+    if (startDate && date < startDate) return false;
+    if (endDate && date > endDate) return false;
+    return true;
+  }).sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
+
+  const clientTransactions = clientTransactionsTotal.filter(t => {
+    if (!startDate && !endDate) return true;
+    const date = t.dateTransaction.substring(0, 10);
+    if (startDate && date < startDate) return false;
+    if (endDate && date > endDate) return false;
+    return true;
+  });
+
+  // General Balance Calculations
+  const totalAmountGen = clientCouvaisonsTotal.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0);
+  const totalPaidGen = netEncaisseByClient(clientTransactionsTotal, selectedClient);
+  const totalCreditsGen = totalAvoirRemiseByClient(clientTransactionsTotal, selectedClient);
+  const dueAmountGen = totalAmountGen - totalPaidGen - totalCreditsGen;
 
   const invoiceNumber = client ? `FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}` : ''
 
@@ -174,22 +201,74 @@ const Factures = () => {
                </div>
                
                {client && (
-                 <div className="bg-brand-lightgray/30 p-4 rounded-xl border border-brand-lightgray/50 text-sm">
-                    <p className="font-bold text-brand-dark mb-3 text-xs uppercase tracking-wider">Statistiques du compte</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-brand-muted">Lots totaux :</span>
-                        <span className="font-semibold">{clientCouvaisons.length}</span>
+                 <div className="space-y-4">
+                   <div className="bg-brand-orange/5 p-4 rounded-xl border border-brand-orange/20">
+                      <p className="font-bold text-brand-orange mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <CheckCircle size={14} /> Bilan Général (Tout temps)
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">Total Dû :</span>
+                          <span className="font-semibold text-brand-dark">{totalAmountGen.toLocaleString()} F</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">Total Payé :</span>
+                          <span className="font-semibold text-green-600">{totalPaidGen.toLocaleString()} F</span>
+                        </div>
+                        <div className="flex justify-between border-t border-brand-orange/10 pt-2 mt-1">
+                          <span className="font-bold text-brand-dark">Reste Global :</span>
+                          <span className={`${dueAmountGen > 0 ? 'text-brand-orange' : 'text-green-600'} font-bold`}>
+                            {Math.max(0, dueAmountGen).toLocaleString()} F
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-brand-muted">Lots terminés :</span>
-                        <span className="font-semibold text-green-600">{clientCouvaisons.filter(c => c.statut === 'Terminé').length}</span>
+                   </div>
+
+                   <div className="bg-brand-lightgray/30 p-4 rounded-xl border border-brand-lightgray/50 text-sm">
+                      <p className="font-bold text-brand-dark mb-3 text-xs uppercase tracking-wider">Filtrer par période</p>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[10px] text-brand-muted mb-1 uppercase font-semibold">Date Début</label>
+                          <input 
+                            type="date" 
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            className="w-full rounded-md border border-gray-300 p-2 text-xs focus:ring-1 focus:ring-brand-orange outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-brand-muted mb-1 uppercase font-semibold">Date Fin</label>
+                          <input 
+                            type="date" 
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            className="w-full rounded-md border border-gray-300 p-2 text-xs focus:ring-1 focus:ring-brand-orange outline-none"
+                          />
+                        </div>
+                        {(startDate || endDate) && (
+                          <button 
+                            onClick={() => { setStartDate(''); setEndDate(''); }}
+                            className="w-full py-1 text-[10px] text-brand-orange font-bold hover:underline"
+                          >
+                            Réinitialiser les filtres
+                          </button>
+                        )}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-brand-muted">Transactions :</span>
-                        <span className="font-semibold">{clientTransactions.length}</span>
+                   </div>
+
+                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-[11px]">
+                      <p className="font-bold text-brand-dark mb-2 uppercase tracking-wider">Stats de la sélection</p>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">Lots dans la période :</span>
+                          <span className="font-semibold">{clientCouvaisons.length} / {clientCouvaisonsTotal.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-brand-muted">Transactions :</span>
+                          <span className="font-semibold">{clientTransactions.length}</span>
+                        </div>
                       </div>
-                    </div>
+                   </div>
                  </div>
                )}
             </div>
@@ -283,6 +362,7 @@ const Factures = () => {
                       transactions={clientTransactions}
                       invoiceNumber={invoiceNumber}
                       machines={machines}
+                      totalGlobalRemaining={dueAmountGen}
                     />
                 </div>
              </div>
@@ -300,6 +380,7 @@ const Factures = () => {
               transactions={clientTransactions}
               invoiceNumber={invoiceNumber}
               machines={machines}
+              totalGlobalRemaining={dueAmountGen}
             />
         </div>
       )}
