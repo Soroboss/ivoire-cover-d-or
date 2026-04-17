@@ -132,6 +132,7 @@ const Factures = () => {
             window.open(doc.output('bloburl'), '_blank');
           }
         },
+        html2canvas: html2canvas,
         x: 10,
         y: 20, // Start lower to accommodate the fixed header
         width: 190, 
