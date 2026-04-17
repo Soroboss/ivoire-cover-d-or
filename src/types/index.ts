@@ -33,7 +33,9 @@ export interface AuditLog {
   userName: string;
   action: 'CRÉATION' | 'MODIFICATION' | 'SUPPRESSION' | 'SYSTÈME';
   target: string;
+  targetId?: string;
   details: string;
+  metadata?: Record<string, any>;
   timestamp: string;
 }
 

@@ -51,7 +51,7 @@ interface AppState {
   updateSalaireAgent: (id: string, updates: Partial<Omit<SalarieAgent, 'id' | 'createdAt'>>) => Promise<void>;
   deleteSalaireAgent: (id: string) => Promise<void>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
-  addLog: (action: AuditLog['action'], target: string, details: string) => void;
+  addLog: (action: AuditLog['action'], target: string, details: string, targetId?: string, metadata?: Record<string, any>) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -159,7 +159,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [])
 
 
-  const addLog = (action: AuditLog['action'], target: string, details: string) => {
+  const addLog = (
+    action: AuditLog['action'], 
+    target: string, 
+    details: string, 
+    targetId?: string, 
+    metadata?: Record<string, any>
+  ) => {
     if (!currentUser) return;
     const newLog: AuditLog = {
       id: uuidv4(),
@@ -167,7 +173,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       userName: currentUser.nom,
       action,
       target,
+      targetId,
       details,
+      metadata,
       timestamp: new Date().toISOString()
     };
     // Keep only last 1000 logs to prevent memory leaks
@@ -307,8 +315,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (updates.dateEclosionDemarrage) changes.push(`démarrage éclosion (${updates.nomDepart ?? 'nom départ non précisé'})`)
     if (updates.poussinsNes !== undefined || updates.mortsEnCoque !== undefined) changes.push('bilan éclosion enregistré')
     if (updates.emplacements) changes.push('assignation casiers mise à jour')
-    const details = changes.length > 0 ? changes.join(', ') : 'mise à jour des données du lot'
-    addLog('MODIFICATION', 'Couvaison', `Lot ID...${id.slice(-4)}: ${details}`)
+    const logDetails = changes.length > 0 ? changes.join(', ') : 'mise à jour des données du lot'
+    addLog('MODIFICATION', 'Couvaison', `Lot ${res.couvaison.typeOeuf} (ID...${id.slice(-4)}): ${logDetails}`, id)
   }
 
   const deleteCouvaison = async (id: string) => {
