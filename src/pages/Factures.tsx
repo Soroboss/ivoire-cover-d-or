@@ -20,6 +20,7 @@ const Factures = () => {
   const [editedCouvaisons, setEditedCouvaisons] = useState<Record<string, { nombreOeufs: number, prixUnitaire: number }>>({});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const invoiceRef = useRef<HTMLDivElement>(null);
 
@@ -221,19 +222,36 @@ const Factures = () => {
               <FileText size={18} className="text-brand-orange" /> Dossier Client
             </h2>
             <div className="space-y-4">
-               <div>
-                 <label className="block text-sm font-medium text-brand-muted mb-1">Sélectionner un Client</label>
-                 <select 
-                   value={selectedClient} 
-                   onChange={e => { setSelectedClient(e.target.value); setIsEditing(false); }} 
-                   className="w-full rounded-md border border-gray-300 p-2.5 focus:ring-2 focus:ring-brand-orange outline-none transition-all shadow-sm"
-                 >
-                   <option value="">-- Choisir --</option>
-                   {clients.map(c => (
-                     <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
-                   ))}
-                 </select>
-               </div>
+                <div>
+                  <label className="block text-sm font-medium text-brand-muted mb-1">Rechercher / Sélectionner un Client</label>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        placeholder="Chercher par nom ou tél..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full rounded-md border border-gray-200 p-2 text-sm focus:ring-1 focus:ring-brand-orange outline-none bg-gray-50/50"
+                      />
+                    </div>
+                    <select 
+                      value={selectedClient} 
+                      onChange={e => { setSelectedClient(e.target.value); setIsEditing(false); }} 
+                      className="w-full rounded-md border border-gray-300 p-2.5 focus:ring-2 focus:ring-brand-orange outline-none transition-all shadow-sm cursor-pointer"
+                    >
+                      <option value="">-- {searchTerm ? 'Résultats de recherche' : 'Choisir un client'} --</option>
+                      {clients
+                        .filter(c => 
+                          c.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          c.telephone.includes(searchTerm)
+                        )
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                </div>
                
                {client && (
                  <div className="space-y-4">
