@@ -28,7 +28,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
     return (
       <div
         ref={ref}
-        className={`bg-white p-12 font-sans text-brand-dark ${preview ? 'w-full max-w-[800px] shadow-lg rounded-lg border border-gray-200 mx-auto' : 'pointer-events-none w-[800px]'}`}
+        className={`bg-white p-8 font-sans text-brand-dark ${preview ? 'w-full max-w-[800px] shadow-lg rounded-lg border border-gray-200 mx-auto' : 'w-[800px]'}`}
         style={preview ? {} : { position: 'absolute', top: -9999, left: -9999 }}
       >
         {/* Header */}
@@ -148,7 +148,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
         </table>
 
         {/* Totals Box and Account Summary */}
-        <div className="mb-12 flex justify-between gap-8 break-inside-avoid">
+        <div className="mb-12 flex justify-between gap-8" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           <div className="w-5/12">
             <h4 className="text-xs font-bold uppercase text-brand-gray mb-3 border-b border-gray-200 pb-1">Notes & Paiements Période</h4>
             <div className="space-y-2">

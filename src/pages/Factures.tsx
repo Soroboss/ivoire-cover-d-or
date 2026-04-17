@@ -85,45 +85,31 @@ const Factures = () => {
   const generatePDF = async (shouldDownload = true) => {
     if (!invoiceRef.current || !client) return;
     setIsGenerating(true);
-    setSuccess(false);
-    
     try {
-      const canvas = await html2canvas(invoiceRef.current, { 
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
+      // Configure PDF
+      const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
       });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm (slightly less than 297 to avoid bottom clipping)
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
 
-      // Add the first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
+      const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`;
 
-      // Add more pages if content exceeds one page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= pageHeight;
-      }
-
-      const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`
-      
-      if (shouldDownload) {
-        pdf.save(fileName);
-      } else {
-        // Just print preview
-        window.open(pdf.output('bloburl'), '_blank');
-      }
+      // Use the built-in HTML handler for better multi-page support and margins
+      await doc.html(invoiceRef.current as HTMLElement, {
+        callback: function (doc) {
+          if (shouldDownload) {
+            doc.save(fileName);
+          } else {
+            window.open(doc.output('bloburl'), '_blank');
+          }
+        },
+        x: 10,
+        y: 10,
+        width: 190, // A4 width (210) - 20mm margins
+        windowWidth: 800, // Match the preview container width for accurate scaling
+        autoPaging: 'text', // Better for not cutting text in half
+      });
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
       const totalPaid = netEncaisseByClient(clientTransactions, client.id)
