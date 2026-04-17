@@ -27,110 +27,121 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
       <div
         ref={ref}
         id="printable-facture"
-        className={`bg-white font-sans text-slate-900 ${preview ? 'w-full max-w-[850px] shadow-2xl rounded-xl border border-gray-100 mx-auto' : 'w-[800px]'} overflow-hidden pb-12`}
-        style={preview ? { minHeight: '1100px' } : { position: 'absolute', top: -9999, left: -9999, minHeight: '1100px' }}
+        className={`bg-white text-slate-900 ${preview ? 'w-full max-w-[850px] shadow-2xl rounded-xl border border-gray-100 mx-auto' : 'w-[800px]'} overflow-hidden pb-12`}
+        style={{ 
+          minHeight: '1100px', 
+          fontFamily: "'Montserrat', sans-serif",
+          ...(preview ? {} : { position: 'absolute', top: -9999, left: -9999 })
+        }}
       >
+        {/* Load Montserrat if not available */}
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        
         <div className="px-12 pt-10">
           {/* Header Section */}
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex gap-4 items-center">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex gap-5 items-center">
               <img
                 src={logoUrl}
                 alt="Logo"
                 className="h-20 w-20 object-contain"
                 crossOrigin="anonymous"
               />
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-brand-orange uppercase leading-tight">
+              <div className="border-l-2 border-brand-orange/20 pl-5">
+                <h1 className="text-3xl font-black tracking-tight text-brand-orange uppercase leading-none mb-1">
                   IVOIRE COUVÉE
                 </h1>
-                <p className="text-lg font-bold text-slate-900 uppercase">D&apos;OR</p>
+                <p className="text-lg font-bold text-slate-700 tracking-[0.1em] uppercase">D&apos;OR</p>
               </div>
             </div>
             
-            <div className="text-right">
-              <h2 className="text-3xl font-medium text-slate-500 uppercase mb-2">FACTURE</h2>
-              <div className="space-y-0.5 text-sm font-medium text-slate-700">
-                <p>N° : <span className="font-bold">{invoiceNumber}</span></p>
-                <p>Date : {format(new Date(), 'dd/MM/yyyy')}</p>
+            <div className="text-right pt-2">
+              <h2 className="text-3xl font-medium text-slate-400 uppercase mb-3 tracking-tighter">FACTURE</h2>
+              <div className="space-y-1 text-sm font-semibold text-slate-600">
+                <p className="flex justify-end gap-2 text-[10px] uppercase text-slate-400">Réf. <span className="text-slate-900 font-bold text-sm tracking-tight">{invoiceNumber}</span></p>
+                <p className="flex justify-end gap-2 text-[10px] uppercase text-slate-400">Date <span className="text-slate-900 font-bold text-sm tracking-tight">{format(new Date(), 'dd/MM/yyyy')}</span></p>
               </div>
             </div>
           </div>
 
-          <div className="h-0.5 bg-brand-orange w-full mb-10" />
+          <div className="h-0.5 bg-brand-orange/80 w-full mb-12" />
 
           {/* Contact Details */}
-          <div className="grid grid-cols-2 gap-20 mb-16">
+          <div className="grid grid-cols-2 gap-20 mb-20 px-4">
             <div className="space-y-4">
-              <span className="inline-block bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded tracking-wider uppercase">Émetteur</span>
-              <div className="space-y-1">
-                <p className="font-bold text-slate-900 text-lg uppercase tracking-tight">IVOIRE COUVÉE D&apos;OR</p>
-                <p className="text-sm text-slate-600 leading-relaxed font-medium">{ADRESSE_ETABLISSEMENT}</p>
-                <p className="text-sm font-bold text-slate-800 mt-2">Tél: 01 03 03 64 62</p>
+              <span className="inline-block bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded tracking-[0.15em] uppercase">Émetteur</span>
+              <div className="space-y-2">
+                <p className="font-black text-slate-900 text-xl tracking-tight uppercase">IVOIRE COUVÉE D&apos;OR</p>
+                <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-[280px]">{ADRESSE_ETABLISSEMENT}</p>
+                <div className="flex items-center gap-2 mt-4">
+                  <span className="h-1 w-4 bg-brand-orange rounded-full" />
+                  <p className="text-xs font-bold text-slate-900">Tél: 01 03 03 64 62</p>
+                </div>
               </div>
             </div>
             
             <div className="space-y-4 text-right">
-              <span className="inline-block bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded tracking-wider uppercase">Destinataire</span>
-              <div className="space-y-1">
-                <p className="text-xl font-bold text-slate-900 uppercase">{client.nom}</p>
-                <div className="text-sm font-medium text-slate-700 space-y-0.5">
-                  <p>ID Client : {client.clientIdExt || '—'}</p>
-                  <p>Tél : {client.telephone}</p>
+              <span className="inline-block bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded tracking-[0.15em] uppercase">Destinataire</span>
+              <div className="space-y-2">
+                <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{client.nom}</p>
+                <div className="text-sm font-semibold text-slate-600 space-y-1">
+                  <p className="text-[10px] uppercase text-slate-400">ID Client : <span className="text-slate-900 font-bold">{client.clientIdExt || '—'}</span></p>
+                  <p className="text-[10px] uppercase text-slate-400">Téléphone : <span className="text-slate-900 font-bold">{client.telephone}</span></p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Section: Détail des prestations */}
-          <div className="mb-6 flex items-end justify-between border-b pb-2">
-            <h3 className="text-lg font-bold uppercase tracking-tight text-slate-900">Détail des prestations</h3>
+          <div className="mb-8 flex items-end justify-between border-b-2 border-slate-100 pb-3">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900">Détail des prestations</h3>
             {couvaisons.length > 0 && (
-              <p className="text-[10px] font-medium text-slate-400">
-                Période : {format(parseISO(couvaisons[couvaisons.length-1].dateReception), 'dd/MM/yyyy')} au {format(parseISO(couvaisons[0].dateReception), 'dd/MM/yyyy')}
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Période du {format(parseISO(couvaisons[couvaisons.length-1].dateReception), 'dd/MM/yyyy')} au {format(parseISO(couvaisons[0].dateReception), 'dd/MM/yyyy')}
               </p>
             )}
           </div>
 
-          <table className="w-full mb-12 border-collapse">
+          <table className="w-full mb-16 border-collapse">
             <thead>
-              <tr className="bg-slate-50">
-                <th className="py-2.5 text-left text-sm font-bold text-slate-700 pl-4">Prestation (Couvaison)</th>
-                <th className="py-2.5 text-center text-sm font-bold text-slate-700">Qté d&apos;œufs</th>
-                <th className="py-2.5 text-right text-sm font-bold text-slate-700">Prix Unitaire</th>
-                <th className="py-2.5 text-right text-sm font-bold text-slate-700 pr-4">Sous-total</th>
+              <tr className="bg-slate-50/50">
+                <th className="py-3 text-left text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 pl-6">Prestation (Couvaison)</th>
+                <th className="py-3 text-center text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Qté d&apos;œufs</th>
+                <th className="py-3 text-right text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Prix Unitaire</th>
+                <th className="py-3 text-right text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 pr-6">Sous-total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {couvaisons.map((c) => (
-                <tr key={c.id} className="break-inside-avoid">
-                  <td className="py-4 pl-4">
-                    <p className="font-bold text-slate-800">Incubation de {c.typeOeuf}s</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Reçu le : {format(parseISO(c.dateReception), 'dd/MM/yyyy')}</p>
+                <tr key={c.id} className="break-inside-avoid hover:bg-slate-50/30 transition-colors">
+                  <td className="py-5 pl-6">
+                    <p className="font-bold text-slate-900 text-sm">Incubation de {c.typeOeuf}s</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Date de réception : {format(parseISO(c.dateReception), 'dd/MM/yyyy')}</p>
                   </td>
-                  <td className="py-4 text-center text-sm font-medium text-slate-700">{c.nombreOeufs}</td>
-                  <td className="py-4 text-right text-sm text-slate-600 font-medium">{c.prixUnitaire.toLocaleString()} F</td>
-                  <td className="py-4 text-right text-sm font-bold text-slate-900 pr-4">{(c.nombreOeufs * c.prixUnitaire).toLocaleString()} F</td>
+                  <td className="py-5 text-center text-sm font-bold text-slate-700">{c.nombreOeufs}</td>
+                  <td className="py-5 text-right text-sm text-slate-500 font-medium">{c.prixUnitaire.toLocaleString()} F</td>
+                  <td className="py-5 text-right text-sm font-black text-slate-900 pr-6">{(c.nombreOeufs * c.prixUnitaire).toLocaleString()} F</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
           {/* Totals Section */}
-          <div className="flex justify-between items-start gap-12 mt-12 mb-20 break-inside-avoid">
+          <div className="flex justify-between items-start gap-12 mt-12 mb-24 break-inside-avoid">
             {/* Payment History */}
             <div className="flex-1 max-w-md">
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-4 border-b pb-1">Notes & Paiements Période</h4>
-              <div className="space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 border-b border-slate-100 pb-2">Notes & Paiements Période</h4>
+              <div className="space-y-4 ml-2">
                 {transactions.length === 0 ? (
-                  <p className="text-xs text-slate-400 font-medium">Aucun versement enregistré sur cette période</p>
+                  <p className="text-[10px] text-slate-400 font-bold italic uppercase tracking-widest">Aucun versement enregistré</p>
                 ) : (
                   transactions.map(t => (
-                    <div key={t.id} className="flex justify-between items-center text-[11px] font-medium text-slate-600">
-                      <div className="flex gap-2">
-                        <span>{format(parseISO(t.dateTransaction), 'dd/MM/yy')} - {t.typeTransaction}</span>
+                    <div key={t.id} className="flex justify-between items-center text-[11px] group">
+                      <div className="flex items-center gap-3">
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand-orange/40 group-hover:bg-brand-orange" />
+                        <span className="font-bold text-slate-500 uppercase tracking-tighter">{format(parseISO(t.dateTransaction), 'dd/MM/yy')} &mdash; {t.typeTransaction}</span>
                       </div>
-                      <span className="font-bold text-slate-900">{(t.montantTotal - t.resteAPayer).toLocaleString()} F</span>
+                      <span className="font-black text-slate-900 tracking-tighter">{(t.montantTotal - t.resteAPayer).toLocaleString()} F</span>
                     </div>
                   ))
                 )}
@@ -138,22 +149,22 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
             </div>
 
             {/* Total Calculation Box */}
-            <div className="w-full max-w-[360px] border border-brand-orange/30 rounded-2xl p-6 space-y-4 shadow-sm bg-brand-orange/[0.02]">
-              <div className="flex justify-between text-xs font-bold uppercase text-slate-500">
+            <div className="w-full max-w-[380px] border border-slate-200 rounded-3xl p-8 space-y-6 shadow-sm bg-slate-50/50">
+              <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500">
                 <span>Somme des prestations :</span>
                 <span className="text-slate-900">{totalAmount.toLocaleString()} FCFA</span>
               </div>
-              <div className="flex justify-between text-[11px] font-bold uppercase text-emerald-600 border-b border-brand-orange/20 pb-4">
+              <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-emerald-600 border-b border-slate-200 pb-5">
                 <span>Total Encaissé (Période) :</span>
-                <span>-{(totalPaid + totalCredits).toLocaleString()} FCFA</span>
+                <span>− {(totalPaid + totalCredits).toLocaleString()} FCFA</span>
               </div>
               
               <div className="pt-2 flex justify-between items-center">
-                <div className="space-y-0.5">
-                  <p className="text-sm font-bold uppercase tracking-tight text-slate-900 leading-none">Solde de la période</p>
-                  <p className="text-[9px] text-slate-400 font-medium tracking-tight">À régulariser sur cette sélection</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-[0.1em] text-slate-400 leading-none">Net à régulariser</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">Sur cette sélection</p>
                 </div>
-                <p className="text-3xl font-black text-brand-orange tabular-nums">
+                <p className="text-3xl font-black text-brand-orange tabular-nums tracking-tighter">
                   {Math.max(0, due).toLocaleString()} <span className="text-xs">FCFA</span>
                 </p>
               </div>
@@ -162,28 +173,36 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
 
           {/* Global Balance Note */}
           {totalGlobalRemaining !== undefined && (
-            <div className="flex justify-end mb-16 break-inside-avoid">
-              <div className="bg-red-50/50 border border-red-100 rounded-xl px-10 py-6 text-right shadow-sm">
-                <div className="flex items-center justify-end gap-3 mb-4">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-red-700">Bilan Global du Compte</h4>
-                  <span className="text-[9px] font-medium text-red-400 italic">Incluant tout l&apos;historique</span>
+            <div className="flex justify-end mb-24 break-inside-avoid">
+              <div className="bg-red-50/40 border-2 border-red-50 rounded-[2.5rem] px-12 py-8 text-right shadow-sm">
+                <div className="flex items-center justify-end gap-3 mb-5">
+                  <div className="h-1.5 w-8 bg-red-600/20 rounded-full" />
+                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-red-600">État du Compte Client</h4>
                 </div>
-                <div className="flex items-baseline justify-end gap-4">
-                  <span className="text-xs font-bold text-slate-600">Reste à payer total :</span>
-                  <p className="text-3xl font-black text-red-600 tabular-nums">{totalGlobalRemaining.toLocaleString()} <span className="text-xs font-bold">FCFA</span></p>
+                <div className="flex items-baseline justify-end gap-6">
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Solde Total dû :</span>
+                  <p className="text-4xl font-black text-red-700 tabular-nums tracking-tighter">{totalGlobalRemaining.toLocaleString()} <span className="text-sm font-black tracking-widest ml-1 text-red-600/60 uppercase">FCFA</span></p>
                 </div>
+                <p className="text-[9px] font-bold text-red-400/80 uppercase tracking-widest mt-2 italic">Ce montant inclut l&apos;intégralité de l&apos;historique des lots & paiements</p>
               </div>
             </div>
           )}
 
           {/* Legal/Footer */}
-          <div className="mt-20 text-center space-y-4">
-            <p className="text-[11px] font-medium text-slate-500 max-w-lg mx-auto leading-relaxed">
-              Merci pour votre confiance. En cas de réclamation, veuillez nous contacter dans les 48h suivant la livraison.
+          <div className="mt-32 text-center space-y-6 pt-12 border-t border-slate-50">
+            <p className="text-[11px] font-semibold text-slate-400 max-w-xl mx-auto leading-relaxed">
+              Nous vous remercions pour votre précieuse collaboration. Pour toute réclamation relative à la facturation,
+              veuillez nous contacter dans un délai de 48h.
             </p>
-            <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-800">Ivoire Couvée D&apos;Or &ndash; Les spécialistes de l&apos;incubation</p>
-              <p className="text-[10px] text-slate-400 font-medium">Korhogo-Natio près de l&apos;usine de coton SICO SA</p>
+            <div className="space-y-2">
+              <p className="text-sm font-black uppercase tracking-[0.4em] text-slate-900">IVOIRE COUVÉE D&apos;OR</p>
+              <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
+                <span>Les spécialistes de l&apos;incubation</span>
+                <span className="h-1 w-1 bg-slate-200 rounded-full" />
+                <span>Korhogo-Natio</span>
+                <span className="h-1 w-1 bg-slate-200 rounded-full" />
+                <span>Côte d&apos;Ivoire</span>
+              </div>
             </div>
           </div>
         </div>

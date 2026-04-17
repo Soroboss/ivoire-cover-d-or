@@ -87,9 +87,40 @@ const Factures = () => {
   const generatePDF = async (shouldDownload = true) => {
     if (!invoiceRef.current || !client) return;
     
-    // For Printing, use native window.print()
+    // Improved Printing: New Window Method
     if (!shouldDownload) {
-      window.print();
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(style => style.outerHTML)
+        .join('');
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Facture_${invoiceNumber}</title>
+            ${styles}
+            <style>
+              body { margin: 0; padding: 0; background-color: white !important; }
+              #printable-facture { position: static !important; width: 100% !important; box-shadow: none !important; border: none !important; margin: 0 !important; }
+              @page { size: auto; margin: 10mm; }
+            </style>
+          </head>
+          <body>
+            <div class="printable-wrapper">
+              ${invoiceRef.current.outerHTML}
+            </div>
+            <script>
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 500);
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
       return;
     }
 
@@ -120,7 +151,6 @@ const Factures = () => {
       // Handle multi-page by splitting the image if necessary
       let heightLeft = pdfHeight;
       let position = 0;
-      let page = 1;
 
       doc.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
       heightLeft -= doc.internal.pageSize.getHeight();
@@ -130,7 +160,6 @@ const Factures = () => {
         doc.addPage();
         doc.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
         heightLeft -= doc.internal.pageSize.getHeight();
-        page++;
       }
 
       // Add Metadata
