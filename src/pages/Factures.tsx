@@ -259,7 +259,7 @@ const Factures = () => {
                </p>
              </div>
           ) : (
-             <div className="relative animate-in zoom-in-95 duration-500">
+             <div className="relative">
                 {isGenerating && (
                   <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-lg">
                     <div className="flex flex-col items-center gap-3">
@@ -277,7 +277,6 @@ const Factures = () => {
                 <div className="overflow-auto bg-gray-100/50 p-4 sm:p-8 rounded-xl border border-brand-lightgray shadow-inner">
                    <InvoiceTemplate
                       preview
-                      ref={invoiceRef}
                       client={client}
                       couvaisons={clientCouvaisons}
                       transactions={clientTransactions}
@@ -290,9 +289,9 @@ const Factures = () => {
         </div>
       </div>
 
-      {/* Actual template used for PDF generation (off-screen) to ensure high quality and standard format */}
+      {/* Template utilisé uniquement pour la génération PDF (hors écran) */}
       {client && clientCouvaisons.length > 0 && (
-        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px', pointerEvents: 'none' }}>
              <InvoiceTemplate
               ref={invoiceRef}
               client={client}
