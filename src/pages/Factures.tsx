@@ -88,14 +88,34 @@ const Factures = () => {
     setSuccess(false);
     
     try {
-      const canvas = await html2canvas(invoiceRef.current, { scale: 2 });
+      const canvas = await html2canvas(invoiceRef.current, { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
       const imgData = canvas.toDataURL('image/png');
-      
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm (slightly less than 297 to avoid bottom clipping)
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add the first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+
+      // Add more pages if content exceeds one page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
+      }
+
       const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`
       
       if (shouldDownload) {

@@ -112,7 +112,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
                 machines,
               );
               return (
-                <tr key={c.id} className="border-b border-gray-100">
+                <tr key={c.id} className="border-b border-gray-100 break-inside-avoid">
                   <td className="px-4 py-4 text-sm">
                     <div className="font-medium underline decoration-brand-orange/20 decoration-2 underline-offset-2">Incubation de {c.typeOeuf}s</div>
                     <div className="mt-1 text-xs text-brand-muted flex items-center gap-2">
@@ -148,7 +148,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
         </table>
 
         {/* Totals Box and Account Summary */}
-        <div className="mb-12 flex justify-between gap-8">
+        <div className="mb-12 flex justify-between gap-8 break-inside-avoid">
           <div className="w-5/12">
             <h4 className="text-xs font-bold uppercase text-brand-gray mb-3 border-b border-gray-200 pb-1">Notes & Paiements Période</h4>
             <div className="space-y-2">
