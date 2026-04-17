@@ -57,3 +57,24 @@
 ::-webkit-scrollbar-thumb {
   @apply rounded-full bg-slate-300/80 hover:bg-brand-orange/35;
 }
+
+@layer utilities {
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+    #printable-facture, #printable-facture * {
+      visibility: visible !important;
+    }
+    #printable-facture {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+  }
+}

@@ -8,8 +8,6 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format, parseISO } from 'date-fns';
 
-const ADRESSE_ETABLISSEMENT =
-  "Korhogo-Natio près de l'usine de coton SICO SA";
 
 const Factures = () => {
   const { clients, couvaisons, transactions, addReceiptArchive, updateCouvaison } = useAppContext();
@@ -24,7 +22,6 @@ const Factures = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const invoiceRef = useRef<HTMLDivElement>(null);
-  const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
   const client = clients.find(c => c.id === selectedClient);
   
@@ -89,6 +86,13 @@ const Factures = () => {
 
   const generatePDF = async (shouldDownload = true) => {
     if (!invoiceRef.current || !client) return;
+    
+    // For Printing, use native window.print()
+    if (!shouldDownload) {
+      window.print();
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const doc = new jsPDF({
@@ -99,72 +103,46 @@ const Factures = () => {
 
       const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`;
 
-      await doc.html(invoiceRef.current as HTMLElement, {
-        callback: function (doc) {
-          const totalPages = (doc as any).internal.getNumberOfPages();
-          const logo = new Image();
-          logo.src = logoUrl;
-          
-          logo.onload = () => {
-            for (let i = 1; i <= totalPages; i++) {
-              doc.setPage(i);
-              
-              // Draw Logo
-              doc.addImage(logo, 'PNG', 10, 5, 20, 20);
-              
-              // Add Header Background / Line
-              doc.setDrawColor(255, 107, 0); // brand-orange
-              doc.setLineWidth(0.5);
-              doc.line(10, 32, 200, 32);
-              
-              // Add Title on every page
-              doc.setFontSize(14);
-              doc.setTextColor(255, 107, 0);
-              doc.setFont('helvetica', 'bold');
-              doc.text('IVOIRE COUVÉE D\'OR', 35, 18);
-              
-              doc.setFontSize(10);
-              doc.setTextColor(100);
-              doc.setFont('helvetica', 'normal');
-              doc.text('FACTURE PROFESSIONNELLE', 35, 24);
-              
-              doc.setFontSize(8);
-              doc.text(`Réf: ${invoiceNumber}  |  Client: ${client.nom}`, 35, 29);
-              
-              // Page Number
-              doc.setFontSize(8);
-              doc.setTextColor(150);
-              doc.text(`Page ${i} / ${totalPages}`, 180, 29);
-              
-              // Add Address Footer on every page
-              doc.setFontSize(7);
-              doc.text(ADRESSE_ETABLISSEMENT, 10, 285);
-              doc.text('Tél: 01 03 03 64 62', 10, 289);
-            }
-
-            if (shouldDownload) {
-              doc.save(fileName);
-            } else {
-              window.open(doc.output('bloburl'), '_blank');
-            }
-          };
-
-          logo.onerror = () => {
-             if (shouldDownload) {
-              doc.save(fileName);
-            } else {
-              window.open(doc.output('bloburl'), '_blank');
-            }
-          };
-        },
-        html2canvas: html2canvas as any,
-        x: 10,
-        y: 40,
-        width: 190, 
-        windowWidth: 800, 
-        autoPaging: 'text',
-        margin: [40, 10, 20, 10], // TOP, LEFT, BOTTOM, RIGHT
+      // Use html2canvas directly for a more reliable capture on all browsers
+      const canvas = await html2canvas(invoiceRef.current as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 800
       });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgProps = doc.getImageProperties(imgData);
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      // Handle multi-page by splitting the image if necessary
+      let heightLeft = pdfHeight;
+      let position = 0;
+      let page = 1;
+
+      doc.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= doc.internal.pageSize.getHeight();
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        doc.addPage();
+        doc.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= doc.internal.pageSize.getHeight();
+        page++;
+      }
+
+      // Add Metadata
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Facture ${invoiceNumber} - Page ${i} / ${totalPages}`, 10, doc.internal.pageSize.getHeight() - 10);
+      }
+
+      doc.save(fileName);
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
       const totalPaid = netEncaisseByClient(clientTransactions, client.id)
@@ -198,7 +176,6 @@ const Factures = () => {
       setIsGenerating(false);
     }
   };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
