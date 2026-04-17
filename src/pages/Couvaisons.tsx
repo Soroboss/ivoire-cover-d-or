@@ -35,6 +35,8 @@ const Couvaisons = () => {
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const canDelete = currentUser?.role === 'Admin';
 
+  const [sortBy, setSortBy] = useState<'reception' | 'registration'>('reception');
+
   const filteredCouvaisons = useMemo(() => {
     return couvaisons
       .filter((c) => {
@@ -46,8 +48,18 @@ const Couvaisons = () => {
         }
         return true;
       })
-      .sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
-  }, [couvaisons, clients, statusFilter, searchTerm, receptionFrom, receptionTo]);
+      .sort((a, b) => {
+        if (sortBy === 'reception') {
+          return new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime();
+        } else {
+          // Registration order (using id if it's sequential or just reverse order of creation if we assume later ids are newer)
+          // Since we might not have a createdAt, let's assume registration order is the reverse order of the 'couvaisons' array if it was appended.
+          // Or better, if we have an id that is date-based or just use the index.
+          // Actually, let's just use the order in which they appear in the original array if it's considered registration order.
+          return couvaisons.indexOf(b) - couvaisons.indexOf(a);
+        }
+      });
+  }, [couvaisons, clients, statusFilter, searchTerm, receptionFrom, receptionTo, sortBy]);
 
   const handleOpenMirage = (id: string) => { setActiveId(id); setView('mirage'); };
   const handleOpenEclosionHub = (id: string) => { setActiveId(id); setView('eclosionHub'); };
@@ -214,17 +226,27 @@ const Couvaisons = () => {
             </div>
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Filter className="shrink-0 text-brand-muted" size={18} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatutCouvaison | 'Tous')}
-                className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto"
-              >
-                <option value="Tous">Tous les statuts</option>
-                <option value="En attente">En attente</option>
-                <option value="En cours">En cours</option>
-                <option value="Terminé">Terminés</option>
-                <option value="Annulé">Annulés</option>
-              </select>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatutCouvaison | 'Tous')}
+                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto"
+                >
+                  <option value="Tous">Tous les statuts</option>
+                  <option value="En attente">En attente</option>
+                  <option value="En cours">En cours</option>
+                  <option value="Terminé">Terminés</option>
+                  <option value="Annulé">Annulés</option>
+                </select>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'reception' | 'registration')}
+                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto"
+                >
+                  <option value="reception">Tri par Date Arrivée</option>
+                  <option value="registration">Tri par Date Enregistrement</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

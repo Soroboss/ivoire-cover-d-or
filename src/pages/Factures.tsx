@@ -2,17 +2,19 @@ import { useState, useRef } from 'react';
 import { useAppContext } from '../context/AppProvider';
 import { useAuth } from '../context/AuthContext';
 import { InvoiceTemplate } from '../components/facturation/InvoiceTemplate';
-import { Download, FileText, Printer, CheckCircle } from 'lucide-react';
+import { Download, FileText, Printer, CheckCircle, Edit2, Save, X, Trash2 } from 'lucide-react';
 import { netEncaisseByClient, totalAvoirRemiseByClient } from '../lib/financeCalculations';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const Factures = () => {
-  const { clients, couvaisons, transactions, machines, addReceiptArchive } = useAppContext();
+  const { clients, couvaisons, transactions, machines, addReceiptArchive, updateCouvaison } = useAppContext();
   const { currentUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCouvaisons, setEditedCouvaisons] = useState<Record<string, { nombreOeufs: number, prixUnitaire: number }>>({});
   
   const invoiceRef = useRef<HTMLDivElement>(null);
 
@@ -22,13 +24,42 @@ const Factures = () => {
 
   const invoiceNumber = client ? `FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}` : ''
 
-  const generatePDF = async () => {
+  const startEditing = () => {
+    const initial = {};
+    clientCouvaisons.forEach(c => {
+      initial[c.id] = { nombreOeufs: c.nombreOeufs, prixUnitaire: c.prixUnitaire };
+    });
+    setEditedCouvaisons(initial);
+    setIsEditing(true);
+  };
+
+  const handleEditChange = (id: string, field: 'nombreOeufs' | 'prixUnitaire', value: number) => {
+    setEditedCouvaisons(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value }
+    }));
+  };
+
+  const saveEdits = async () => {
+    try {
+      for (const id in editedCouvaisons) {
+        const original = clientCouvaisons.find(c => c.id === id);
+        if (original && (original.nombreOeufs !== editedCouvaisons[id].nombreOeufs || original.prixUnitaire !== editedCouvaisons[id].prixUnitaire)) {
+          await updateCouvaison(id, editedCouvaisons[id]);
+        }
+      }
+      setIsEditing(false);
+    } catch (error) {
+      alert("Erreur lors de la mise à jour des données");
+    }
+  };
+
+  const generatePDF = async (shouldDownload = true) => {
     if (!invoiceRef.current || !client) return;
     setIsGenerating(true);
     setSuccess(false);
     
     try {
-      // Using scale for sharp text rendering
       const canvas = await html2canvas(invoiceRef.current, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
       
@@ -38,14 +69,19 @@ const Factures = () => {
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       const fileName = `Facture_Ivoire_Couvee_${client.nom.replace(/\s+/g, '_')}.pdf`
-      pdf.save(fileName);
+      
+      if (shouldDownload) {
+        pdf.save(fileName);
+      } else {
+        // Just print preview
+        window.open(pdf.output('bloburl'), '_blank');
+      }
 
       const totalAmount = clientCouvaisons.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0)
       const totalPaid = netEncaisseByClient(clientTransactions, client.id)
       const totalCredits = totalAvoirRemiseByClient(clientTransactions, client.id)
       const dueAmount = Math.max(0, totalAmount - totalPaid - totalCredits)
 
-      // Archive d'un reçu/facture généré côté backend.
       await addReceiptArchive({
         clientId: client.id,
         invoiceNumber,
@@ -75,92 +111,197 @@ const Factures = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-2xl font-bold text-brand-dark">Générateur de Factures</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray p-6 md:col-span-1">
-          <h2 className="font-semibold text-brand-dark mb-4 flex items-center gap-2">
-            <FileText size={18} className="text-brand-orange" /> Saisie des critères
-          </h2>
-          <div className="space-y-4">
-             <div>
-               <label className="block text-sm font-medium text-brand-muted mb-1">Sélectionner un Client</label>
-               <select 
-                 value={selectedClient} 
-                 onChange={e => setSelectedClient(e.target.value)} 
-                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-brand-orange outline-none"
-               >
-                 <option value="">-- Choisir --</option>
-                 {clients.map(c => (
-                   <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
-                 ))}
-               </select>
-             </div>
-             
-             {client && (
-               <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100 text-sm">
-                  <p className="font-semibold text-brand-dark mb-2">Aperçu du dossier :</p>
-                  <ul className="list-disc list-inside text-brand-muted space-y-1">
-                    <li>Lots de couvaison : {clientCouvaisons.length}</li>
-                    <li>Lots terminés : {clientCouvaisons.filter(c => c.statut === 'Terminé').length}</li>
-                    <li>Transactions liées : {clientTransactions.length}</li>
-                  </ul>
-                  
-                  <button 
-                    onClick={generatePDF}
-                    disabled={isGenerating || clientCouvaisons.length === 0}
-                    className="mt-6 w-full flex items-center justify-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-                  >
-                    {isGenerating ? (
-                      <span className="animate-pulse">Génération...</span>
-                    ) : success ? (
-                      <><CheckCircle size={18} className="text-green-400" /> Téléchargé !</>
-                    ) : (
-                      <><Download size={18} /> Télécharger le PDF</>
-                    )}
-                  </button>
-               </div>
-             )}
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold text-brand-dark">Facturation & Devis</h1>
+        {client && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => isEditing ? saveEdits() : startEditing()}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all shadow-sm ${
+                isEditing ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              {isEditing ? <><Save size={18} /> Sauvegarder les corrections</> : <><Edit2 size={18} /> Corriger les erreurs</>}
+            </button>
+            {isEditing && (
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-md font-medium hover:bg-gray-200 transition-all"
+              >
+                <X size={18} /> Annuler
+              </button>
+            )}
+            <button
+              onClick={() => generatePDF(false)}
+              disabled={isGenerating || clientCouvaisons.length === 0}
+              className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-md font-medium hover:bg-gray-800 transition-all disabled:opacity-50 shadow-sm"
+            >
+              <Printer size={18} /> Imprimer
+            </button>
+            <button
+              onClick={() => generatePDF(true)}
+              disabled={isGenerating || clientCouvaisons.length === 0}
+              className="flex items-center gap-2 bg-brand-orange text-white px-4 py-2 rounded-md font-medium hover:bg-brand-hover transition-all disabled:opacity-50 shadow-sm"
+            >
+              <Download size={18} /> Télécharger PDF
+            </button>
           </div>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-brand-lightgray p-6">
+            <h2 className="font-semibold text-brand-dark mb-4 flex items-center gap-2 underline decoration-brand-orange/30">
+              <FileText size={18} className="text-brand-orange" /> Dossier Client
+            </h2>
+            <div className="space-y-4">
+               <div>
+                 <label className="block text-sm font-medium text-brand-muted mb-1">Sélectionner un Client</label>
+                 <select 
+                   value={selectedClient} 
+                   onChange={e => { setSelectedClient(e.target.value); setIsEditing(false); }} 
+                   className="w-full rounded-md border border-gray-300 p-2.5 focus:ring-2 focus:ring-brand-orange outline-none transition-all shadow-sm"
+                 >
+                   <option value="">-- Choisir --</option>
+                   {clients.map(c => (
+                     <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
+                   ))}
+                 </select>
+               </div>
+               
+               {client && (
+                 <div className="bg-brand-lightgray/30 p-4 rounded-xl border border-brand-lightgray/50 text-sm">
+                    <p className="font-bold text-brand-dark mb-3 text-xs uppercase tracking-wider">Statistiques du compte</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-brand-muted">Lots totaux :</span>
+                        <span className="font-semibold">{clientCouvaisons.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-muted">Lots terminés :</span>
+                        <span className="font-semibold text-green-600">{clientCouvaisons.filter(c => c.statut === 'Terminé').length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-muted">Transactions :</span>
+                        <span className="font-semibold">{clientTransactions.length}</span>
+                      </div>
+                    </div>
+                 </div>
+               )}
+            </div>
+          </div>
+
+          {isEditing && (
+            <div className="bg-amber-50 rounded-xl shadow-sm border border-amber-100 p-6 animate-in slide-in-from-left duration-300">
+              <h3 className="font-bold text-amber-800 text-sm mb-4 uppercase flex items-center gap-2">
+                <Edit2 size={14} /> Correction des lots
+              </h3>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {clientCouvaisons.map(c => (
+                  <div key={c.id} className="p-3 bg-white rounded-lg border border-amber-200 shadow-sm space-y-2 text-xs">
+                    <p className="font-semibold text-brand-dark">Lot: {c.typeOeuf} ({format(parseISO(c.dateReception), 'dd/MM/yy')})</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-brand-muted mb-0.5">Nombre d'œufs</label>
+                        <input 
+                          type="number"
+                          value={editedCouvaisons[c.id]?.nombreOeufs}
+                          onChange={(e) => handleEditChange(c.id, 'nombreOeufs', parseInt(e.target.value) || 0)}
+                          className="w-full p-1.5 border rounded border-gray-200 focus:ring-1 focus:ring-brand-orange outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-brand-muted mb-0.5">Prix Unitaire</label>
+                        <input 
+                          type="number"
+                          value={editedCouvaisons[c.id]?.prixUnitaire}
+                          onChange={(e) => handleEditChange(c.id, 'prixUnitaire', parseInt(e.target.value) || 0)}
+                          className="w-full p-1.5 border rounded border-gray-200 focus:ring-1 focus:ring-brand-orange outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={saveEdits}
+                className="w-full mt-4 bg-amber-600 text-white py-2 rounded-md text-sm font-bold hover:bg-amber-700 transition-colors"
+              >
+                Mettre à jour la facture
+              </button>
+            </div>
+          )}
         </div>
         
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 md:col-span-2 flex items-center justify-center min-h-[400px]">
+        {/* Main Content (Invoice Preview) */}
+        <div className="lg:col-span-9">
           {!client ? (
-            <div className="text-center text-brand-muted">
-              <FileText size={48} className="mx-auto mb-3 opacity-20" />
-              <p>Sélectionnez un client pour préparer la facture.</p>
+            <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 p-12 flex flex-col items-center justify-center text-center min-h-[600px]">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                <FileText size={40} className="text-gray-300" />
+              </div>
+              <h3 className="text-xl font-semibold text-brand-dark mb-2">Prêt à facturer ?</h3>
+              <p className="max-w-md text-brand-muted">
+                Sélectionnez un client dans la liste pour générer automatiquement son aperçu de facture basé sur ses lots et ses paiements.
+              </p>
             </div>
           ) : clientCouvaisons.length === 0 ? (
-             <div className="text-center text-red-500">
-               <p>Ce client n'a aucune couvaison enregistrée.</p>
+             <div className="bg-white rounded-xl border border-red-100 p-12 flex flex-col items-center justify-center text-center min-h-[600px]">
+               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-400">
+                 <Trash2 size={32} />
+               </div>
+               <h3 className="text-xl font-semibold text-red-600">Aucune donnée</h3>
+               <p className="max-w-sm text-brand-muted mt-2">
+                 Ce client n'a pas encore de lots (couvaisons) enregistrés dans le système. Veuillez d'abord enregistrer une réception d'œufs.
+               </p>
              </div>
           ) : (
-             <div className="text-center">
-                <CheckCircle size={48} className="mx-auto mb-3 text-green-500 opacity-80" />
-                <p className="font-semibold text-brand-dark text-lg">La facture est prête pour {client.nom}</p>
-                <p className="text-sm text-brand-muted mt-2">Cliquez sur télécharger pour générer et enregistrer le document PDF professionnel.</p>
-                <button 
-                  onClick={generatePDF}
-                  className="mt-6 inline-flex items-center gap-2 px-6 py-2 border-2 border-brand-orange text-brand-orange hover:bg-brand-orange hover:text-white rounded-full font-medium transition-colors"
-                >
-                  <Printer size={18} /> Imprimer / Sauvegarder
-                </button>
+             <div className="relative animate-in zoom-in-95 duration-500">
+                {isGenerating && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-lg">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
+                      <p className="font-bold text-brand-dark">Génération du document...</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="mb-4 flex items-center justify-between text-xs text-brand-muted bg-white p-2 rounded-md border border-brand-lightgray">
+                  <span>Aperçu interactif - Les prix et quantités peuvent être modifiés via le menu de gauche</span>
+                  {success && <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle size={14} /> Action réussie !</span>}
+                </div>
+
+                <div className="overflow-auto bg-gray-100/50 p-4 sm:p-8 rounded-xl border border-brand-lightgray shadow-inner">
+                   <InvoiceTemplate
+                      preview
+                      ref={invoiceRef}
+                      client={client}
+                      couvaisons={clientCouvaisons}
+                      transactions={clientTransactions}
+                      invoiceNumber={invoiceNumber}
+                      machines={machines}
+                    />
+                </div>
              </div>
           )}
         </div>
       </div>
 
-      {/* Hidden Offscreen Template */}
+      {/* Actual template used for PDF generation (off-screen) to ensure high quality and standard format */}
       {client && clientCouvaisons.length > 0 && (
-        <InvoiceTemplate
-          ref={invoiceRef}
-          client={client}
-          couvaisons={clientCouvaisons}
-          transactions={clientTransactions}
-          invoiceNumber={invoiceNumber}
-          machines={machines}
-        />
+        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+             <InvoiceTemplate
+              ref={invoiceRef}
+              client={client}
+              couvaisons={clientCouvaisons}
+              transactions={clientTransactions}
+              invoiceNumber={invoiceNumber}
+              machines={machines}
+            />
+        </div>
       )}
     </div>
   );

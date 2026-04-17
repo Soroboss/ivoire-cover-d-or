@@ -13,10 +13,11 @@ interface InvoiceProps {
   transactions: Transaction[];
   invoiceNumber: string;
   machines?: Machine[];
+  preview?: boolean;
 }
 
 export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
-  ({ client, couvaisons, transactions, invoiceNumber, machines = [] }, ref) => {
+  ({ client, couvaisons, transactions, invoiceNumber, machines = [], preview = false }, ref) => {
     const totalAmount = couvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
     const totalPaid = netEncaisseByClient(transactions, client.id);
     const totalCredits = totalAvoirRemiseByClient(transactions, client.id);
@@ -26,8 +27,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
     return (
       <div
         ref={ref}
-        className="pointer-events-none w-[800px] bg-white p-12 font-sans text-brand-dark"
-        style={{ position: 'absolute', top: -9999, left: -9999 }}
+        className={`bg-white p-12 font-sans text-brand-dark ${preview ? 'w-full max-w-[800px] shadow-lg rounded-lg border border-gray-200 mx-auto' : 'pointer-events-none w-[800px]'}`}
+        style={preview ? {} : { position: 'absolute', top: -9999, left: -9999 }}
       >
         {/* Header */}
         <div className="mb-8 flex items-start justify-between border-b-2 border-brand-orange pb-6">
