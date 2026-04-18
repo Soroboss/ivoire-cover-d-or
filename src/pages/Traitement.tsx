@@ -66,24 +66,44 @@ export default function Traitement() {
   }, [couvaisons, today]);
 
   if (activeForm) {
-    if (activeForm.type === 'mirage') {
-      return (
-        <div className="animate-in slide-in-from-bottom-4 duration-300">
+    const isMirage = activeForm.type === 'mirage';
+    return (
+      <div className="space-y-4">
+        <button 
+          onClick={() => setActiveForm(null)}
+          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-orange transition-colors"
+        >
+          <ChevronRight size={16} className="rotate-180" />
+          Retour à l'atelier
+        </button>
+        
+        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 mb-4">
+           <div className="flex items-center gap-3 px-4 py-2">
+             <div className={`p-2 rounded-lg ${isMirage ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                {isMirage ? <Eye size={20} /> : <Egg size={20} />}
+             </div>
+             <div>
+               <h2 className="font-bold text-slate-900">
+                 {isMirage ? 'Mirage du Lot' : 'Traitement Éclosion'}
+               </h2>
+               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {activeForm.id.substring(0, 8)}...</p>
+             </div>
+           </div>
+        </div>
+
+        {isMirage ? (
            <MirageForm 
             couvaisonId={activeForm.id} 
             onCancel={() => setActiveForm(null)} 
             onSuccess={() => setActiveForm(null)} 
            />
-        </div>
-      );
-    }
-    return (
-      <div className="animate-in slide-in-from-bottom-4 duration-300">
-        <EclosionHub 
-          couvaisonId={activeForm.id} 
-          onCancel={() => setActiveForm(null)} 
-          onSuccess={() => setActiveForm(null)} 
-        />
+        ) : (
+          <EclosionHub 
+            couvaisonId={activeForm.id} 
+            onCancel={() => setActiveForm(null)} 
+            onSuccess={() => setActiveForm(null)} 
+          />
+        )}
       </div>
     );
   }
