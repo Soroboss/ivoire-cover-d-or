@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppProvider';
-import { useAuth } from '../context/AuthContext';
 import { MirageForm } from '../components/couvaisons/MirageForm';
 import { EclosionHub } from '../components/couvaisons/EclosionHub';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
@@ -11,7 +10,6 @@ type TraitementType = 'mirage' | 'eclosion';
 
 export default function Traitement() {
   const { couvaisons, clients, machines } = useAppContext();
-  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TraitementType>('mirage');
   const [activeForm, setActiveForm] = useState<{ id: string, type: TraitementType } | null>(null);
 
