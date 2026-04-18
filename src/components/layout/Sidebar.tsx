@@ -12,6 +12,7 @@ import {
   Key,
   X,
   History,
+  Clock,
   Database,
   Landmark,
   Wallet,
@@ -59,6 +60,7 @@ const Sidebar = () => {
     permission: PermissionKey;
   }[] = [
     { name: 'Tableau de bord', path: '/dashboard', icon: <LayoutDashboard size={20} />, permission: 'dashboard' },
+    { name: 'Atelier Traitement', path: '/traitement', icon: <Clock size={20} />, permission: 'couvaisons' },
     { name: 'Couvaisons', path: '/couvaisons', icon: <Egg size={20} />, permission: 'couvaisons' },
     { name: 'Clients & Historique', path: '/clients', icon: <Database size={20} />, permission: 'clients' },
     { name: 'Parc Machines', path: '/machines', icon: <Server size={20} />, permission: 'machines' },

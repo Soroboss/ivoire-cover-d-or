@@ -12,6 +12,7 @@ import Analyses from './pages/Analyses';
 import Utilisateurs from './pages/Utilisateurs';
 import Historique from './pages/Historique';
 import ClientsDB from './pages/ClientsDB';
+import Traitement from './pages/Traitement';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import { useAuth } from './context/AuthContext';
@@ -56,6 +57,7 @@ function App() {
           {/* However, the root path "/" is already handled above by the explicit "/" route */}
           
           <Route path="dashboard" element={hasPermission(currentUser, 'dashboard') ? <Dashboard /> : <Navigate to={fallbackPath} replace />} />
+          <Route path="traitement" element={hasPermission(currentUser, 'couvaisons') ? <Traitement /> : <Navigate to={homePath} replace />} />
           <Route path="couvaisons" element={hasPermission(currentUser, 'couvaisons') ? <Couvaisons /> : <Navigate to={homePath} replace />} />
           <Route path="machines" element={hasPermission(currentUser, 'machines') ? <Machines /> : <Navigate to={homePath} replace />} />
           <Route path="clients" element={hasPermission(currentUser, 'clients') ? <ClientsDB /> : <Navigate to={homePath} replace />} />
