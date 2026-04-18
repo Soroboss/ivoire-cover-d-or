@@ -32,8 +32,11 @@ export default function Traitement() {
     };
 
     list.forEach(c => {
-      // Mirage
-      if (c.dateMiragePrevue && c.oeufsClairs == null && c.oeufsPourris == null) {
+      // Mirage : à faire si date passée, mirage non saisi ET éclosion non démarrée
+      const mirageFait = c.oeufsClairs != null || c.oeufsPourris != null;
+      const eclosionLancee = !!c.dateEclosionDemarrage;
+
+      if (c.dateMiragePrevue && !mirageFait && !eclosionLancee) {
         const dateM = startOfDay(parseISO(c.dateMiragePrevue));
         const diff = differenceInDays(today, dateM);
         
@@ -42,8 +45,8 @@ export default function Traitement() {
         else if (diff >= 3) res.mirage.j3.push(c);
       }
 
-      // Eclosion
-      if (c.dateEclosionPrevue && !c.dateEclosionDemarrage) {
+      // Eclosion : à faire si date passée ET démarrage non saisi
+      if (c.dateEclosionPrevue && !eclosionLancee) {
         const dateE = startOfDay(parseISO(c.dateEclosionPrevue));
         const diff = differenceInDays(today, dateE);
 
