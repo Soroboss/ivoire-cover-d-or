@@ -58,17 +58,6 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
       .slice(0, 8);
   }, [phoneSearch, clients]);
 
-  /** Correspondance exacte sur numéro normalisé → sélection auto du client. */
-  useEffect(() => {
-    const q = normalizeTelephone(phoneSearch);
-    if (q.length < 8) return;
-    const exact = clients.find((c) => normalizeTelephone(c.telephone) === q);
-    if (exact && selectedClientId !== exact.id) {
-      setSelectedClientId(exact.id);
-      setPhoneSearch(exact.telephone);
-    }
-  }, [phoneSearch, clients, selectedClientId]);
-
   /** Détails financiers de tous les lots du client sélectionné. */
   const clientLotsWithInfo: LotInfo[] = useMemo(() => {
     if (!selectedClientId) return [];
@@ -98,7 +87,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
       .sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
   }, [couvaisons, transactions, selectedClientId]);
 
-  /** Gérer la sélection automatique et obligatoire. */
+  /** Gérer la sélection automatique des lots quand le client change. */
   useEffect(() => {
     if (!selectedClientId) {
       setSelectedLotIds([]);
@@ -109,11 +98,10 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
     if (mustSettle.length > 0) {
       setSelectedLotIds(mustSettle);
     } else if (clientLotsWithInfo.length > 0) {
-      // Si aucun lot terminé, on prend le plus récent qui n'est pas soldé.
       const unresolved = clientLotsWithInfo.find((l) => l.balance > 0);
       if (unresolved) setSelectedLotIds([unresolved.id]);
     }
-  }, [selectedClientId, clientLotsWithInfo]);
+  }, [selectedClientId]); // On ne dépend QUE de l'ID du client pour changer la sélection par défaut
 
   const selectClient = (id: string, telephoneDisplay: string) => {
     setSelectedClientId(id);
@@ -242,11 +230,24 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
               inputMode="tel"
               value={phoneSearch}
               onChange={(e) => {
-                setPhoneSearch(e.target.value);
+                const val = e.target.value;
+                setPhoneSearch(val);
+                
+                // Si on efface ou change radicalement, on débranche le client sélectionné
                 if (selectedClientId) {
                   const still = clients.find((c) => c.id === selectedClientId);
-                  if (still && normalizeTelephone(e.target.value) !== normalizeTelephone(still.telephone)) {
+                  if (still && normalizeTelephone(val) !== normalizeTelephone(still.telephone)) {
                     setSelectedClientId(null);
+                  }
+                }
+
+                // Détection auto du client exact (remplace le useEffect supprimé)
+                const q = normalizeTelephone(val);
+                if (q.length >= 8) {
+                  const exact = clients.find((c) => normalizeTelephone(c.telephone) === q);
+                  if (exact && selectedClientId !== exact.id) {
+                    setSelectedClientId(exact.id);
+                    setPhoneSearch(exact.telephone);
                   }
                 }
               }}

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import type { Client, Machine, Casier } from '../../types';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
@@ -67,35 +67,31 @@ const EclosionStartForm = ({
 
   const whatsAppText = useMemo(() => {
     if (!couv) return '';
-    const resteSurCeLot = resteLot(transactions, couvaisonId, couv.nombreOeufs * couv.prixUnitaire);
+    const resteSurCeLot = resteLot(transactions, couvaisonId, (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0));
     const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
     const ancienneDette = resteGlobal - resteSurCeLot;
     
-    const base = `votre éclosion pour le lot de ${couv.nombreOeufs} œufs (${couv.typeOeuf}) a démarré, préparez-vous à venir récupérer vos poussins.`;
     const clientCode = client?.clientIdExt ? ` (${client.clientIdExt})` : '';
-    const greeting = `Bonjour ${client?.nom || ''}${clientCode}`;
-    const dateDepot = couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-';
+    const greeting = `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*\n\n` +
+      `Bonjour ${client?.nom || ''}${clientCode},\n\n`;
     
-    let financeText = `\n\n📅 Date de dépôt des œufs : ${dateDepot}`;
-    financeText += `\n\n📌 Point Financier :`;
-    financeText += `\n- Reste à payer sur ce lot : ${resteSurCeLot.toLocaleString('fr-FR')} FCFA`;
+    const body = `🐣 Le transfert de votre lot en paniers d'éclosion a été effectué avec succès.\n\n` +
+      `📊 *INFOS TECHNIQUES* :\n` +
+      `- 🧪 Lot : ${couv.nombreOeufs} ${couv.typeOeuf}s\n` +
+      `- ✅ Œufs viables en éclosion : *${oeufsViables}*\n` +
+      `- 🏷️ Identifiant : ${nomDepart || '-'}\n\n` +
+      `📌 *SITUATION FINANCIÈRE* :`;
+    
+    let financeText = `\n- Reste à payer (ce lot) : ${resteSurCeLot.toLocaleString('fr-FR')} F`;
     
     if (ancienneDette > 0) {
-      financeText += `\n- Dettes sur autres lots : ${ancienneDette.toLocaleString('fr-FR')} FCFA`;
-    } else if (ancienneDette < 0) {
-      financeText += `\n- Crédit disponible : ${Math.abs(ancienneDette).toLocaleString('fr-FR')} FCFA`;
+      financeText += `\n- Dettes antérieures : ${ancienneDette.toLocaleString('fr-FR')} F`;
     }
     
-    if (resteGlobal > 0) {
-      financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : ${resteGlobal.toLocaleString('fr-FR')} FCFA`;
-    } else if (resteGlobal < 0) {
-      financeText += `\n- TOTAL SOLDE CLIENT : ${Math.abs(resteGlobal).toLocaleString('fr-FR')} FCFA (CRÉDIT)`;
-    } else {
-      financeText += `\n- TOTAL À RÉGLER GLOBALEMENT : 0 FCFA (Soldé)`;
-    }
+    financeText += `\n🚩 *TOTAL GLOBAL À RÉGLER : ${resteGlobal.toLocaleString('fr-FR')} F*`;
 
-    return `${greeting},\n\n${base}${financeText}\n\n📦 *Venez chercher demain après midi.*\n\nMerci pour votre confiance !\n*L'équipe Ivoire Couvée d'Or.*`;
-  }, [client?.nom, client?.id, couv, couvaisonId, transactions, couvaisons]);
+    return `${greeting}${body}${financeText}\n\n📦 *Les premières sorties sont attendues demain.*\n_Veuillez prévoir le règlement total pour récupérer vos poussins._\n\nMerci de votre confiance !\n*L'équipe Ivoire Couvée d'Or.*`;
+  }, [client?.nom, client?.id, couv, couvaisonId, transactions, couvaisons, oeufsViables, nomDepart]);
 
   const whatsAppUrl = useMemo(() => {
     const phone = normalizePhoneForWhatsApp(client?.telephone);

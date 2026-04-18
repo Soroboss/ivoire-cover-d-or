@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { resteLot, netPayeLot } from '../../lib/financeCalculations';
-import { format, parseISO } from 'date-fns';
 
 const normalizePhoneForWhatsApp = (phone?: string) => {
   if (!phone) return '';
@@ -76,21 +75,20 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         const balance = resteLot(transactions, couvaisonId, totalDue);
 
         const successRate = oeufsRestants > 0 ? ((nes / oeufsRestants) * 100).toFixed(1) : '0';
-        const whatsAppText = `🧾 *SITUATION & BILAN ÉCLOSION*\n\n` +
-          `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
-          `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
-          `📅 Date de dépôt : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n\n` +
-          `🔍 *BILAN TECHNIQUE* :\n` +
-          `- ✅ Œufs viables : ${oeufsRestants}\n` +
-          `- 🐥 Poussins prêts : *${nes}* (Nouveaux: +${deltaNes})\n` +
-          `- ⚠️ Pertes éclosion : ${morts}\n` +
+        const whatsAppText = `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
+          `👤 Client : *${client.nom}* (${client.clientIdExt || '—'})\n` +
+          `🐣 Lot : *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
+          `🔍 *RÉSULTATS TECHNIQUES* :\n` +
+          `- ✅ Œufs viables mis en éclosion : ${oeufsRestants}\n` +
+          `- 🐥 Poussins prêts : *${nes}* (Sortie ce jour : +${deltaNes})\n` +
+          `- ⚠️ Pertes à l'éclosion : ${morts}\n` +
           `- 🏆 Taux de réussite : *${successRate}%*\n\n` +
           `💰 *SITUATION FINANCIÈRE* :\n` +
-          `- Montant Total dû: ${totalDue.toLocaleString()} F\n` +
-          `- Remises/Avoirs: ${(remises + avoirs).toLocaleString()} F\n` +
-          `- Net déjà encaissé: ${netEncashed.toLocaleString()} F\n` +
-          `🚩 *RESTE À PAYER: ${balance.toLocaleString()} F*\n\n` +
-          `📦 *Venez chercher vos poussins demain après-midi.*\n\n` +
+          `- Montant Total dû : ${totalDue.toLocaleString()} F\n` +
+          `- Remises/Avoirs : ${(remises + avoirs).toLocaleString()} F\n` +
+          `- Déjà encaissé : ${netEncashed.toLocaleString()} F\n` +
+          `🚩 *NET À PAYER : ${balance.toLocaleString()} F*\n\n` +
+          `📦 *Venez chercher vos poussins demain après-midi.*\n_Prévoyez le solde pour la livraison._\n\n` +
           `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`;
         try {
           await addClientMessage({
@@ -174,21 +172,20 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 const balance = resteLot(transactions, couvaisonId, totalDue);
                 
                 const successRate = oeufsRestants > 0 ? ((nes / oeufsRestants) * 100).toFixed(1) : '0';
-                const msg = `🧾 *SITUATION & BILAN ÉCLOSION*\n\n` +
-                  `👤 Client: *${client.nom}* (${client.clientIdExt || '—'})\n` +
-                  `🐣 Lot: *${couv.nombreOeufs} ${couv.typeOeuf}s*\n` +
-                  `📅 Date de dépôt : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n\n` +
-                  `🔍 *BILAN TECHNIQUE* :\n` +
-                  `- ✅ Œufs viables : ${oeufsRestants}\n` +
-                  `- 🐥 Poussins déjà sortis : *${nes}*\n` +
+                const msg = `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
+                  `👤 Client : *${client.nom}* (${client.clientIdExt || '—'})\n` +
+                  `🐣 Lot : *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
+                  `🔍 *RÉSULTATS TECHNIQUES* :\n` +
+                  `- ✅ Œufs viables mis en éclosion : ${oeufsRestants}\n` +
+                  `- 🐥 Poussins prêts : *${nes}*\n` +
                   `- ⚠️ Pertes signalées : ${morts}\n` +
                   `- 🏆 Taux de réussite : *${successRate}%*\n\n` +
                   `💰 *SITUATION FINANCIÈRE* :\n` +
-                  `- Montant Total dû: ${totalDue.toLocaleString()} F\n` +
-                  `- Remises/Avoirs: ${(remises + avoirs).toLocaleString()} F\n` +
-                  `- Net déjà encaissé: ${netEncashed.toLocaleString()} F\n` +
-                  `🚩 *RESTE À PAYER: ${balance.toLocaleString()} F*\n\n` +
-                  `📦 *Venez chercher demain après-midi.*\n\n` +
+                  `- Montant Total dû : ${totalDue.toLocaleString()} F\n` +
+                  `- Remises/Avoirs : ${(remises + avoirs).toLocaleString()} F\n` +
+                  `- Déjà encaissé : ${netEncashed.toLocaleString()} F\n` +
+                  `🚩 *NET À PAYER : ${balance.toLocaleString()} F*\n\n` +
+                  `📦 *Disponible pour récupération.*\n\n` +
                   `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`;
                 
                 window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');

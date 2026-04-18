@@ -65,30 +65,35 @@ export default function Traitement() {
     return res;
   }, [couvaisons, today]);
 
+  const stats = useMemo(() => {
+    const data = categorizedData[activeTab];
+    const totalBatches = data.j.length + data.j1.length + data.j3.length;
+    const totalEggs = [...data.j, ...data.j1, ...data.j3].reduce((sum: number, c: any) => sum + c.nombreOeufs, 0);
+    const criticalBatches = data.j3.length;
+    
+    return { totalBatches, totalEggs, criticalBatches };
+  }, [categorizedData, activeTab]);
+
   if (activeForm) {
     const isMirage = activeForm.type === 'mirage';
     return (
-      <div className="space-y-4">
-        <button 
-          onClick={() => setActiveForm(null)}
-          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-orange transition-colors"
-        >
-          <ChevronRight size={16} className="rotate-180" />
-          Retour à l'atelier
-        </button>
-        
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 mb-4">
-           <div className="flex items-center gap-3 px-4 py-2">
-             <div className={`p-2 rounded-lg ${isMirage ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                {isMirage ? <Eye size={20} /> : <Egg size={20} />}
+      <div className="animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <button 
+            onClick={() => setActiveForm(null)}
+            className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-orange transition-colors"
+          >
+            <ChevronRight size={20} className="rotate-180" />
+            Retour à l'atelier
+          </button>
+          
+          <div className="flex items-center gap-3">
+             <div className={`w-3 h-3 rounded-full animate-pulse ${isMirage ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+             <div className="text-right">
+                <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Mode Traitement</p>
+                <p className="text-sm font-bold text-slate-700">{isMirage ? 'Mirage Technique' : 'Éclosion'}</p>
              </div>
-             <div>
-               <h2 className="font-bold text-slate-900">
-                 {isMirage ? 'Mirage du Lot' : 'Traitement Éclosion'}
-               </h2>
-               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {activeForm.id.substring(0, 8)}...</p>
-             </div>
-           </div>
+          </div>
         </div>
 
         {isMirage ? (
@@ -165,15 +170,6 @@ export default function Traitement() {
       </div>
     );
   };
-
-  const stats = useMemo(() => {
-    const data = categorizedData[activeTab];
-    const totalBatches = data.j.length + data.j1.length + data.j3.length;
-    const totalEggs = [...data.j, ...data.j1, ...data.j3].reduce((sum, c) => sum + c.nombreOeufs, 0);
-    const criticalBatches = data.j3.length;
-    
-    return { totalBatches, totalEggs, criticalBatches };
-  }, [categorizedData, activeTab]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">

@@ -90,30 +90,41 @@ const Couvaisons = () => {
       const total = couv.nombreOeufs * couv.prixUnitaire;
       const rest = resteLot(transactions, couv.id, total);
       const acompte = total - rest;
+      const viables = couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0);
+
+      const sectionTitle = template === 'mirage' ? '🕯️ BILAN DU MIRAGE' : template === 'eclosion' ? '🏁 BILAN D\'ÉCLOSION' : '📝 RÉCAPITULATIF DU LOT';
       
-      finalMessage += `\n\n📝 Détails du lot :`;
-      finalMessage += `\n- Date de dépôt des œufs : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}`;
-      finalMessage += `\n- Œufs reçus : ${couv.nombreOeufs} ${couv.typeOeuf}s`;
+      finalMessage = `*${sectionTitle}*\n\n` + message + `\n\n`;
+      finalMessage += `📊 *DONNÉES TECHNIQUES* :\n`;
+      finalMessage += `- 🥚 Lot initial : ${couv.nombreOeufs} ${couv.typeOeuf}s\n`;
+      finalMessage += `- 📅 Dépôt le : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n`;
       
       if (couv.oeufsClairs != null || couv.oeufsPourris != null) {
-        const viables = couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0);
-        finalMessage += `\n- Œufs viables (après mirage) : ${viables}`;
+        const tr = ((viables / couv.nombreOeufs) * 100).toFixed(1);
+        finalMessage += `- ⚪ Œufs clairs : ${couv.oeufsClairs || 0}\n`;
+        finalMessage += `- ❌ Œufs pourris : ${couv.oeufsPourris || 0}\n`;
+        finalMessage += `- ✅ Œufs viables : *${viables}*\n`;
+        finalMessage += `- 🧬 Taux fécondité : *${tr}%*\n`;
       }
       
-      finalMessage += `\n\n📌 Situation Financière :`;
-      finalMessage += `\n- Coût total : ${total.toLocaleString()} FCFA`;
-      finalMessage += `\n- Acompte payé : ${acompte.toLocaleString()} FCFA`;
-      finalMessage += `\n- Reste à payer : ${rest.toLocaleString()} FCFA`;
+      if (couv.poussinsNes != null) {
+        const te = viables > 0 ? ((couv.poussinsNes / viables) * 100).toFixed(1) : '0';
+        finalMessage += `- 🐥 Poussins nés : *${couv.poussinsNes}*\n`;
+        finalMessage += `- ⚠️ Pertes éclosion : ${couv.mortsEnCoque || 0}\n`;
+        finalMessage += `- 🏆 Taux de réussite : *${te}%*\n`;
+      }
+
+      finalMessage += `\n💰 *SITUATION FINANCIÈRE* :\n`;
+      finalMessage += `- Coût total : ${total.toLocaleString()} F\n`;
+      finalMessage += `- Acompte versé : ${acompte.toLocaleString()} F\n`;
       
       if (rest > 0) {
-        if (acompte > 0) {
-          finalMessage += `\n⚠️ Solde restant à régler : ${rest.toLocaleString()} FCFA.`;
-        } else {
-          finalMessage += `\n⚠️ Aucun acompte versé. Le montant total reste dû.`;
-        }
+        finalMessage += `🚩 *RESTE À PAYER : ${rest.toLocaleString()} F*\n`;
       } else {
-        finalMessage += `\n✅ Lot entièrement soldé. Merci !`;
+        finalMessage += `✅ *LOT ENTIÈREMENT SOLDÉ*\n`;
       }
+      
+      finalMessage += `\n_Ivoire Couvée d'Or - Excellence Avicole_`;
     }
 
     const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(finalMessage)}`;

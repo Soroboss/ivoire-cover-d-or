@@ -18,8 +18,7 @@ export function EclosionHub({
   onSuccess: () => void;
 }) {
   const { couvaisons } = useAppContext();
-  const couv = useMemo(() => couvaisons.find((c) => c.id === couvaisonId), [couvaisons, couvaisonId]);
-
+  const couv = couvaisons.find((c) => c.id === couvaisonId);
   const [tab, setTab] = useState<Tab>(() => (couv?.dateEclosionDemarrage ? 'close' : 'start'));
 
   if (!couv) return null;

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type {
   Client,
   Couvaison,
@@ -494,39 +494,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  const value = useMemo(() => ({
+    logs,
+    receiptArchives,
+    clientMessages,
+    depenses,
+    clients,
+    couvaisons,
+    transactions,
+    machines,
+    addCouvaison,
+    addCouvaisonsBatch,
+    updateCouvaison,
+    deleteCouvaison,
+    addTransaction,
+    addMachine,
+    updateMachine,
+    deleteMachine,
+    addReceiptArchive,
+    addClientMessage,
+    addDepense,
+    updateDepense,
+    deleteDepense,
+    salaireAgents,
+    addSalaireAgent,
+    updateSalaireAgent,
+    deleteSalaireAgent,
+    updateClient,
+    addLog,
+    clientSummaries,
+  }), [
+    logs,
+    receiptArchives,
+    clientMessages,
+    depenses,
+    clients,
+    couvaisons,
+    transactions,
+    machines,
+    salaireAgents,
+    clientSummaries
+  ]);
+
   return (
-    <AppContext.Provider
-      value={{
-        logs,
-        receiptArchives,
-        clientMessages,
-        depenses,
-        clients,
-        couvaisons,
-        transactions,
-        machines,
-        addCouvaison,
-        addCouvaisonsBatch,
-        updateCouvaison,
-        deleteCouvaison,
-        addTransaction,
-        addMachine,
-        updateMachine,
-        deleteMachine,
-        addReceiptArchive,
-        addClientMessage,
-        addDepense,
-        updateDepense,
-        deleteDepense,
-        salaireAgents,
-        addSalaireAgent,
-        updateSalaireAgent,
-        deleteSalaireAgent,
-        updateClient,
-        addLog,
-        clientSummaries,
-      }}
-    >
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

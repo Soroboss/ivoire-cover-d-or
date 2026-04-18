@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
@@ -32,7 +32,6 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
 
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
-  const [isClientRegistered, setIsClientRegistered] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [lines, setLines] = useState<LotLine[]>(() => [emptyLine()]);
   const [dateReception, setDateReception] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -53,23 +52,22 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
       .slice(0, 8);
   }, [clientSearch, clients]);
 
-  useEffect(() => {
+  const registeredClient = useMemo(() => {
     const normalizedInput = normalizeTelephone(clientTel);
-    if (!normalizedInput) {
-      setIsClientRegistered(false);
-      return;
-    }
+    if (!normalizedInput) return null;
+    return clients.find((c) => normalizeTelephone(c.telephone) === normalizedInput);
+  }, [clientTel, clients]);
 
-    const found = clients.find((c) => normalizeTelephone(c.telephone) === normalizedInput);
-    if (found) {
-      setClientNom(found.nom);
-      setIsClientRegistered(true);
-      setSelectedClientId(found.id);
-    } else {
-      setIsClientRegistered(false);
+  useEffect(() => {
+    if (registeredClient && selectedClientId !== registeredClient.id) {
+      setSelectedClientId(registeredClient.id);
+      setClientNom(registeredClient.nom);
+    } else if (!registeredClient && selectedClientId !== null) {
       setSelectedClientId(null);
     }
-  }, [clientTel, clients]);
+  }, [registeredClient, selectedClientId]);
+
+  const isClientRegistered = !!registeredClient;
 
   const currentBalance = useMemo(() => {
     if (!selectedClientId) return 0;
@@ -81,7 +79,6 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
     setClientNom(c.nom);
     setClientTel(c.telephone);
     setClientSearch(`${c.nom} - ${c.telephone}`);
-    setIsClientRegistered(true);
     setSelectedClientId(c.id);
   };
 
@@ -108,20 +105,46 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   const netAPayer = useMemo(() => Math.max(0, totalBrut - (remise || 0) + currentBalance), [totalBrut, remise, currentBalance]);
   const validLines = useMemo(() => lines.filter((l) => l.nombreOeufs > 0), [lines]);
 
+  const handleWhatsAppReception = (lines: Omit<LotLine, 'id'>[], totalTotal: number, totalPaid: number, balance: number) => {
+    const lotSummary = lines.map(l => `- ${l.nombreOeufs} ${l.typeOeuf}s (Total: ${l.nombreOeufs * l.prixUnitaire} F)`).join('\n');
+    const datePrecise = format(parseISO(receptionDateInputToIso(dateReception)), 'dd/MM/yyyy');
+    
+    // Déduction des dates prévues (Poule par défaut pour la démo, mais on peut être plus précis)
+    // On prend la date la plus proche pour le mirage
+    const msg = `🧾 *ACCUSÉ DE RÉCEPTION - IVOIRE COUVÉE D'OR*\n\n` +
+      `👤 Client : *${clientNom}*\n` +
+      `📅 Date de dépôt : ${datePrecise}\n\n` +
+      `📦 *DÉTAIL DES LOTS* :\n${lotSummary}\n\n` +
+      `💰 *SITUATION FINANCIÈRE* :\n` +
+      `- Coût Total : ${totalTotal.toLocaleString()} F\n` +
+      `- Acompte versé : ${totalPaid.toLocaleString()} F\n` +
+      `🚩 *RESTE À PAYER : ${balance.toLocaleString()} F*\n\n` +
+      `🔍 *PROCHAINES ÉTAPES* :\n` +
+      `- Mirage technique : J+14\n` +
+      `- Éclosion : Selon type d'oeuf\n\n` +
+      `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
+      `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`;
+
+    const url = `https://wa.me/${normalizeTelephone(clientTel)}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientNom || !clientTel || validLines.length === 0) return;
 
     try {
+      const batchData = validLines.map((l) => ({
+        typeOeuf: l.typeOeuf,
+        nombreOeufs: l.nombreOeufs,
+        prixUnitaire: l.prixUnitaire,
+        dateReception: receptionDateInputToIso(dateReception),
+        statut: 'En attente' as const,
+        emplacements: [],
+      }));
+
       await addCouvaisonsBatch(
-        validLines.map((l) => ({
-          typeOeuf: l.typeOeuf,
-          nombreOeufs: l.nombreOeufs,
-          prixUnitaire: l.prixUnitaire,
-          dateReception: receptionDateInputToIso(dateReception),
-          statut: 'En attente' as const,
-          emplacements: [],
-        })),
+        batchData,
         {
           nom: clientNom,
           telephone: clientTel,
@@ -129,6 +152,12 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
         acompte,
         remise
       );
+
+      // On propose l'envoi WhatsApp si souhaité
+      const confirmMsg = window.confirm("Réception enregistrée ! Voulez-vous envoyer le bordereau de réception par WhatsApp au client ?");
+      if (confirmMsg) {
+        handleWhatsAppReception(batchData, totalBrut - remise, acompte, netAPayer - acompte);
+      }
 
       onSuccess();
     } catch (err) {

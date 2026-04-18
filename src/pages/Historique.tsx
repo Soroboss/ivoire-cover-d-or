@@ -16,8 +16,6 @@ export const Historique = () => {
   const [filterTarget, setFilterTarget] = useState('All');
   const [selectedLog, setSelectedLog] = useState<any>(null);
 
-  if (currentUser?.role !== 'Admin') return null;
-
   const stats = useMemo(() => {
     const todayLogs = logs.filter(log => isToday(parseISO(log.timestamp)));
     const uniqueUsers = new Set(logs.map(log => log.userId)).size;
@@ -35,6 +33,8 @@ export const Historique = () => {
     const uniqueTargets = ['All', ...new Set(logs.map(log => log.target))];
     return uniqueTargets;
   }, [logs]);
+
+  if (currentUser?.role !== 'Admin') return null;
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
