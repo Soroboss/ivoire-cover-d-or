@@ -429,7 +429,7 @@ const Couvaisons = () => {
                                  client?.id,
                                  c.id,
                                  'bilan_mirage',
-                                 `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué avec succès.\n\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 Résultats du mirage :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n\nL'incubation se poursuit pour les œufs viables. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                  `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)}*\n📈 Taux de fécondité : ${((c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}
                                title="WhatsApp: Bilan Mirage"
@@ -463,7 +463,7 @@ const Couvaisons = () => {
                                  client?.id,
                                  c.id,
                                  'bilan_eclosion',
-                                 `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🐥 Poussins viables (éclos) : ${c.poussinsNes}\n\nVous pouvez dès à présent passer retirer vos poussins. Merci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                                  `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0}*\n⚠️ Pertes (morts en coque/non éclos) : ${(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) - (c.poussinsNes || 0)}\n🏆 Taux de réussite : ${((c.poussinsNes || 0) / (c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) * 100).toFixed(1)}%\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}
                                title="WhatsApp: Bilan Éclosion"

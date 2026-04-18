@@ -181,15 +181,15 @@ export default function Traitement() {
       </div>
 
       <div className="space-y-8">
-        {/* JOUR J */}
+        {/* JOUR J-3 (3 jours et plus) */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <div className="bg-blue-100 p-1.5 rounded-lg">
-              <Clock size={16} className="text-blue-600" />
+            <div className="bg-red-100 p-1.5 rounded-lg">
+              <AlertTriangle size={16} className="text-red-600" />
             </div>
-            <h2 className="text-lg font-bold text-slate-800">À traiter : Jour J</h2>
+            <h2 className="text-lg font-bold text-slate-800">Retard Critique : J-3 et plus</h2>
           </div>
-          {renderList(categorizedData[activeTab].j, activeTab)}
+          {renderList(categorizedData[activeTab].j3, activeTab)}
         </section>
 
         {/* JOUR J-1 (1 à 2 jours de retard) */}
@@ -203,15 +203,15 @@ export default function Traitement() {
           {renderList(categorizedData[activeTab].j1, activeTab)}
         </section>
 
-        {/* JOUR J-3 (3 jours et plus) */}
+        {/* JOUR J */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <div className="bg-red-100 p-1.5 rounded-lg">
-              <AlertTriangle size={16} className="text-red-600" />
+            <div className="bg-blue-100 p-1.5 rounded-lg">
+              <Clock size={16} className="text-blue-600" />
             </div>
-            <h2 className="text-lg font-bold text-slate-800">Retard Critique : J-3 et plus</h2>
+            <h2 className="text-lg font-bold text-slate-800">À traiter : Jour J</h2>
           </div>
-          {renderList(categorizedData[activeTab].j3, activeTab)}
+          {renderList(categorizedData[activeTab].j, activeTab)}
         </section>
       </div>
     </div>
