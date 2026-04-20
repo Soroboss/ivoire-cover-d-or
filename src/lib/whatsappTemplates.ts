@@ -19,19 +19,34 @@ export const formatWhatsAppMessage = (
 
   // Couvaison info
   if (couvaison) {
-    message = message.replace(/{{quantite}}/g, couvaison.nombreOeufs.toString());
-    message = message.replace(/{{type_oeuf}}/g, couvaison.typeOeuf);
-    message = message.replace(/{{date_reception}}/g, format(parseISO(couvaison.dateReception), 'dd/MM/yyyy'));
+    if (couvaison.nombreOeufs !== undefined) {
+      message = message.replace(/{{quantite}}/g, (couvaison.nombreOeufs || 0).toString());
+    }
+    if (couvaison.typeOeuf) {
+      message = message.replace(/{{type_oeuf}}/g, couvaison.typeOeuf);
+    }
+    if (couvaison.dateReception) {
+      try {
+        message = message.replace(/{{date_reception}}/g, format(parseISO(couvaison.dateReception), 'dd/MM/yyyy'));
+      } catch (e) {
+        // Fallback if date is invalid
+        message = message.replace(/{{date_reception}}/g, couvaison.dateReception);
+      }
+    }
     
     if (couvaison.dateMiragePrevue) {
-      message = message.replace(/{{date_mirage}}/g, format(parseISO(couvaison.dateMiragePrevue), 'dd/MM/yyyy'));
+      try {
+        message = message.replace(/{{date_mirage}}/g, format(parseISO(couvaison.dateMiragePrevue), 'dd/MM/yyyy'));
+      } catch (e) {}
     }
     if (couvaison.dateEclosionPrevue) {
-      message = message.replace(/{{date_eclosion}}/g, format(parseISO(couvaison.dateEclosionPrevue), 'dd/MM/yyyy'));
+      try {
+        message = message.replace(/{{date_eclosion}}/g, format(parseISO(couvaison.dateEclosionPrevue), 'dd/MM/yyyy'));
+      } catch (e) {}
     }
 
     // Financials
-    if (transactions) {
+    if (transactions && couvaison.prixUnitaire !== undefined) {
       const totalDue = couvaison.nombreOeufs * couvaison.prixUnitaire;
       const rest = resteLot(transactions, couvaison.id, totalDue);
       message = message.replace(/{{montant_total}}/g, totalDue.toLocaleString() + ' F');
@@ -40,13 +55,13 @@ export const formatWhatsAppMessage = (
 
     // Technical results
     if (couvaison.oeufsClairs !== undefined || couvaison.oeufsPourris !== undefined) {
-      const viables = couvaison.nombreOeufs - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
-      const taux = couvaison.nombreOeufs > 0 ? (viables / couvaison.nombreOeufs) * 100 : 0;
+      const viables = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
+      const taux = (couvaison.nombreOeufs || 0) > 0 ? (viables / couvaison.nombreOeufs) * 100 : 0;
       message = message.replace(/{{taux_fecondite}}/g, taux.toFixed(1) + '%');
     }
 
     if (couvaison.poussinsNes !== undefined) {
-      const oeufsRestants = couvaison.nombreOeufs - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
+      const oeufsRestants = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
       const taux = oeufsRestants > 0 ? (couvaison.poussinsNes / oeufsRestants) * 100 : 0;
       message = message.replace(/{{taux_reussite}}/g, taux.toFixed(1) + '%');
       message = message.replace(/{{poussins_nes}}/g, couvaison.poussinsNes.toString());

@@ -95,7 +95,7 @@ Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de
 
 💵 *RÉCAPITULATIF FINANCIER* :
 - Total Prestation : {{montant_total}} F
-- Acomptes reçus : {{acomptes}} F
+- Acompte reçu : {{acompte}} F
 🚩 *NET À PAYER : {{reste_a_payer}} F*
 
 _Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._
