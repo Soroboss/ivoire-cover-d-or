@@ -78,18 +78,27 @@ export const formatWhatsAppMessage = (
   // 3. SPECIAL SCAN AND REPLACE ENGINE (Insensitive to spaces and formatting)
   const smartReplace = (msg: string, key: string, value: string | number) => {
     const val = (value ?? '').toString();
-    const k = key.toLowerCase().trim();
+    const k = key.toLowerCase().trim().replace(/_/g, ''); // Strip underscores for mapping
+    
     let result = msg;
     const patterns = result.match(/{{\s*[^}]+\s*}}/gi) || [];
     patterns.forEach(p => {
-      const cleanP = p.replace(/{{\s*|\s*}}/g, '').toLowerCase().trim().replace(/[\*\_~]/g, '');
+      // Clean up the placeholder: remove braces, lowercase, trim, AND strip common markdown markers
+      // We ALSO strip underscores just for the comparison so that {{nom_depart}} matches "nom_depart"
+      const cleanP = p.replace(/{{\s*|\s*}}/g, '')
+                      .toLowerCase()
+                      .trim()
+                      .replace(/[\*\_~]/g, ''); // strip * _ ~ and underscores
+                      
       if (cleanP === k) {
         result = result.split(p).join(val);
       }
     });
+
     // Final safety exact match
     result = result.split(`{{${key}}}`).join(val);
     result = result.split(`{{ ${key} }}`).join(val);
+    
     return result;
   };
 
