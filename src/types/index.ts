@@ -132,8 +132,8 @@ export interface Transaction {
   couvaisonId?: string;
   clientId: string;
   montantTotal: number;
-  acomptesVerses: number;
-  resteAPayer: number;
+  acomptesVerses?: number;
+  resteAPayer?: number;
   dateTransaction: string;
   typeTransaction: TypeTransaction;
   notes?: string;
@@ -174,11 +174,12 @@ export interface ClientMessage {
 export interface MessageTemplate {
   id: string;
   name: string;
-  category: 'RECEPTION' | 'MIRAGE' | 'ECLOSION' | 'FACTURE' | 'AUTRE';
+  category: 'RECEPTION' | 'MIRAGE' | 'ECLOSION' | 'FINANCE' | 'AUTRE';
   content: string;
   description?: string;
   isActive: boolean;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Catégories de charges (hors flux clients) — loyer, énergie, masse salariale, etc. */

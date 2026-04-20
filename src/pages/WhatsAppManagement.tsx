@@ -89,8 +89,8 @@ const WhatsAppManagement = () => {
     { id: 'ALL', label: 'Tous', icon: <MessageSquare size={18} /> },
     { id: 'RECEPTION', label: 'Réception', icon: <Clock size={18} /> },
     { id: 'MIRAGE', label: 'Mirage', icon: <Eye size={18} /> },
-    { id: 'ECLOSION', label: 'Éclosion', icon: <CheckCircle2 size={18} /> },
-    { id: 'FACTURE', label: 'Facturation', icon: <Hash size={18} /> },
+    { id: 'ECLOSION', label: 'Éclosion', icon: <CheckCircle size={18} /> },
+    { id: 'FINANCE', label: 'Finance/Règlement', icon: <Hash size={18} /> },
   ];
 
   return (
@@ -252,7 +252,7 @@ const WhatsAppManagement = () => {
                           <option value="RECEPTION">Réception</option>
                           <option value="MIRAGE">Mirage</option>
                           <option value="ECLOSION">Éclosion</option>
-                          <option value="FACTURE">Facturation</option>
+                          <option value="FINANCE">Finance/Règlement</option>
                           <option value="AUTRE">Autre</option>
                         </select>
                       </div>

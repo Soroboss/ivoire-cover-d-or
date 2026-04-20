@@ -141,7 +141,7 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
                         <span className="h-1.5 w-1.5 rounded-full bg-brand-orange/40 group-hover:bg-brand-orange" />
                         <span className="font-bold text-slate-500 uppercase tracking-tighter">{format(parseISO(t.dateTransaction), 'dd/MM/yy')} &mdash; {t.typeTransaction}</span>
                       </div>
-                      <span className="font-black text-slate-900 tracking-tighter">{(t.montantTotal - t.resteAPayer).toLocaleString()} F</span>
+                      <span className="font-black text-slate-900 tracking-tighter">{t.montantTotal.toLocaleString()} F</span>
                     </div>
                   ))
                 )}
