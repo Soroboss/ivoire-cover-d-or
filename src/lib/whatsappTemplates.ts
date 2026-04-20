@@ -47,6 +47,7 @@ export const formatWhatsAppMessage = (
     
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
     vars.viables = Math.max(0, v);
+    vars.fertile = vars.viables;
     vars.clairs = couvaison.oeufsClairs || 0;
     vars.pourris = couvaison.oeufsPourris || 0;
     vars.poussins = couvaison.poussinsNes || 0;
