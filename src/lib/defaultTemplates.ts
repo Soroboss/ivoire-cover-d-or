@@ -1,4 +1,4 @@
-import { MessageTemplate } from '../types';
+import type { MessageTemplate } from '../types';
 
 export const DEFAULT_TEMPLATES: Omit<MessageTemplate, 'id' | 'updatedAt' | 'createdAt'>[] = [
   {

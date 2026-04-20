@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
@@ -30,7 +31,6 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   
-  const { formatWhatsAppMessage } = require('../../lib/whatsappTemplates');
 
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
@@ -127,7 +127,6 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
           `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
 
-    const { formatWhatsAppMessage } = require('../../lib/whatsappTemplates');
     const msg = formatWhatsAppMessage(template as any, {
       client: { nom: clientNom, telephone: clientTel } as any,
       couvaison: { dateReception: receptionDateInputToIso(dateReception) } as any,
