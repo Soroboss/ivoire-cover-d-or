@@ -62,7 +62,6 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
       });
 
       if (deltaNes > 0 && sendWhatsApp && client?.telephone) {
-        const totalDue = couv.nombreOeufs * couv.prixUnitaire;
         const netEncashed = netPayeLot(transactions, couvaisonId);
         const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
         const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
@@ -91,7 +90,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
            extra: {
              client_id_ext: client.clientIdExt || '—',
              viables: oeufsRestants,
-             delta_nes,
+             delta_nes: deltaNes,
              morts,
              remises_avoirs: (remises + avoirs).toLocaleString() + ' F',
              deja_encaisse: netEncashed.toLocaleString() + ' F'
@@ -173,7 +172,6 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
             <button
               type="button"
               onClick={() => {
-                const totalDue = couv.nombreOeufs * couv.prixUnitaire;
                 const netEncashed = netPayeLot(transactions, couvaisonId);
                 const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
                 const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);

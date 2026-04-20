@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppProvider';
 import { 
   MessageSquare, 
@@ -10,7 +10,6 @@ import {
   Smartphone, 
   Clock,
   CheckCircle,
-  AlertCircle,
   Copy,
   ChevronRight,
   Eye

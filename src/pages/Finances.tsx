@@ -413,7 +413,7 @@ const Finances = () => {
                         {amountPrefix} {t.montantTotal.toLocaleString()} FCFA
                      </td>
                      <td className="px-6 py-4 text-right font-medium text-brand-dark">
-                        {t.resteAPayer.toLocaleString()} FCFA
+                        {t.resteAPayer?.toLocaleString() ?? '—'} FCFA
                      </td>
                    </tr>
                  );

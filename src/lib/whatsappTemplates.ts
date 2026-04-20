@@ -1,6 +1,5 @@
-import { MessageTemplate, Client, Couvaison, Transaction } from '../types';
+import type { MessageTemplate, Client, Couvaison, Transaction } from '../types';
 import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { resteLot } from './financeCalculations';
 
 export const formatWhatsAppMessage = (
