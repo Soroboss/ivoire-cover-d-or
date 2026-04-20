@@ -17,20 +17,26 @@ export const formatWhatsAppMessage = (
   // Helper for case-insensitive and space-tolerant replacement
   const smartReplace = (msg: string, key: string, value: string | number) => {
     const val = (value ?? '').toString();
-    const k = key.toLowerCase();
+    const k = key.toLowerCase().trim();
     
     let result = msg;
     
     // We scan the message for ALL {{ ... }} patterns and check if they match our key
     const patterns = result.match(/{{\s*[^}]+\s*}}/gi) || [];
     patterns.forEach(p => {
-      const cleanP = p.replace(/{{\s*|\s*}}/g, '').toLowerCase().trim();
+      // Clean up the placeholder: remove braces, lowercase, trim, AND strip common markdown markers
+      // that might have been accidentally typed inside the braces (like * or _)
+      const cleanP = p.replace(/{{\s*|\s*}}/g, '')
+                      .toLowerCase()
+                      .trim()
+                      .replace(/[\*\_~]/g, ''); // strip * _ ~
+                      
       if (cleanP === k) {
         result = result.split(p).join(val);
       }
     });
 
-    // Fallbacks for the exact key
+    // Fallbacks for the exact key (just in case)
     result = result.split(`{{${key}}}`).join(val);
     result = result.split(`{{ ${key} }}`).join(val);
     
