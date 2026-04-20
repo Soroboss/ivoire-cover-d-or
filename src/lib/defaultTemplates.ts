@@ -11,17 +11,18 @@ Cher(e) *{{client_name}}*,
 Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :
 
 📅 *Dépôt le* : {{date_reception}}
-📦 *Détail des lots* :
+
+📦 *DÉTAIL DES LOTS* :
 {{details_lots}}
 
-💰 *SUIVI FINANCIER* :
-- Montant total : {{montant_total}} F
+💰 *SITUATION FINANCIÈRE* :
+- Coût Total : {{montant_total}} F
 - Acompte versé : {{acompte}} F
-🚩 *Reste à régler : {{reste_a_payer}} F*
+🚩 *RESTE À PAYER : {{reste_a_payer}} F*
 
-🔍 *PROCHAINES ÉTAPES* :
-1️⃣ Mirage technique (J+14) pour vérifier la fertilité.
-2️⃣ Éclosion finale prévue selon le cycle.
+🔍 *CALENDRIER PRÉVISIONNEL (Cycle Technique)* :
+1️⃣ *Mirage technique (J+14)* : prévu le *{{date_mirage}}*
+2️⃣ *Éclosion estimée* : prévue le *{{date_eclosion}}*
 
 _Veuillez conserver ce message comme preuve de dépôt. Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_
 

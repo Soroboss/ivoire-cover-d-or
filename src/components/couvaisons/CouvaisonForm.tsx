@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
-import { format } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
 import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
@@ -127,15 +127,25 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
           `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
 
+    const startIso = receptionDateInputToIso(dateReception);
+    const startDate = parseISO(startIso);
+    const mirageDateObj = addDays(startDate, 14);
+    
+    // Estimation d'éclosion basée sur le cycle le plus long des lots déposés
+    const maxDays = Math.max(...batchLines.map(l => OEUF_CONFIG[l.typeOeuf]?.dureeTotale || 21));
+    const eclosionDateObj = addDays(startDate, maxDays);
+
     const msg = formatWhatsAppMessage(template as any, {
       client: { nom: clientNom, telephone: clientTel } as any,
-      couvaison: { dateReception: receptionDateInputToIso(dateReception) } as any,
+      couvaison: { dateReception: startIso } as any,
       extra: {
         details_lots: lotSummary,
-        detail_lot: lotSummary, // alias
+        detail_lot: lotSummary,
+        date_mirage: format(mirageDateObj, 'dd/MM/yyyy'),
+        date_eclosion: format(eclosionDateObj, 'dd/MM/yyyy'),
         montant_total: (totalBrut - (remise || 0)).toLocaleString(),
         acompte: acompte.toLocaleString(),
-        accompte: acompte.toLocaleString(), // common typo alias
+        accompte: acompte.toLocaleString(),
         reste_a_payer: balance.toLocaleString()
       }
     });
