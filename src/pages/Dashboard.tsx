@@ -19,6 +19,7 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Database,
+  MessageCircle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -281,6 +282,27 @@ const Dashboard = () => {
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-orange group-hover:gap-2">
             Ouvrir le module <ArrowRight size={16} />
+          </span>
+        </Link>
+      )}
+
+      {/* Bandeau WhatsApp */}
+      {currentUser && hasPermission(currentUser, 'whatsapp') && (
+        <Link
+          to="/whatsapp"
+          className="group flex flex-col gap-3 rounded-2xl border border-dashed border-green-600/30 bg-gradient-to-r from-green-50 via-white to-slate-50 p-4 shadow-sm transition-all hover:border-green-600/50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-5"
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-600 text-white shadow-md">
+              <MessageCircle size={22} />
+            </div>
+            <div>
+              <p className="font-display text-base font-bold text-brand-dark">Gestion WhatsApp</p>
+              <p className="text-sm text-slate-600">Personnalisez vos modèles de messages (Réception, Mirage, Éclosion...)</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-600 group-hover:gap-2">
+            Configurer les messages <ArrowRight size={16} />
           </span>
         </Link>
       )}
