@@ -32,8 +32,13 @@ const WhatsAppManagement = () => {
     { key: '{{date_reception}}', desc: 'Date de réception du lot' },
     { key: '{{date_mirage}}', desc: 'Date prévue du mirage' },
     { key: '{{date_eclosion}}', desc: 'Date prévue d\'éclosion' },
+    { key: '{{details_lots}}', desc: 'Détail des lots (Dépôt)' },
+    { key: '{{acompte}}', desc: 'Acompte versé' },
     { key: '{{montant_total}}', desc: 'Montant total de la facture' },
-    { key: '{{reste_a_payer}}', desc: 'Reste à payer' },
+    { key: '{{reste_a_payer}}', desc: 'Reste à payer (ce lot)' },
+    { key: '{{total_global}}', desc: 'Total global à régler (avec dettes)' },
+    { key: '{{viables}}', desc: 'Nombre d\'œufs viables (Transfert)' },
+    { key: '{{poussins}}', desc: 'Nombre de poussins nés (Bilan)' },
     { key: '{{taux_fecondite}}', desc: 'Taux de fécondité (Mirage)' },
     { key: '{{taux_reussite}}', desc: 'Taux d\'éclosion (Bilan)' },
   ];
@@ -78,8 +83,13 @@ const WhatsAppManagement = () => {
       .replace(/{{date_reception}}/g, format(new Date(), 'dd MMMM yyyy', { locale: fr }))
       .replace(/{{date_mirage}}/g, format(new Date(), 'dd/MM/yyyy'))
       .replace(/{{date_eclosion}}/g, format(new Date(), 'dd/MM/yyyy'))
-      .replace(/{{montant_total}}/g, '25 000 FCFA')
-      .replace(/{{reste_a_payer}}/g, '5 000 FCFA')
+      .replace(/{{details_lots}}/g, '- Poules: 500\n- Canards: 200')
+      .replace(/{{acompte}}/g, '15 000')
+      .replace(/{{montant_total}}/g, '25 000')
+      .replace(/{{reste_a_payer}}/g, '5 000')
+      .replace(/{{total_global}}/g, '12 000')
+      .replace(/{{viables}}/g, '480')
+      .replace(/{{poussins}}/g, '450')
       .replace(/{{taux_fecondite}}/g, '85%')
       .replace(/{{taux_reussite}}/g, '80%');
   };
