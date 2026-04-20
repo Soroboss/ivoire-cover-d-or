@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CheckCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { resteLot, netPayeLot } from '../../lib/financeCalculations';
@@ -259,7 +260,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
          <div className="flex justify-between items-center text-sm px-2">
             <span className="text-brand-gray">Pertes ou Restants (Non éclos) : <strong className={nonEclos < 0 ? 'text-red-500' : ''}>{nonEclos}</strong></span>
             <span className="font-bold text-brand-dark" title={`Calculé sur base de ${maxFecondes} œufs fécondés`}>
-               Efficacité Globale : <span className="text-green-600 text-lg">{successRateMachine}%</span>
+               <CheckCircle size={12} className="text-green-500 inline mr-1" /> Efficacité Globale : <span className="text-green-600 text-lg">{successRateMachine}%</span>
             </span>
          </div>
 
@@ -272,7 +273,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                  <option value="Coupure Électrique">Coupure de courant</option>
                  <option value="Infection">Infection / Contamination</option>
                  <option value="Manutention">Choc lors du transfert</option>
-                 <option value="Autres">Autre cause</option>
+                 <option value="Autre">Autre cause</option>
                </select>
             </div>
          )}

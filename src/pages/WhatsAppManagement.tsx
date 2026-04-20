@@ -9,7 +9,7 @@ import {
   Hash, 
   Smartphone, 
   Clock,
-  CheckCircle2,
+  CheckCircle,
   AlertCircle,
   Copy,
   ChevronRight,
@@ -290,7 +290,7 @@ const WhatsAppManagement = () => {
                         <div className="absolute top-0 -right-2 w-0 h-0 border-t-[10px] border-t-[#E1FFC7] border-r-[10px] border-r-transparent"></div>
                      </div>
                      <p className="text-xs text-slate-400 font-bold uppercase tracking-tight flex items-center gap-2 mt-4">
-                       <CheckCircle2 size={12} className="text-green-500" /> Aperçu Simulation WhatsApp
+                       <CheckCircle size={12} className="text-green-500" /> Aperçu Simulation WhatsApp
                      </p>
                   </div>
                 )}
