@@ -11,7 +11,7 @@ export const formatWhatsAppMessage = (
     extra?: Record<string, string | number>;
   }
 ) => {
-  let message = template?.content || '';
+  let message = (template?.content || '').normalize('NFKD');
   const { client, couvaison, transactions, extra } = data;
 
   // Helper for case-insensitive and space-tolerant replacement
