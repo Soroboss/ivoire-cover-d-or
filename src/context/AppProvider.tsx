@@ -117,7 +117,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       ]
 
-      // Chargement parallèle — toutes les requêtes lancées simultanément.
+      const [
+        clientsResult,
+        couvResult,
+        machinesResult,
+        txResult,
+        logsResult,
+        receiptResult,
+        messagesResult,
+        depResult,
         agResult,
         templatesResult,
       ] = await Promise.allSettled([
