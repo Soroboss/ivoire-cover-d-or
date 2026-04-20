@@ -11,7 +11,7 @@ export const formatWhatsAppMessage = (
     extra?: Record<string, string | number>;
   }
 ) => {
-  let message = (template?.content || '').normalize('NFKD');
+  let message = (template?.content || '').normalize('NFKD').replace(/[\u200B-\u200D\uFEFF]/g, '');
   const { client, couvaison, transactions, extra } = data;
 
   // 1. COLLECT ALL POSSIBLE VARIABLES IN A SINGLE FLAT OBJECT
@@ -23,17 +23,27 @@ export const formatWhatsAppMessage = (
     // Default numerical fallbacks to '0'
     acompte: '0',
     accompte: '0',
+    avance: '0',
     montant_total: '0',
+    total: '0',
+    montant: '0',
     reste_a_payer: '0',
+    reste: '0',
+    solde: '0',
     quantite: '0',
+    nombre: '0',
     viables: '0',
+    fertile: '0',
     poussins: '0',
+    poussins_nes: '0',
     clairs: '0',
     pourris: '0',
     taux_fecondite: '0%',
     taux_reussite: '0%',
+    taux_eclosion: '0',
     details_lots: '',
     detail_lot: '',
+    detail_des_lots: '',
     ...extra // Override with specific extra data if provided
   };
 
