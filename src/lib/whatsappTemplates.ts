@@ -85,6 +85,13 @@ export const formatWhatsAppMessage = (
     }
   }
 
+  // 3. CONDITIONALS (re-calculated after all auto-calculations)
+  const rIndex = vars.reste_a_payer.toString().replace(/[^\d]/g, '');
+  const rValue = parseInt(rIndex, 10) || 0;
+  vars.instruction_paiement = rValue > 0 
+    ? "Veuillez prévoir le règlement total pour récupérer vos poussins." 
+    : "Votre lot est entièrement réglé. Merci !";
+
   // 3. SPECIAL SCAN AND REPLACE ENGINE (Insensitive to spaces and formatting)
   const smartReplace = (msg: string, key: string, value: string | number) => {
     const val = (value ?? '').toString();

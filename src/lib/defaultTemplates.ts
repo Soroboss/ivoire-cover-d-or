@@ -73,7 +73,7 @@ Bonjour *{{client_name}}*,
 •  Reste à payer (ce lot) : {{reste_a_payer}}
 🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*
 
-Veuillez prévoir le règlement total pour récupérer vos poussins.
+{{instruction_paiement}}
 
 Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.`,
@@ -98,6 +98,8 @@ Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de
 - Total Prestation : {{montant_total}} F
 - Acompte reçu : {{acompte}} F
 🚩 *NET À PAYER : {{reste_a_payer}} F*
+
+{{instruction_paiement}}
 
 _Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._
 
