@@ -11,74 +11,86 @@ export const formatWhatsAppMessage = (
     extra?: Record<string, string | number>;
   }
 ) => {
-  let message = template.content;
+  let message = template?.content || '';
   const { client, couvaison, transactions, extra } = data;
 
-  // Basic client info
-  message = message.split('{{client_name}}').join(client.nom || '');
-
-  // Couvaison info
-  if (couvaison) {
-    if (couvaison.nombreOeufs !== undefined) {
-      message = message.split('{{quantite}}').join((couvaison.nombreOeufs || 0).toString());
-    }
-    if (couvaison.typeOeuf) {
-      message = message.split('{{type_oeuf}}').join(couvaison.typeOeuf);
-    }
-    if (couvaison.dateReception) {
-      try {
-        message = message.split('{{date_reception}}').join(format(parseISO(couvaison.dateReception), 'dd/MM/yyyy'));
-      } catch (e) {
-        // Fallback if date is invalid
-        message = message.split('{{date_reception}}').join(couvaison.dateReception);
-      }
-    }
+  // Helper for case-insensitive and space-tolerant replacement
+  const smartReplace = (msg: string, key: string, value: string | number) => {
+    const val = (value ?? '').toString();
+    const k = key.toLowerCase();
     
-    if (couvaison.dateMiragePrevue) {
-      try {
-        message = message.split('{{date_mirage}}').join(format(parseISO(couvaison.dateMiragePrevue), 'dd/MM/yyyy'));
-      } catch (e) {}
-    }
-    if (couvaison.dateEclosionPrevue) {
-      try {
-        message = message.split('{{date_eclosion}}').join(format(parseISO(couvaison.dateEclosionPrevue), 'dd/MM/yyyy'));
-      } catch (e) {}
-    }
+    let result = msg;
+    
+    // We scan the message for ALL {{ ... }} patterns and check if they match our key
+    const patterns = result.match(/{{\s*[^}]+\s*}}/gi) || [];
+    patterns.forEach(p => {
+      const cleanP = p.replace(/{{\s*|\s*}}/g, '').toLowerCase().trim();
+      if (cleanP === k) {
+        result = result.split(p).join(val);
+      }
+    });
 
-    // Financials
-    if (transactions && couvaison.prixUnitaire !== undefined) {
-      const totalDue = (couvaison.nombreOeufs || 0) * couvaison.prixUnitaire;
-      const rest = resteLot(transactions, (couvaison.id || ''), totalDue);
-      message = message.split('{{montant_total}}').join(totalDue.toLocaleString());
-      message = message.split('{{reste_a_payer}}').join(rest.toLocaleString());
-    }
+    // Fallbacks for the exact key
+    result = result.split(`{{${key}}}`).join(val);
+    result = result.split(`{{ ${key} }}`).join(val);
+    
+    return result;
+  };
 
-    // Technical results
-    if (couvaison.oeufsClairs !== undefined || couvaison.oeufsPourris !== undefined) {
-      const viables = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
-      const taux = (couvaison.nombreOeufs || 0) > 0 ? (viables / (couvaison.nombreOeufs || 1)) * 100 : 0;
-      message = message.split('{{taux_fecondite}}').join(taux.toFixed(1) + '%');
-    }
+  // 1. Process EXTRA variables (highest priority)
+  if (extra) {
+    Object.entries(extra).forEach(([key, value]) => {
+      message = smartReplace(message, key, value);
+    });
+  }
+
+  // 2. Client Info
+  message = smartReplace(message, 'client_name', client.nom || '');
+
+  // 3. Couvaison / Lot Info
+  if (couvaison) {
+    message = smartReplace(message, 'quantite', couvaison.nombreOeufs || 0);
+    message = smartReplace(message, 'type_oeuf', couvaison.typeOeuf || '');
+    message = smartReplace(message, 'date_reception', couvaison.dateReception || '');
+    message = smartReplace(message, 'date_mirage', couvaison.dateMiragePrevue || '');
+    message = smartReplace(message, 'date_eclosion', couvaison.dateEclosionPrevue || '');
+    
+    // Format dates if they look like ISO strings
+    const dateVars = ['date_reception', 'date_mirage', 'date_eclosion'];
+    dateVars.forEach(v => {
+      const current = (couvaison as any)[v === 'date_reception' ? 'dateReception' : v === 'date_mirage' ? 'dateMiragePrevue' : 'dateEclosionPrevue'];
+      if (current && typeof current === 'string' && current.includes('-')) {
+        try {
+          const formatted = format(parseISO(current), 'dd/MM/yyyy');
+          message = smartReplace(message, v, formatted);
+        } catch (e) {}
+      }
+    });
+
+    // Technical Results
+    const viables = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
+    message = smartReplace(message, 'fertile', couvaison.oeufsFertiles || viables);
+    message = smartReplace(message, 'clairs', couvaison.oeufsClairs || 0);
+    message = smartReplace(message, 'pourris', couvaison.oeufsPourris || 0);
+    message = smartReplace(message, 'poussins', couvaison.poussinsNes || 0);
+    
+    const tauxFec = (couvaison.nombreOeufs || 0) > 0 ? (viables / couvaison.nombreOeufs) * 100 : 0;
+    message = smartReplace(message, 'taux_fecondite', tauxFec.toFixed(1) + '%');
 
     if (couvaison.poussinsNes !== undefined) {
       const oeufsRestants = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
-      const taux = (oeufsRestants || 0) > 0 ? (couvaison.poussinsNes / (oeufsRestants || 1)) * 100 : 0;
-      message = message.split('{{taux_reussite}}').join(taux.toFixed(1) + '%');
-      message = message.split('{{poussins_nes}}').join(couvaison.poussinsNes.toString());
+      const tauxEcl = oeufsRestants > 0 ? (couvaison.poussinsNes / oeufsRestants) * 100 : 0;
+      message = smartReplace(message, 'taux_reussite', tauxEcl.toFixed(1) + '%');
+      message = smartReplace(message, 'taux_eclosion', tauxEcl.toFixed(1));
     }
   }
 
-  // Extra variables (poussins_nes, delta_nes, etc. passed manually)
-  if (extra) {
-    Object.entries(extra).forEach(([key, value]) => {
-      const val = (value ?? '').toString();
-      // Case-insensitive replacement for both {{key}} and {{ KEY }}
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi');
-      message = message.replace(regex, val);
-      
-      // Fallback: also try split/join for the exact match as a secondary safety
-      message = message.split(`{{${key}}}`).join(val);
-    });
+  // 4. Financial Fallbacks (if not in extra)
+  if (transactions && couvaison) {
+    const totalDue = (couvaison.nombreOeufs || 0) * (couvaison.prixUnitaire || 0);
+    const rest = resteLot(transactions, couvaison.id, totalDue);
+    message = smartReplace(message, 'montant_total', totalDue.toLocaleString());
+    message = smartReplace(message, 'reste_a_payer', rest.toLocaleString());
   }
 
   return message;
