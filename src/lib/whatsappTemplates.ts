@@ -89,9 +89,23 @@ export const formatWhatsAppMessage = (
   if (transactions && couvaison) {
     const totalDue = (couvaison.nombreOeufs || 0) * (couvaison.prixUnitaire || 0);
     const rest = resteLot(transactions, couvaison.id, totalDue);
+    
+    // On calcule l'acompte total (somme des encaissements sur ce lot)
+    const paid = transactions
+      .filter(t => t.typeTransaction === 'Encaissement' && (t.typeVente === 'LO' || t.penseBete?.includes(couvaison.id)))
+      .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
+
     message = smartReplace(message, 'montant_total', totalDue.toLocaleString());
     message = smartReplace(message, 'reste_a_payer', rest.toLocaleString());
+    message = smartReplace(message, 'acompte', paid.toLocaleString());
   }
+
+  // 5. Hard safety defaults for critical numerical variables
+  // If they are still in the message, replace with '0'
+  const finalFallbacks = ['acompte', 'reste_a_payer', 'montant_total', 'quantite', 'viables', 'poussins', 'clairs', 'pourris'];
+  finalFallbacks.forEach(key => {
+    message = smartReplace(message, key, '0');
+  });
 
   return message;
 };
