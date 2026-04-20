@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callBackendFunction } from '../lib/insforgeApi';
 import { getClientGlobalBalance } from '../lib/financeCalculations';
+import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
 
 interface AppState {
   clients: Client[];
@@ -149,7 +150,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (messagesResult.status === 'fulfilled') setClientMessages(messagesResult.value.messages);
       if (depResult.status === 'fulfilled') setDepenses(depResult.value.depenses);
       if (agResult.status === 'fulfilled') setSalaireAgents(agResult.value.agents);
-      if (templatesResult.status === 'fulfilled') setMessageTemplates(templatesResult.value.templates);
+      
+      if (templatesResult.status === 'fulfilled') {
+        if (templatesResult.value.templates.length === 0) {
+          // Seed par défaut si vide
+          await Promise.all(DEFAULT_TEMPLATES.map(t => callBackendFunction('message_template_create', { 
+            ...t, 
+            updatedAt: new Date().toISOString() 
+          })));
+          const templatesRes2 = await callBackendFunction<{ templates: MessageTemplate[] }>('message_templates_list', {});
+          setMessageTemplates(templatesRes2.templates);
+        } else {
+          setMessageTemplates(templatesResult.value.templates);
+        }
+      }
 
       if (machinesResult.status === 'fulfilled') {
         if (machinesResult.value.machines.length === 0) {

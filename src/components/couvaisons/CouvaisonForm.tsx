@@ -27,8 +27,10 @@ const emptyLine = (): LotLine => ({
 });
 
 export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
-  const { addCouvaisonsBatch, clients, transactions, couvaisons } = useAppContext();
+  const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  
+  const { formatWhatsAppMessage } = require('../../lib/whatsappTemplates');
 
   const [clientNom, setClientNom] = useState('');
   const [clientTel, setClientTel] = useState('');
@@ -105,25 +107,37 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
   const netAPayer = useMemo(() => Math.max(0, totalBrut - (remise || 0) + currentBalance), [totalBrut, remise, currentBalance]);
   const validLines = useMemo(() => lines.filter((l) => l.nombreOeufs > 0), [lines]);
 
-  const handleWhatsAppReception = (lines: Omit<LotLine, 'id'>[], totalTotal: number, totalPaid: number, balance: number) => {
-    const lotSummary = lines.map(l => `- ${l.nombreOeufs} ${l.typeOeuf}s (Total: ${l.nombreOeufs * l.prixUnitaire} F)`).join('\n');
-    const datePrecise = format(parseISO(receptionDateInputToIso(dateReception)), 'dd/MM/yyyy');
+  const handleWhatsAppReception = (batchLines: Omit<LotLine, 'id'>[], totalBrut: number, acompte: number, balance: number) => {
+    const lotSummary = batchLines.map(l => `- ${l.nombreOeufs} ${l.typeOeuf}s (Total: ${l.nombreOeufs * l.prixUnitaire} F)`).join('\n');
     
-    // Déduction des dates prévues (Poule par défaut pour la démo, mais on peut être plus précis)
-    // On prend la date la plus proche pour le mirage
-    const msg = `🧾 *ACCUSÉ DE RÉCEPTION - IVOIRE COUVÉE D'OR*\n\n` +
-      `👤 Client : *${clientNom}*\n` +
-      `📅 Date de dépôt : ${datePrecise}\n\n` +
-      `📦 *DÉTAIL DES LOTS* :\n${lotSummary}\n\n` +
-      `💰 *SITUATION FINANCIÈRE* :\n` +
-      `- Coût Total : ${totalTotal.toLocaleString()} F\n` +
-      `- Acompte versé : ${totalPaid.toLocaleString()} F\n` +
-      `🚩 *RESTE À PAYER : ${balance.toLocaleString()} F*\n\n` +
-      `🔍 *PROCHAINES ÉTAPES* :\n` +
-      `- Mirage technique : J+14\n` +
-      `- Éclosion : Selon type d'oeuf\n\n` +
-      `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
-      `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`;
+    // On cherche le template
+    const template = messageTemplates.find(t => t.name === 'Accusé de Réception' && t.isActive)
+      || messageTemplates.find(t => t.category === 'RECEPTION' && t.isActive)
+      || { content: `🧾 *ACCUSÉ DE RÉCEPTION - IVOIRE COUVÉE D'OR*\n\n` +
+          `👤 Client : *{{client_name}}*\n` +
+          `📅 Date de dépôt : {{date_reception}}\n\n` +
+          `📦 *DÉTAIL DES LOTS* :\n{{details_lots}}\n\n` +
+          `💰 *SITUATION FINANCIÈRE* :\n` +
+          `- Coût Total : {{montant_total}} F\n` +
+          `- Acompte versé : {{acompte}} F\n` +
+          `🚩 *RESTE À PAYER : {{reste_a_payer}} F*\n\n` +
+          `🔍 *PROCHAINES ÉTAPES* :\n` +
+          `- Mirage technique : J+14\n` +
+          `- Éclosion : Selon type d'oeuf\n\n` +
+          `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
+          `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+
+    const { formatWhatsAppMessage } = require('../../lib/whatsappTemplates');
+    const msg = formatWhatsAppMessage(template as any, {
+      client: { nom: clientNom, telephone: clientTel } as any,
+      couvaison: { dateReception: receptionDateInputToIso(dateReception) } as any,
+      extra: {
+        details_lots: lotSummary,
+        montant_total: (totalBrut - (remise || 0)).toLocaleString(),
+        acompte: acompte.toLocaleString(),
+        reste_a_payer: balance.toLocaleString()
+      }
+    });
 
     const url = `https://wa.me/${normalizeTelephone(clientTel)}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');

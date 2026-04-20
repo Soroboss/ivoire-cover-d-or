@@ -66,7 +66,8 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
         const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
         
-        const template = messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
+           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
            || { content: `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
            `👤 Client : *{{client_name}}* ({{client_id_ext}})\n` +
            `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +
@@ -176,7 +177,8 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
                 const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
                 
-                const template = messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+                const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
+                   || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
                    || { content: `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
                    `👤 Client : *{{client_name}}* ({{client_id_ext}})\n` +
                    `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +

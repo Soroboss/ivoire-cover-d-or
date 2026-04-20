@@ -14,6 +14,8 @@ const normalizePhoneForWhatsApp = (phone?: string) => {
   return cleaned;
 };
 
+import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
+
 const EclosionStartForm = ({
   couvaisonId,
   onCancel,
@@ -23,7 +25,7 @@ const EclosionStartForm = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const { couvaisons, clients, machines, transactions, updateCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, machines, transactions, updateCouvaison, addClientMessage, messageTemplates } = useAppContext();
   const { currentUser } = useAuth();
 
   const couv = useMemo(
@@ -66,32 +68,40 @@ const EclosionStartForm = ({
   const oeufsViables = couv ? (couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0)) : 0;
 
   const whatsAppText = useMemo(() => {
-    if (!couv) return '';
+    if (!couv || !client) return '';
     const resteSurCeLot = resteLot(transactions, couvaisonId, (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0));
-    const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client?.id || '');
+    const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client.id);
     const ancienneDette = resteGlobal - resteSurCeLot;
-    
-    const clientCode = client?.clientIdExt ? ` (${client.clientIdExt})` : '';
-    const greeting = `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*\n\n` +
-      `Bonjour ${client?.nom || ''}${clientCode},\n\n`;
-    
-    const body = `🐣 Le transfert de votre lot en paniers d'éclosion a été effectué avec succès.\n\n` +
-      `📊 *INFOS TECHNIQUES* :\n` +
-      `- 🧪 Lot : ${couv.nombreOeufs} ${couv.typeOeuf}s\n` +
-      `- ✅ Œufs viables en éclosion : *${oeufsViables}*\n` +
-      `- 🏷️ Identifiant : ${nomDepart || '-'}\n\n` +
-      `📌 *SITUATION FINANCIÈRE* :`;
-    
-    let financeText = `\n- Reste à payer (ce lot) : ${resteSurCeLot.toLocaleString('fr-FR')} F`;
-    
-    if (ancienneDette > 0) {
-      financeText += `\n- Dettes antérieures : ${ancienneDette.toLocaleString('fr-FR')} F`;
-    }
-    
-    financeText += `\n🚩 *TOTAL GLOBAL À RÉGLER : ${resteGlobal.toLocaleString('fr-FR')} F*`;
 
-    return `${greeting}${body}${financeText}\n\n📦 *Les premières sorties sont attendues demain.*\n_Veuillez prévoir le règlement total pour récupérer vos poussins._\n\nMerci de votre confiance !\n*L'équipe Ivoire Couvée d'Or.*`;
-  }, [client?.nom, client?.id, couv, couvaisonId, transactions, couvaisons, oeufsViables, nomDepart]);
+    const template = messageTemplates.find(t => t.name === 'Démarrage Éclosion' && t.isActive)
+      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+      || { content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*\n\n` +
+          `Bonjour {{client_name}},\n\n` +
+          `🐣 Le transfert de votre lot en paniers d'éclosion a été effectué avec succès.\n\n` +
+          `📊 *INFOS TECHNIQUES* :\n` +
+          `- 🧪 Lot : {{quantite}} {{type_oeuf}}s\n` +
+          `- ✅ Œufs viables en éclosion : *{{viables}}*\n` +
+          `- 🏷️ Identifiant : {{nom_depart}}\n\n` +
+          `📌 *SITUATION FINANCIÈRE* :\n` +
+          `- Reste à payer (ce lot) : {{reste_a_payer}}\n` +
+          `{{dettes_anterieures}}\n` +
+          `🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*\n\n` +
+          `📦 *Les premières sorties sont attendues demain.*\n` +
+          `_Veuillez prévoir le règlement total pour récupérer vos poussins._\n\n` +
+          `Merci de votre confiance !\n*L'équipe Ivoire Couvée d'Or.*` };
+
+    return formatWhatsAppMessage(template as any, {
+      client,
+      couvaison: { ...couv },
+      transactions,
+      extra: {
+        nom_depart: nomDepart || '-',
+        viables: oeufsViables,
+        dettes_anterieures: ancienneDette > 0 ? `- Dettes antérieures : ${ancienneDette.toLocaleString()} F` : '',
+        total_global: resteGlobal.toLocaleString() + ' F'
+      }
+    });
+  }, [client, couv, couvaisonId, transactions, couvaisons, messageTemplates, nomDepart, oeufsViables]);
 
   const whatsAppUrl = useMemo(() => {
     const phone = normalizePhoneForWhatsApp(client?.telephone);
