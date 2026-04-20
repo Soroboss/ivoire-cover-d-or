@@ -132,8 +132,10 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
       couvaison: { dateReception: receptionDateInputToIso(dateReception) } as any,
       extra: {
         details_lots: lotSummary,
+        detail_lot: lotSummary, // alias
         montant_total: (totalBrut - (remise || 0)).toLocaleString(),
         acompte: acompte.toLocaleString(),
+        accompte: acompte.toLocaleString(), // common typo alias
         reste_a_payer: balance.toLocaleString()
       }
     });

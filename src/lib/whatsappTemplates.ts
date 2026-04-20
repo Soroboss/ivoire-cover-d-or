@@ -47,10 +47,10 @@ export const formatWhatsAppMessage = (
 
     // Financials
     if (transactions && couvaison.prixUnitaire !== undefined) {
-      const totalDue = couvaison.nombreOeufs * couvaison.prixUnitaire;
-      const rest = resteLot(transactions, couvaison.id, totalDue);
-      message = message.split('{{montant_total}}').join(totalDue.toLocaleString() + ' F');
-      message = message.split('{{reste_a_payer}}').join(rest.toLocaleString() + ' F');
+      const totalDue = (couvaison.nombreOeufs || 0) * couvaison.prixUnitaire;
+      const rest = resteLot(transactions, (couvaison.id || ''), totalDue);
+      message = message.split('{{montant_total}}').join(totalDue.toLocaleString());
+      message = message.split('{{reste_a_payer}}').join(rest.toLocaleString());
     }
 
     // Technical results
@@ -71,9 +71,13 @@ export const formatWhatsAppMessage = (
   // Extra variables (poussins_nes, delta_nes, etc. passed manually)
   if (extra) {
     Object.entries(extra).forEach(([key, value]) => {
-      const search = `{{${key}}}`;
-      // Use split/join for safe replacement of all occurrences without regex escaping issues
-      message = message.split(search).join((value ?? '').toString());
+      const val = (value ?? '').toString();
+      // Case-insensitive replacement for both {{key}} and {{ KEY }}
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi');
+      message = message.replace(regex, val);
+      
+      // Fallback: also try split/join for the exact match as a secondary safety
+      message = message.split(`{{${key}}}`).join(val);
     });
   }
 
