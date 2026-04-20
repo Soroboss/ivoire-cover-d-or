@@ -112,6 +112,20 @@ const WhatsAppManagement = () => {
           <Plus size={20} className="mr-2" />
           Nouveau Template
         </button>
+        <button 
+          onClick={async () => {
+            if (window.confirm('Voulez-vous charger les 4 modèles de messages standards ?')) {
+              const { DEFAULT_TEMPLATES } = await import('../lib/defaultTemplates');
+              for (const t of DEFAULT_TEMPLATES) {
+                await addMessageTemplate(t);
+              }
+              alert('Modèles chargés avec succès !');
+            }
+          }}
+          className="px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-all border border-slate-200"
+        >
+          Charger les modèles standards
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
