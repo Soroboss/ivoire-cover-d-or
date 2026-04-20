@@ -55,25 +55,27 @@ _Nous restons mobilisés pour vous garantir le meilleur taux de réussite._
   {
     name: 'Démarrage Éclosion',
     category: 'ECLOSION',
-    content: `🚀 *ANALYSE DE PRÉ-ÉCLOSION - IVOIRE COUVÉE D'OR* 🚀
+    content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*
 
 Bonjour *{{client_name}}*,
 
-Bonne nouvelle ! Le cycle arrive à son terme. Vos œufs ont été transférés ce matin en paniers d'éclosion.
+🐣 Votre éclosion pour le Lot de *{{quantite}}* œufs de *{{type_oeuf}}s* a démarré, préparez-vous à venir récupérer vos poussins demain dans l'après-midi.
 
-📐 *POINT TECHNIQUE* :
-- Identifiant Lot : {{nom_depart}}
-- Œufs viables transférés : *{{viables}}*
+• *Date de dépôt des œufs* : {{date_reception}}
 
-💳 *SITUATION COMPTABLE* :
-- Reste à payer (ce lot) : {{reste_a_payer}}
-{{dettes_anterieures}}
-🚩 *SOLDE TOTAL À RÉGLER : {{total_global}}*
+📊 *INFOS TECHNIQUES* :
+•  🧪 Lot : {{quantite}} {{type_oeuf}}s
+•  ✅ Œufs viables en éclosion : *{{viables}}*
+•  🏷️ Identifiant : {{nom_depart}}
 
-📦 *L'éclosion est attendue dans les prochaines 24h/48h.*
-_Merci de prévoir le règlement du solde pour enlèvement de vos sujets._
+💰 *SITUATION FINANCIÈRE* :
+•  Reste à payer (ce lot) : {{reste_a_payer}}
+🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*
 
-*Votre réussite est notre priorité !*`,
+Veuillez prévoir le règlement total pour récupérer vos poussins.
+
+Merci de votre confiance !
+L'équipe Ivoire Couvée d'Or.`,
     isActive: true,
     description: 'Message envoyé lors du transfert des œufs vers les paniers d\'éclosion.'
   },
