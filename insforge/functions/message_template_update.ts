@@ -17,15 +17,16 @@ export default async function (req: Request): Promise<Response> {
     const client = createClient({ baseUrl, anonKey })
 
     const body = await req.json()
-    const { id, ...updates } = body
+    const { id } = body
+    const updates = body.updates || {}
 
     if (!id) throw new Error('Template ID is required')
 
-    const dbUpdates: any = { ...updates }
-    if (updates.isActive !== undefined) {
-      dbUpdates.is_active = updates.isActive
-      delete dbUpdates.isActive
-    }
+    const dbUpdates: any = {}
+    if (updates.name) dbUpdates.name = updates.name
+    if (updates.content) dbUpdates.content = updates.content
+    if (updates.category) dbUpdates.category = updates.category
+    if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive
     dbUpdates.updated_at = new Date().toISOString()
 
     const { data, error } = await client.database

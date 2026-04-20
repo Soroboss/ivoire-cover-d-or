@@ -2,106 +2,104 @@ import type { MessageTemplate } from '../types';
 
 export const DEFAULT_TEMPLATES: Omit<MessageTemplate, 'id' | 'updatedAt' | 'createdAt'>[] = [
   {
-    name: "Accusé de Réception",
+    name: 'Accusé de Réception',
     category: 'RECEPTION',
-    description: "Envoyé lors du dépôt des œufs au couvoir.",
-    content: `🧾 *ACCUSÉ DE RÉCEPTION - IVOIRE COUVÉE D'OR*
+    content: `🌟 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 🌟
 
-👤 Client : *{{client_name}}*
-📅 Date de dépôt : {{date_reception}}
+Cher(e) *{{client_name}}*,
 
-📦 *DÉTAIL DES LOTS* :
+Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :
+
+📅 *Dépôt le* : {{date_reception}}
+📦 *Détail des lots* :
 {{details_lots}}
 
-💰 *SITUATION FINANCIÈRE* :
-- Coût Total : {{montant_total}}
-- Acompte versé : {{acompte}}
-🚩 *RESTE À PAYER : {{reste_a_payer}}*
+💰 *SUIVI FINANCIER* :
+- Montant total : {{montant_total}} F
+- Acompte versé : {{acompte}} F
+🚩 *Reste à régler : {{reste_a_payer}} F*
 
 🔍 *PROCHAINES ÉTAPES* :
-- Mirage technique : J+14
-- Éclosion : Selon type d'oeuf
+1️⃣ Mirage technique (J+14) pour vérifier la fertilité.
+2️⃣ Éclosion finale prévue selon le cycle.
 
-⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.
+_Veuillez conserver ce message comme preuve de dépôt. Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_
 
-_Merci de votre confiance !_ 
-*L'équipe Ivoire Couvée d'Or.*`,
-    isActive: true
+📞 Besoin d'aide ? Contactez-nous au : +225 07 07 43 14 00`,
+    isActive: true,
+    description: 'Message de bienvenue envoyé lors du dépôt des œufs.'
   },
   {
-    name: "Bilan du Mirage",
+    name: 'Bilan du Mirage',
     category: 'MIRAGE',
-    description: "Résultats techniques après 14 jours d'incubation.",
-    content: `🕯️ *BILAN DU MIRAGE (TRANSPARENCE)*
+    content: `🕯️ *RÉSULTATS DU MIRAGE TECHNIQUE* 🕯️
 
-👤 Client : *{{client_name}}*
-🐣 Lot : *{{quantite}} {{type_oeuf}}s*
+Bonjour *{{client_name}}*,
 
-📊 *RÉSULTATS TECHNIQUES* :
-- ✅ Œufs fertiles (viables) : *{{viables}}*
-- ⚪ Œufs clairs (inféconds) : {{clairs}}
-- ❌ Œufs pourris / morts : {{pourris}}
-- 🧬 Taux de fécondité : *{{taux_fecondite}}*
+Nos experts ont terminé l'analyse de fertilité de votre lot mis en incubation le {{date_reception}} :
 
-📅 *Étape suivante* : Éclosion prévue le *{{date_eclosion}}*.
+📊 *STATISTIQUES TECHNIQUES* :
+- 🧪 Lot total : {{quantite}} {{type_oeuf}}s
+- 💎 Œufs fertiles : *{{fertile}}*
+- ⚪ Œufs non-fertiles (clairs) : {{clairs}}
+- ⚠️ Œufs pourris/écartés : {{pourris}}
 
-_Merci de votre confiance !_ 
-*L'équipe Ivoire Couvée d'Or.*`,
-    isActive: true
+✅ *PROCHAINE ÉTAPE* : Vos {{fertile}} œufs fertiles poursuivent leur développement vers l'éclosion.
+
+_Nous restons mobilisés pour vous garantir le meilleur taux de réussite._
+
+*Ivoire Couvée d'Or — L'innovation au service de votre élevage.*`,
+    isActive: true,
+    description: 'Bilan envoyé après le mirage (souvent J+14).'
   },
   {
-    name: "Démarrage Éclosion",
+    name: 'Démarrage Éclosion',
     category: 'ECLOSION',
-    description: "Transfert des œufs vers les paniers d'éclosion.",
-    content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*
+    content: `🚀 *ANALYSE DE PRÉ-ÉCLOSION - IVOIRE COUVÉE D'OR* 🚀
 
-Bonjour {{client_name}},
+Bonjour *{{client_name}}*,
 
-🐣 Le transfert de votre lot en paniers d'éclosion a été effectué avec succès.
+Bonne nouvelle ! Le cycle arrive à son terme. Vos œufs ont été transférés ce matin en paniers d'éclosion.
 
-📊 *INFOS TECHNIQUES* :
-- 🧪 Lot : {{quantite}} {{type_oeuf}}s
-- ✅ Œufs viables en éclosion : *{{viables}}*
-- 🏷️ Identifiant : {{nom_depart}}
+📐 *POINT TECHNIQUE* :
+- Identifiant Lot : {{nom_depart}}
+- Œufs viables transférés : *{{viables}}*
 
-📌 *SITUATION FINANCIÈRE* :
+💳 *SITUATION COMPTABLE* :
 - Reste à payer (ce lot) : {{reste_a_payer}}
 {{dettes_anterieures}}
-🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*
+🚩 *SOLDE TOTAL À RÉGLER : {{total_global}}*
 
-📦 *Les premières sorties sont attendues demain.*
-_Veuillez prévoir le règlement total pour récupérer vos poussins._
+📦 *L'éclosion est attendue dans les prochaines 24h/48h.*
+_Merci de prévoir le règlement du solde pour enlèvement de vos sujets._
 
-Merci de votre confiance !
-*L'équipe Ivoire Couvée d'Or.*`,
-    isActive: true
+*Votre réussite est notre priorité !*`,
+    isActive: true,
+    description: 'Message envoyé lors du transfert des œufs vers les paniers d\'éclosion.'
   },
   {
-    name: "Bilan Sortie Éclosion",
+    name: 'Bilan Sortie Éclosion',
     category: 'FINANCE',
-    description: "Bilan technique et financier final pour la récupération.",
-    content: `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*
+    content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣
 
-👤 Client : *{{client_name}}* ({{client_id_ext}})
-🐣 Lot : *{{quantite}} {{type_oeuf}}s*
+Cher(e) *{{client_name}}*,
 
-🔍 *RÉSULTATS TECHNIQUES* :
-- ✅ Œufs viables mis en éclosion : {{viables}}
-- 🐥 Poussins prêts : *{{poussins_nes}}* (Sortie ce jour : +{{delta_nes}})
-- ⚠️ Pertes à l'éclosion : {{morts}}
-- 🏆 Taux de réussite : *{{taux_reussite}}*
+Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :
 
-💰 *SITUATION FINANCIÈRE* :
-- Montant Total dû : {{montant_total}}
-- Remises/Avoirs : {{remises_avoirs}}
-- Déjà encaissé : {{deja_encaisse}}
-🚩 *NET À PAYER : {{reste_a_payer}}*
+📈 *RÉSULTATS DE PRODUCTION* :
+- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s
+- ✨ Poussins nés viables : *{{poussins}}*
+- 🌟 Taux de réussite : *{{taux_eclosion}}%*
 
-📦 *Venez chercher vos poussins demain après-midi.*
-_Prévoyez le solde pour la livraison._
+💵 *RÉCAPITULATIF FINANCIER* :
+- Total Prestation : {{montant_total}} F
+- Acomptes reçus : {{acomptes}} F
+🚩 *NET À PAYER : {{reste_a_payer}} F*
 
-_Merci de votre confiance !_ 
-*L'équipe Ivoire Couvée d'Or.*`,
-    isActive: true
+_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._
+
+📍 *Ivoire Couvée d'Or* — Excellence & Performance`,
+    isActive: true,
+    description: 'Bilan de sortie final avec statistiques et solde financier.'
   }
 ];
