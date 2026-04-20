@@ -17,6 +17,7 @@ import {
   Landmark,
   Wallet,
   ScrollText,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppProvider';
@@ -71,6 +72,7 @@ const Sidebar = () => {
     { name: 'Bulletin de salaire', path: '/bulletin-salaire', icon: <ScrollText size={20} />, permission: 'finances' },
     { name: 'Factures', path: '/factures', icon: <FileText size={20} />, permission: 'factures' },
     { name: 'Historique', path: '/historique', icon: <History size={20} />, permission: 'historique' },
+    { name: 'Gestion WhatsApp', path: '/whatsapp', icon: <MessageCircle size={20} />, permission: 'whatsapp' },
     { name: 'Administration', path: '/utilisateurs', icon: <Shield size={20} />, permission: 'administration' },
   ];
 

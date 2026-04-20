@@ -10,6 +10,7 @@ export const PERMISSION_CATALOG: { id: PermissionKey; label: string }[] = [
   { id: 'factures', label: 'Factures' },
   { id: 'historique', label: 'Historique' },
   { id: 'administration', label: 'Administration (comptes)' },
+  { id: 'whatsapp', label: 'Gestion WhatsApp' },
 ];
 
 const ALL_KEYS: PermissionKey[] = PERMISSION_CATALOG.map((p) => p.id);
@@ -33,7 +34,7 @@ export function defaultPermissionsForRole(role: Role): PermissionKey[] {
     case 'Technicien':
       return ['couvaisons', 'clients', 'machines', 'analyses'];
     case 'Réception/Caisse':
-      return ['dashboard', 'couvaisons', 'clients', 'finances', 'factures', 'historique'];
+      return ['dashboard', 'couvaisons', 'clients', 'finances', 'factures', 'historique', 'whatsapp'];
     case 'Finance':
       return ['dashboard', 'clients', 'couvaisons', 'finances', 'factures', 'historique'];
     case 'Comptable':

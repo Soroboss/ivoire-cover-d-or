@@ -13,6 +13,7 @@ import Utilisateurs from './pages/Utilisateurs';
 import Historique from './pages/Historique';
 import ClientsDB from './pages/ClientsDB';
 import Traitement from './pages/Traitement';
+import WhatsAppManagement from './pages/WhatsAppManagement';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import { useAuth } from './context/AuthContext';
@@ -69,6 +70,7 @@ function App() {
           <Route path="factures" element={hasPermission(currentUser, 'factures') ? <Factures /> : <Navigate to={fallbackPath} replace />} />
           <Route path="historique" element={hasPermission(currentUser, 'historique') ? <Historique /> : <Navigate to={homePath} replace />} />
           <Route path="utilisateurs" element={hasPermission(currentUser, 'administration') ? <Utilisateurs /> : <Navigate to={fallbackPath} replace />} />
+          <Route path="whatsapp" element={hasPermission(currentUser, 'whatsapp') ? <WhatsAppManagement /> : <Navigate to={fallbackPath} replace />} />
           <Route path="admin" element={hasPermission(currentUser, 'administration') ? <Navigate to="/utilisateurs" replace /> : <Navigate to={homePath} replace />} />
         </Route>
 

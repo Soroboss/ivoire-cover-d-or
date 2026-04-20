@@ -6,25 +6,17 @@ import { MirageForm } from '../components/couvaisons/MirageForm';
 import { EclosionHub } from '../components/couvaisons/EclosionHub';
 import { PlacementForm } from '../components/couvaisons/PlacementForm';
 import { ClientFinanceCardModal } from '../components/clients/ClientFinanceCardModal';
-import type { StatutCouvaison, Client } from '../types';
+import type { StatutCouvaison, Client, MessageTemplate } from '../types';
 import { format, parseISO } from 'date-fns';
 import { Search, Filter, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2 } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { isIsoDateInRange } from '../lib/dateRangeFilter';
-import { resteLot } from '../lib/financeCalculations';
-
-const formatWhatsAppNumber = (phone?: string) => {
-  if (!phone) return '';
-  const cleaned = phone.replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('+')) return cleaned.substring(1);
-  if (cleaned.length === 10) return '225' + cleaned;
-  return cleaned;
-};
+import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../lib/whatsappTemplates';
 
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
 const Couvaisons = () => {
-  const { couvaisons, clients, machines, transactions, deleteCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, machines, transactions, messageTemplates, deleteCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -52,10 +44,6 @@ const Couvaisons = () => {
         if (sortBy === 'reception') {
           return new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime();
         } else {
-          // Registration order (using id if it's sequential or just reverse order of creation if we assume later ids are newer)
-          // Since we might not have a createdAt, let's assume registration order is the reverse order of the 'couvaisons' array if it was appended.
-          // Or better, if we have an id that is date-based or just use the index.
-          // Actually, let's just use the order in which they appear in the original array if it's considered registration order.
           return couvaisons.indexOf(b) - couvaisons.indexOf(a);
         }
       });
@@ -78,70 +66,38 @@ const Couvaisons = () => {
   const sendClientWhatsApp = async (
     clientId: string | undefined,
     couvaisonId: string,
-    template: string,
-    message: string,
+    category: MessageTemplate['category'],
+    fallbackMessage: string,
     phone?: string
   ) => {
     if (!phone || !clientId) return;
     
-    let finalMessage = message;
+    const client = clients.find(cl => cl.id === clientId);
     const couv = couvaisons.find(c => c.id === couvaisonId);
-    if (couv) {
-      const total = couv.nombreOeufs * couv.prixUnitaire;
-      const rest = resteLot(transactions, couv.id, total);
-      const acompte = total - rest;
-      const viables = couv.nombreOeufs - (couv.oeufsClairs || 0) - (couv.oeufsPourris || 0);
+    if (!client || !couv) return;
 
-      const sectionTitle = template === 'mirage' ? '🕯️ BILAN DU MIRAGE' : template === 'eclosion' ? '🏁 BILAN D\'ÉCLOSION' : '📝 RÉCAPITULATIF DU LOT';
-      
-      finalMessage = `*${sectionTitle}*\n\n` + message + `\n\n`;
-      finalMessage += `📊 *DONNÉES TECHNIQUES* :\n`;
-      finalMessage += `- 🥚 Lot initial : ${couv.nombreOeufs} ${couv.typeOeuf}s\n`;
-      finalMessage += `- 📅 Dépôt le : ${couv.dateReception ? format(parseISO(couv.dateReception), 'dd/MM/yyyy') : '-'}\n`;
-      
-      if (couv.oeufsClairs != null || couv.oeufsPourris != null) {
-        const tr = ((viables / couv.nombreOeufs) * 100).toFixed(1);
-        finalMessage += `- ⚪ Œufs clairs : ${couv.oeufsClairs || 0}\n`;
-        finalMessage += `- ❌ Œufs pourris : ${couv.oeufsPourris || 0}\n`;
-        finalMessage += `- ✅ Œufs viables : *${viables}*\n`;
-        finalMessage += `- 🧬 Taux fécondité : *${tr}%*\n`;
-      }
-      
-      if (couv.poussinsNes != null) {
-        const te = viables > 0 ? ((couv.poussinsNes / viables) * 100).toFixed(1) : '0';
-        finalMessage += `- 🐥 Poussins nés : *${couv.poussinsNes}*\n`;
-        finalMessage += `- ⚠️ Pertes éclosion : ${couv.mortsEnCoque || 0}\n`;
-        finalMessage += `- 🏆 Taux de réussite : *${te}%*\n`;
-      }
+    const template = messageTemplates.find(t => t.category === category && t.isActive) 
+      || { name: 'Fallback', category, content: fallbackMessage, isActive: true };
 
-      finalMessage += `\n💰 *SITUATION FINANCIÈRE* :\n`;
-      finalMessage += `- Coût total : ${total.toLocaleString()} F\n`;
-      finalMessage += `- Acompte versé : ${acompte.toLocaleString()} F\n`;
-      
-      if (rest > 0) {
-        finalMessage += `🚩 *RESTE À PAYER : ${rest.toLocaleString()} F*\n`;
-      } else {
-        finalMessage += `✅ *LOT ENTIÈREMENT SOLDÉ*\n`;
-      }
-      
-      finalMessage += `\n_Ivoire Couvée d'Or - Excellence Avicole_`;
-    }
+    const finalMessage = formatWhatsAppMessage(template as any, {
+      client,
+      couvaison: couv,
+      transactions
+    });
 
-    const url = `https://wa.me/${formatWhatsAppNumber(phone)}?text=${encodeURIComponent(finalMessage)}`;
+    const url = `https://wa.me/${normalizePhoneForWhatsApp(phone)}?text=${encodeURIComponent(finalMessage)}`;
     try {
       await addClientMessage({
         clientId,
         couvaisonId,
         canal: 'WhatsApp',
         statut: 'Envoye',
-        template,
+        template: category,
         message: finalMessage,
         sentByUserId: currentUser?.id,
         sentByName: currentUser?.nom,
       });
-    } catch {
-      // No-op
-    }
+    } catch { /* no-op */ }
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -400,7 +356,7 @@ const Couvaisons = () => {
                              onClick={() => sendClientWhatsApp(
                                client?.id,
                                c.id,
-                               'reception_en_attente',
+                               'RECEPTION',
                                `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la bonne réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\nIls sont actuellement en salle d'attente et seront prochainement placés en machine par l'équipe technique.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
                                client?.telephone,
                              )}
@@ -422,7 +378,7 @@ const Couvaisons = () => {
                              onClick={() => sendClientWhatsApp(
                                client?.id,
                                c.id,
-                               'planning_incubation',
+                               'RECEPTION',
                                `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (réception +14 j.) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
                                client?.telephone,
                              )}
@@ -439,7 +395,7 @@ const Couvaisons = () => {
                                onClick={() => sendClientWhatsApp(
                                  client?.id,
                                  c.id,
-                                 'bilan_mirage',
+                                 'MIRAGE',
                                   `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)}*\n📈 Taux de fécondité : ${((c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}
@@ -473,7 +429,7 @@ const Couvaisons = () => {
                                onClick={() => sendClientWhatsApp(
                                  client?.id,
                                  c.id,
-                                 'bilan_eclosion',
+                                 'ECLOSION',
                                   `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0}*\n⚠️ Pertes (morts en coque/non éclos) : ${(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) - (c.poussinsNes || 0)}\n🏆 Taux de réussite : ${((c.poussinsNes || 0) / (c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) * 100).toFixed(1)}%\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}

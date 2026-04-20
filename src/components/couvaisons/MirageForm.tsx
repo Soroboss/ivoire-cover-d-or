@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { format, parseISO } from 'date-fns';
+import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, clients, updateCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, machines, clients, messageTemplates, updateCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   
@@ -46,14 +47,6 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
 
   const totalPlaque = emplacements.reduce((sum, emp) => sum + (Number(emp.quantite) || 0), 0);
 
-  const normalizePhoneForWhatsApp = (phone?: string) => {
-    if (!phone) return '';
-    const cleaned = phone.replace(/[^\d+]/g, '');
-    if (cleaned.startsWith('+')) return cleaned.substring(1);
-    if (cleaned.length === 10) return '225' + cleaned;
-    return cleaned;
-  };
-
   const oeufsRestants = couv.nombreOeufs - clairs - pourris;
   const oeufsFecondes = oeufsRestants;
   const tauxFecondite = couv.nombreOeufs > 0 ? (oeufsFecondes / couv.nombreOeufs) * 100 : 0;
@@ -63,16 +56,27 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
   const handleMirageWhatsApp = async () => {
     if (!client?.telephone || !couv) return;
 
-    const message = `🕯️ *BILAN DU MIRAGE (TRANSPARENCE)*\n\n` +
-      `👤 Client : *${client.nom}*\n` +
-      `🐣 Lot : *${couv.nombreOeufs} ${couv.typeOeuf}s*\n\n` +
-      `📊 *RÉSULTATS TECHNIQUES* :\n` +
-      `- ✅ Œufs fertiles (viables) : *${oeufsFecondes}*\n` +
-      `- ⚪ Œufs clairs (inféconds) : ${clairs}\n` +
-      `- ❌ Œufs pourris / morts : ${pourris}\n` +
-      `- 🧬 Taux de fécondité : *${tauxFecondite.toFixed(1)}%*\n\n` +
-      `📅 *Étape suivante* : Éclosion prévue le *${couv.dateEclosionPrevue ? format(parseISO(couv.dateEclosionPrevue), 'dd/MM/yyyy') : '?'}*.\n\n` +
-      `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`;
+    const template = messageTemplates.find(t => t.category === 'MIRAGE' && t.isActive) 
+       || { content: `🕯️ *BILAN DU MIRAGE (TRANSPARENCE)*\n\n` +
+       `👤 Client : *{{client_name}}*\n` +
+       `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +
+       `📊 *RÉSULTATS TECHNIQUES* :\n` +
+       `- ✅ Œufs fertiles (viables) : *{{viables}}*\n` +
+       `- ⚪ Œufs clairs (inféconds) : {{clairs}}\n` +
+       `- ❌ Œufs pourris / morts : {{pourris}}\n` +
+       `- 🧬 Taux de fécondité : *{{taux_fecondite}}*\n\n` +
+       `📅 *Étape suivante* : Éclosion prévue le *{{date_eclosion}}*.\n\n` +
+       `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+ 
+     const message = formatWhatsAppMessage(template as any, {
+       client,
+       couvaison: { ...couv, oeufsClairs: clairs, oeufsPourris: pourris },
+       extra: {
+         viables: oeufsFecondes,
+         clairs,
+         pourris,
+       }
+     });
 
     try {
       await addClientMessage({

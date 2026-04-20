@@ -11,6 +11,7 @@ import type {
   Depense,
   SalarieAgent,
   ClientFinancialSummary,
+  MessageTemplate,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
@@ -27,6 +28,7 @@ interface AppState {
   clientMessages: ClientMessage[];
   depenses: Depense[];
   clientSummaries: ClientFinancialSummary[];
+  messageTemplates: MessageTemplate[];
   addCouvaison: (couv: Omit<Couvaison, 'id' | 'clientId'>, clientInfos: Omit<Client, 'id'>) => Promise<void>;
   /** Plusieurs lots (types d’œufs différents) pour une même réception client — une synchro API à la fin */
   addCouvaisonsBatch: (
@@ -50,6 +52,9 @@ interface AppState {
   addSalaireAgent: (a: Omit<SalarieAgent, 'id' | 'createdAt'>) => Promise<void>;
   updateSalaireAgent: (id: string, updates: Partial<Omit<SalarieAgent, 'id' | 'createdAt'>>) => Promise<void>;
   deleteSalaireAgent: (id: string) => Promise<void>;
+  addMessageTemplate: (t: Omit<MessageTemplate, 'id' | 'updatedAt'>) => Promise<void>;
+  updateMessageTemplate: (id: string, updates: Partial<MessageTemplate>) => Promise<void>;
+  deleteMessageTemplate: (id: string) => Promise<void>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
   addLog: (action: AuditLog['action'], target: string, details: string, targetId?: string, metadata?: Record<string, any>) => void;
 }
@@ -75,6 +80,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [salaireAgents, setSalaireAgents] = useState<SalarieAgent[]>([]);
   const [clientSummaries, setClientSummaries] = useState<ClientFinancialSummary[]>([]);
+  const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>([]);
 
   const refreshSummaries = async () => {
     try {
@@ -112,16 +118,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ]
 
       // Chargement parallèle — toutes les requêtes lancées simultanément.
-      const [
-        clientsResult,
-        couvResult,
-        machinesResult,
-        txResult,
-        logsResult,
-        receiptResult,
-        messagesResult,
-        depResult,
         agResult,
+        templatesResult,
       ] = await Promise.allSettled([
         callBackendFunction<{ clients: Client[] }>('clients_list', {}),
         callBackendFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
@@ -132,6 +130,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         callBackendFunction<{ messages: ClientMessage[] }>('client_messages_list', {}),
         callBackendFunction<{ depenses: Depense[] }>('depenses_list', {}),
         callBackendFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {}),
+        callBackendFunction<{ templates: MessageTemplate[] }>('message_templates_list', {}),
       ]);
 
       if (clientsResult.status === 'fulfilled') setClients(clientsResult.value.clients);
@@ -142,6 +141,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (messagesResult.status === 'fulfilled') setClientMessages(messagesResult.value.messages);
       if (depResult.status === 'fulfilled') setDepenses(depResult.value.depenses);
       if (agResult.status === 'fulfilled') setSalaireAgents(agResult.value.agents);
+      if (templatesResult.status === 'fulfilled') setMessageTemplates(templatesResult.value.templates);
 
       if (machinesResult.status === 'fulfilled') {
         if (machinesResult.value.machines.length === 0) {
@@ -494,6 +494,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  const addMessageTemplate = async (t: Omit<MessageTemplate, 'id' | 'updatedAt'>) => {
+    const res = await callBackendFunction<{ template: MessageTemplate }>('message_template_create', {
+      ...t,
+      updatedAt: new Date().toISOString(),
+    })
+    if (res.template) {
+      setMessageTemplates(prev => [...prev, res.template])
+      addLog('CRÉATION', 'WhatsApp', `Nouveau template: ${t.name}.`)
+    }
+  }
+
+  const updateMessageTemplate = async (id: string, updates: Partial<MessageTemplate>) => {
+    const res = await callBackendFunction<{ template: MessageTemplate }>('message_template_update', {
+      id,
+      updates: { ...updates, updatedAt: new Date().toISOString() },
+    })
+    if (res.template) {
+      setMessageTemplates(prev => prev.map(t => (t.id === id ? res.template : t)))
+      addLog('MODIFICATION', 'WhatsApp', `Template mis à jour: ${res.template.name}.`)
+    }
+  }
+
+  const deleteMessageTemplate = async (id: string) => {
+    await callBackendFunction('message_template_delete', { id })
+    setMessageTemplates(prev => prev.filter(t => t.id !== id))
+    addLog('SUPPRESSION', 'WhatsApp', `Template supprimé (ID...${id.slice(-4)}).`)
+  }
+
   const value = useMemo(() => ({
     logs,
     receiptArchives,
@@ -523,6 +551,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateClient,
     addLog,
     clientSummaries,
+    messageTemplates,
+    addMessageTemplate,
+    updateMessageTemplate,
+    deleteMessageTemplate,
   }), [
     logs,
     receiptArchives,
@@ -533,7 +565,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     transactions,
     machines,
     salaireAgents,
-    clientSummaries
+    clientSummaries,
+    messageTemplates
   ]);
 
   return (

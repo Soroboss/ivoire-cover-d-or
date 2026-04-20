@@ -13,7 +13,8 @@ export type PermissionKey =
   | 'finances'
   | 'factures'
   | 'historique'
-  | 'administration';
+  | 'administration'
+  | 'whatsapp';
 export type CauseEchec = 'Infertilité' | 'Coupure Électrique' | 'Température/Humidité' | 'Infection' | 'Manutention' | 'Autre' | 'Aucune';
 
 /** prix : FCFA / œuf ; jours : réception → éclosion prévue (aligné sur couvaisonPlanning) */
@@ -168,6 +169,16 @@ export interface ClientMessage {
   sentByName?: string;
   sentAt: string;
   idempotencyKey?: string;
+}
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  category: 'RECEPTION' | 'MIRAGE' | 'ECLOSION' | 'FACTURE' | 'AUTRE';
+  content: string;
+  description?: string;
+  isActive: boolean;
+  updatedAt: string;
 }
 
 /** Catégories de charges (hors flux clients) — loyer, énergie, masse salariale, etc. */
