@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Phone, User, X, AlertTriangle } from 'lucide-react';
+import { Phone, User, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import type { TypeTransaction } from '../../types';
 import { normalizeTelephone } from '../../lib/phoneNormalize';
