@@ -115,24 +115,20 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
     // On cherche le template
     const template = messageTemplates.find(t => t.name === 'Accusé de Réception' && t.isActive)
       || messageTemplates.find(t => t.category === 'RECEPTION' && t.isActive)
-      || { content: `🌟 *BIENVENUE CHEZ IVOIRE COUVÉE D'OR* 🌟\n\n` +
+      || { content: `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\n` +
           `Cher(e) *{{client_name}}*,\n\n` +
-          `Nous sommes ravis de vous confirmer la prise en charge de vos œufs pour incubation. Notre équipe mettra tout en œuvre pour vous garantir un taux d'éclosion optimal.\n\n` +
-          `📦 *DÉTAIL DE VOTRE LOT* :\n` +
-          `- 🥚 Type d'œuf : *{{type_oeuf}}*\n` +
-          `- 🔢 Quantité déposée : *{{quantite}}* œufs\n\n` +
-          `📅 *CALENDRIER TECHNIQUE* :\n` +
-          `- 📥 Jour de dépôt : {{date_reception}}\n` +
-          `- 🔍 Jour de mirage : {{date_mirage}}\n` +
-          `- 🐣 Démarrage éclosion : {{date_eclosion}}\n\n` +
-          `💰 *SITUATION FINANCIÈRE* :\n` +
-          `- 💵 Montant total : {{montant_total}} FCFA\n` +
-          `- 💳 Acompte versé : {{acompte}} FCFA\n` +
-          `🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*\n\n` +
-          `Veuillez prévoir le règlement total pour récupérer vos poussins.\n\n` +
-          `Merci de votre confiance !\n` +
-          `L'équipe Ivoire Couvée d'Or.\n` +
-          `📞 Service client : +225 01 03 03 64 62` };
+          `Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :\n\n` +
+          `📅 *Dépôt le* : {{date_reception}}\n` +
+          `📦 *Détail des lots* :\n{{details_lots}}\n\n` +
+          `📊 *SUIVI FINANCIER* :\n` +
+          `- Montant total : {{montant_total}} F\n` +
+          `- Acompte versé : {{acompte}} F\n` +
+          `🚩 *Reste à régler : {{reste_a_payer}} F*\n\n` +
+          `🕒 *PROCHAINES ÉTAPES* :\n` +
+          `🔍 Mirage technique : environ le {{date_mirage}} (vérification de la fertilité).\n` +
+          `🐣 Éclosion finale prévue : environ le {{date_eclosion}}.\n\n` +
+          `_Veuillez conserver ce message comme preuve de dépôt. Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_\n\n` +
+          `🆘 Besoin d'aide ? Contactez-nous au : +225 01 03 03 64 62.` };
 
     const startIso = receptionDateInputToIso(dateReception);
     const startDate = parseISO(startIso);

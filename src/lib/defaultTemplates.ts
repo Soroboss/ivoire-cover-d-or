@@ -4,31 +4,28 @@ export const DEFAULT_TEMPLATES: Omit<MessageTemplate, 'id' | 'updatedAt' | 'crea
   {
     name: 'Accusé de Réception',
     category: 'RECEPTION',
-    content: `🌟 *BIENVENUE CHEZ IVOIRE COUVÉE D'OR* 🌟
+    content: `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝
 
 Cher(e) *{{client_name}}*,
 
-Nous sommes ravis de vous confirmer la prise en charge de vos œufs pour incubation. Notre équipe mettra tout en œuvre pour vous garantir un taux d'éclosion optimal.
+Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :
 
-📦 *DÉTAIL DE VOTRE LOT* :
-- 🥚 Type d'œuf : *{{type_oeuf}}*
-- 🔢 Quantité déposée : *{{quantite}}* œufs
+📅 *Dépôt le* : {{date_reception}}
+📦 *Détail des lots* :
+{{details_lots}}
 
-📅 *CALENDRIER TECHNIQUE* :
-- 📥 Jour de dépôt : {{date_reception}}
-- 🔍 Jour de mirage : {{date_mirage}}
-- 🐣 Démarrage éclosion : {{date_eclosion}}
+📊 *SUIVI FINANCIER* :
+- Montant total : {{montant_total}} F
+- Acompte versé : {{acompte}} F
+🚩 *Reste à régler : {{reste_a_payer}} F*
 
-💰 *SITUATION FINANCIÈRE* :
-- 💵 Montant total : {{montant_total}} FCFA
-- 💳 Acompte versé : {{acompte}} FCFA
-- 🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*
+🕒 *PROCHAINES ÉTAPES* :
+🔍 Mirage technique : environ le {{date_mirage}} (vérification de la fertilité).
+🐣 Éclosion finale prévue : environ le {{date_eclosion}}.
 
-Veuillez prévoir le règlement total pour récupérer vos poussins.
+_Veuillez conserver ce message comme preuve de dépôt. Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_
 
-Merci de votre confiance !
-L'équipe Ivoire Couvée d'Or.
-📞 Service client : +225 01 03 03 64 62`,
+🆘 Besoin d'aide ? Contactez-nous au : +225 01 03 03 64 62.`,
     isActive: true,
     description: 'Message de bienvenue envoyé lors du dépôt des œufs.'
   },
