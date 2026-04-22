@@ -124,6 +124,21 @@ L'équipe Ivoire Couvée d'Or.
     }
   };
 
+  const handleSendReminder = () => {
+    if (!client?.telephone) return;
+    const template = messageTemplates.find(t => t.name === 'Rappel de Collecte' && t.isActive)
+      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive);
+      
+    if (template) {
+       const msg = formatWhatsAppMessage(template as any, {
+         client,
+         couvaison: couv,
+         transactions
+       });
+       openWhatsApp(client.telephone, msg);
+    }
+  };
+
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -293,6 +308,15 @@ L'équipe Ivoire Couvée d'Or.
             <button type="button" onClick={onCancel} className="px-4 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50">
               Annuler
             </button>
+            {client?.telephone && (
+              <button 
+                type="button" 
+                onClick={handleSendReminder} 
+                className="px-3 py-2 bg-amber-50 text-amber-700 font-semibold rounded-md hover:bg-amber-100 transition-colors text-xs border border-amber-200"
+              >
+                🔔 Rappel
+              </button>
+            )}
             {canDelete && (
               <button type="button" onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-md hover:bg-red-100 transition-colors">
                 Supprimer

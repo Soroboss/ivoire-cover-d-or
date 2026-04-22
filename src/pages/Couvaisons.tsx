@@ -8,7 +8,7 @@ import { PlacementForm } from '../components/couvaisons/PlacementForm';
 import { ClientFinanceCardModal } from '../components/clients/ClientFinanceCardModal';
 import type { Client, MessageTemplate } from '../types';
 import { format, parseISO } from 'date-fns';
-import { Search, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2 } from 'lucide-react';
+import { Search, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2, Activity } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { isIsoDateInRange } from '../lib/dateRangeFilter';
 import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../lib/whatsappTemplates';
@@ -402,106 +402,119 @@ const Couvaisons = () => {
                          {c.statut}
                        </span>
                      </td>
-                     <td className="px-6 py-4 text-center space-x-2 sticky right-0 z-10 bg-white shadow-[rgba(0,0,0,0.1)_-4px_0_6px_-2px]">
-                       {c.statut === 'En attente' && (
-                         <div className="flex items-center justify-center gap-2">
-                           <button onClick={() => { setActiveId(c.id); setView('placement'); }} className="px-3 py-1 bg-brand-orange text-white text-xs font-semibold rounded hover:bg-brand-hover transition-colors whitespace-nowrap">
-                             Placer en machine
-                           </button>
-                           <button
-                             onClick={() => sendClientWhatsApp(
-                               client?.id,
-                               c.id,
-                               'RECEPTION',
-                               `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la bonne réception de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Veuillez conserver ce message comme preuve de dépôt. Merci !_`,
-                               client?.telephone,
-                             )}
-                             title="WhatsApp: Reçu en attente"
-                             className="p-2 bg-yellow-50 text-yellow-600 rounded-md hover:bg-yellow-100 transition-colors"
-                           >
-                             <MessageCircle size={18} />
-                           </button>
-                           {canDelete && (
-                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
-                               <Trash2 size={18} />
-                             </button>
-                           )}
-                         </div>
-                       )}
-                       {c.statut === 'En cours' && (
-                         <div className="flex items-center justify-center gap-2">
-                           <button
-                             onClick={() => sendClientWhatsApp(
-                               client?.id,
-                               c.id,
-                               'RECEPTION',
-                               `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la prise en charge technique de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Merci de votre confiance !_`,
-                               client?.telephone,
-                             )}
-                             title="WhatsApp: Réception & Planning"
-                             className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
-                           >
-                             <MessageCircle size={18} />
-                           </button>
-                           <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
-                             <Eye size={18} />
-                           </button>
-                           {mirageFait && (
-                             <button
-                               onClick={() => sendClientWhatsApp(
-                                 client?.id,
-                                 c.id,
-                                 'MIRAGE',
-                                  `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${viables}*\n📈 Taux de fécondité : ${(viables / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
-                                 client?.telephone,
-                               )}
-                               title="WhatsApp: Bilan Mirage"
-                               className="p-2 bg-teal-50 text-teal-600 rounded-md hover:bg-teal-100 transition-colors"
-                             >
-                               <MessageCircle size={18} />
-                             </button>
-                           )}
-                           <button
-                             onClick={() => handleOpenEclosionHub(c.id)}
-                             title="Éclosion : démarrage ou clôture (onglets)"
-                             className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
-                           >
-                             <Egg size={18} />
-                           </button>
-                           {canDelete && (
-                             <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
-                               <Trash2 size={18} />
-                             </button>
-                           )}
-                         </div>
-                       )}
-                       {c.statut === 'Terminé' && (
-                          <div className="text-xs text-brand-muted flex items-center justify-center gap-3">
-                             <div className="flex flex-col items-center">
-                               <CheckCircle size={16} className="text-green-500 mb-1" />
-                               {c.poussinsNes}/{viables}
-                             </div>
-                             <button
-                               onClick={() => sendClientWhatsApp(
-                                 client?.id,
-                                 c.id,
-                                 'ECLOSION',
-                                  `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0} / ${viables}*\n⚠️ Pertes (morts en coque/non éclos) : ${viables - (c.poussinsNes || 0)}\n🏆 Taux de réussite : *${(viables > 0 ? (c.poussinsNes || 0) / viables * 100 : 0).toFixed(1)}%*\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
-                                 client?.telephone,
-                               )}
-                               title="WhatsApp: Bilan Éclosion"
-                               className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
-                             >
-                               <MessageCircle size={18} />
-                             </button>
-                             {canDelete && (
-                               <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
-                                 <Trash2 size={18} />
-                               </button>
-                             )}
+                      <td className="px-6 py-4 text-center space-x-2 sticky right-0 z-10 bg-white shadow-[rgba(0,0,0,0.1)_-4px_0_6px_-2px]">
+                        {c.statut === 'En attente' && (
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => { setActiveId(c.id); setView('placement'); }} className="px-3 py-1 bg-brand-orange text-white text-xs font-semibold rounded hover:bg-brand-hover transition-colors whitespace-nowrap">
+                              Placer en machine
+                            </button>
+                            <button
+                              onClick={() => sendClientWhatsApp(
+                                client?.id,
+                                c.id,
+                                'RECEPTION',
+                                `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la bonne réception de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Veuillez conserver ce message comme preuve de dépôt. Merci !_`,
+                                client?.telephone,
+                              )}
+                              title="WhatsApp: Reçu en attente"
+                              className="p-2 bg-yellow-50 text-yellow-600 rounded-md hover:bg-yellow-100 transition-colors"
+                            >
+                              <MessageCircle size={18} />
+                            </button>
+                            {canDelete && (
+                              <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                                <Trash2 size={18} />
+                              </button>
+                            )}
                           </div>
-                       )}
-                     </td>
+                        )}
+                        {c.statut === 'En cours' && (
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => sendClientWhatsApp(
+                                client?.id,
+                                c.id,
+                                'RECEPTION',
+                                `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la prise en charge technique de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Merci de votre confiance !_`,
+                                client?.telephone,
+                              )}
+                              title="WhatsApp: Réception & Planning"
+                              className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                            >
+                              <MessageCircle size={18} />
+                            </button>
+                            <button onClick={() => handleOpenMirage(c.id)} title="Enregistrer Mirage" className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors">
+                              <Eye size={18} />
+                            </button>
+                            {mirageFait && (
+                              <button
+                                onClick={() => sendClientWhatsApp(
+                                  client?.id,
+                                  c.id,
+                                  'MIRAGE',
+                                   `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${viables}*\n📈 Taux de fécondité : ${(viables / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
+                                  client?.telephone,
+                                )}
+                                title="WhatsApp: Bilan Mirage"
+                                className="p-2 bg-teal-50 text-teal-600 rounded-md hover:bg-teal-100 transition-colors"
+                              >
+                                <MessageCircle size={18} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleOpenEclosionHub(c.id)}
+                              title="Éclosion : démarrage ou clôture (onglets)"
+                              className="p-2 bg-amber-50 text-amber-600 rounded-md hover:bg-amber-100 transition-colors"
+                            >
+                              <Egg size={18} />
+                            </button>
+                            {canDelete && (
+                              <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {c.statut === 'Terminé' && (
+                           <div className="flex items-center justify-center gap-2">
+                              <div className="flex flex-col items-center mr-2 text-xs text-brand-muted">
+                                <CheckCircle size={14} className="text-green-500 mb-0.5" />
+                                {c.poussinsNes}/{viables}
+                              </div>
+                              <button
+                                onClick={() => sendClientWhatsApp(
+                                  client?.id,
+                                  c.id,
+                                  'ECLOSION',
+                                   `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0} / ${viables}*\n⚠️ Pertes (morts en coque/non éclos) : ${viables - (c.poussinsNes || 0)}\n🏆 Taux de réussite : *${(viables > 0 ? (c.poussinsNes || 0) / viables * 100 : 0).toFixed(1)}%*\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
+                                  client?.telephone,
+                                )}
+                                title="WhatsApp: Bilan Éclosion"
+                                className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                              >
+                                <MessageCircle size={18} />
+                              </button>
+                              <button
+                                onClick={() => sendClientWhatsApp(
+                                  client?.id,
+                                  c.id,
+                                  'SUIVI',
+                                   `◈ *SUIVI & CONSEILS - IVOIRE COUVÉE D'OR*\n\nBonjour *${client?.nom || ''}*, comment se portent vos nouveaux poussins ?\n\nVoici quelques rappels pour assurer leur survie :\n◈ *CHALEUR* : Maintenez une température stable (env. 32-35°C) sous l'éleveuse.\n◈ *EAU* : De l'eau propre et tiède disponible en permanence avec de l'anti-stress.\n◈ *ALIMENT* : Utilisez un aliment "Démarrage" de qualité dès les premières heures.\n\n◈ Nous restons à votre écoute pour tout conseil technique !\nL'équipe expertise Ivoire Couvée d'Or.\n📞 Service client : +225 01 03 03 64 62`,
+                                  client?.telephone,
+                                )}
+                                title="WhatsApp: Suivi & Conseils"
+                                className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                              >
+                                <Activity size={18} />
+                              </button>
+                              {canDelete && (
+                                <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors" title="Supprimer le lot">
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                           </div>
+                        )}
+                      </td>
                    </tr>
                  );
                }) : (

@@ -398,28 +398,50 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
           <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-4 text-[11px] relative group">
             <div className="flex justify-between font-bold text-brand-dark mb-2 border-b border-slate-200 pb-1">
               <span>PRÉ-RÉGLEMENT ({selectedLotIds.length} lot{selectedLotIds.length > 1 ? 's' : ''})</span>
-              <button 
-                type="button"
-                onClick={() => {
-                  if (!selectedClient) return;
-                  const totalDue = clientLotsWithInfo.filter(l => selectedLotIds.includes(l.id)).reduce((s,l) => s + l.totalDue, 0);
-                  const msg = `🧾 *SITUATION FINANCIÈRE*\n\n` +
-                    `👤 Client: *${selectedClient.nom}*\n` +
-                    `📦 Lots: ${selectedLotIds.length}\n\n` +
-                    `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
-                    `🎁 *Remise:* ${totalRemisesSelected > 0 ? totalRemisesSelected.toLocaleString() + ' F' : '-'}\n` +
-                    `📑 *Avoir:* ${totalAvoirsSelected > 0 ? totalAvoirsSelected.toLocaleString() + ' F' : '-'}\n` +
-                    `✅ *Net déjà encaissé:* ${totalNetEncashedSelected.toLocaleString()} F\n\n` +
-                    `🚩 *RESTE TOTAL À PAYER:* *${totalBalanceSelected.toLocaleString()} F*\n\n` +
-                    `💸 *Montant versé ce Jour:* ${valMontant > 0 ? valMontant.toLocaleString() + ' F' : '...'}\n\n` +
-                    `_Merci de votre confiance !_`;
-                  
-                  openWhatsApp(selectedClient.telephone, msg);
-                }}
-                className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-bold"
-              >
-                <Phone size={14} /> Partager WhatsApp
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (!selectedClient) return;
+                    const totalDue = clientLotsWithInfo.filter(l => selectedLotIds.includes(l.id)).reduce((s,l) => s + l.totalDue, 0);
+                    const msg = `🧾 *SITUATION FINANCIÈRE ATTACHÉE*\n\n` +
+                      `👤 Client: *${selectedClient.nom}*\n` +
+                      `📦 Lots: ${selectedLotIds.length}\n\n` +
+                      `💰 *Montant Total dû:* ${totalDue.toLocaleString()} F\n` +
+                      `🎁 *Remise:* ${totalRemisesSelected > 0 ? (totalRemisesSelected + totalAvoirsSelected).toLocaleString() + ' F' : '-'}\n` +
+                      `✅ *Net déjà encaissé:* ${totalNetEncashedSelected.toLocaleString()} F\n\n` +
+                      `🚩 *RESTE TOTAL À PAYER:* *${totalBalanceSelected.toLocaleString()} F*\n\n` +
+                      `_Merci de votre confiance !_ \nIvoire Couvée d'Or.`;
+                    
+                    openWhatsApp(selectedClient.telephone, msg);
+                  }}
+                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-bold text-[9px]"
+                  title="Partager le bilan actuel"
+                >
+                  <Phone size={12} /> Bilan
+                </button>
+                {valMontant > 0 && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (!selectedClient) return;
+                      const msg = `🧾 *QUITTANCE DE PAIEMENT - IVOIRE COUVÉE D'OR*\n\n` +
+                        `👤 Client: *${selectedClient.nom}*\n` +
+                        `💰 *Montant Versé ce jour:* *${valMontant.toLocaleString()} F*\n` +
+                        `📅 Date: ${format(new Date(), 'dd/MM/yyyy HH:mm')}\n\n` +
+                        `◈ *SITUATION MISE À JOUR*\n` +
+                        `🚩 Reste total à régler: *${Math.max(0, totalBalanceSelected - valMontant).toLocaleString()} F*\n\n` +
+                        `_Ce message vaut preuve de paiement. Merci !_`;
+                      
+                      openWhatsApp(selectedClient.telephone, msg);
+                    }}
+                    className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-bold text-[9px]"
+                    title="Envoyer la quittance après saisie"
+                  >
+                    <CheckCircle size={12} className="text-emerald-500" /> Quittance
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="flex justify-between">

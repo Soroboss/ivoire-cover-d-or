@@ -12,7 +12,9 @@ import {
   CheckCircle,
   Copy,
   ChevronRight,
-  Eye
+  Eye,
+  Activity,
+  ShieldAlert
 } from 'lucide-react';
 import type { MessageTemplate } from '../types';
 import { format } from 'date-fns';
@@ -44,6 +46,7 @@ const WhatsAppManagement = () => {
     { key: '{{taux_eclosion}}', desc: 'Taux d\'éclosion (incluant %)' },
     { key: '{{taux_fecondite}}', desc: 'Taux de fécondité (Mirage)' },
     { key: '{{taux_reussite}}', desc: 'Taux d\'éclosion (Bilan)' },
+    { key: '{{montant_paye}}', desc: 'Montant versé ce jour (Quittance)' },
   ];
 
   const filteredTemplates = useMemo(() => {
@@ -60,7 +63,7 @@ const WhatsAppManagement = () => {
       } else {
         await addMessageTemplate({
           name: editingTemplate.name,
-          category: editingTemplate.category,
+          category: editingTemplate.category as any,
           content: editingTemplate.content,
           description: editingTemplate.description || '',
           isActive: true
@@ -94,6 +97,7 @@ const WhatsAppManagement = () => {
       .replace(/{{viables}}/g, '480')
       .replace(/{{poussins}}/g, '450')
       .replace(/{{taux_fecondite}}/g, '85%')
+      .replace(/{{montant_paye}}/g, '10 000')
       .replace(/{{taux_reussite}}/g, '80%');
   };
 
@@ -103,6 +107,8 @@ const WhatsAppManagement = () => {
     { id: 'MIRAGE', label: 'Mirage', icon: <Eye size={18} /> },
     { id: 'ECLOSION', label: 'Éclosion', icon: <CheckCircle size={18} /> },
     { id: 'FINANCE', label: 'Finance/Règlement', icon: <Hash size={18} /> },
+    { id: 'SUIVI', label: 'Suivi/Conseils', icon: <Activity size={18} /> },
+    { id: 'ALERTE', label: 'Alertes', icon: <ShieldAlert size={18} /> },
   ];
 
   return (

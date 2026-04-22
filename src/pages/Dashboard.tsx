@@ -123,7 +123,7 @@ const EmptyChart = ({ children }: { children: React.ReactNode }) => (
 );
 
 const Dashboard = () => {
-  const { couvaisons, transactions, clients, machines, depenses, clientSummaries } = useAppContext();
+  const { couvaisons, transactions, clients, machines, depenses, clientSummaries, messageTemplates } = useAppContext();
   const { currentUser } = useAuth();
   const isCaisse = currentUser?.role === 'Réception/Caisse';
 
@@ -297,13 +297,32 @@ const Dashboard = () => {
               <MessageCircle size={22} />
             </div>
             <div>
-              <p className="font-display text-base font-bold text-brand-dark">Gestion WhatsApp</p>
-              <p className="text-sm text-slate-600">Personnalisez vos modèles de messages (Réception, Mirage, Éclosion...)</p>
+              <p className="font-display text-base font-bold text-brand-dark">Gestion WhatsApp & Communications</p>
+              <p className="text-sm text-slate-600">Personnalisez vos modèles ou envoyez des alertes techniques (Power, Machines...)</p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-600 group-hover:gap-2">
-            Configurer les messages <ArrowRight size={16} />
-          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+               type="button"
+               onClick={() => {
+                 const phones = Array.from(new Set(couvaisons.filter(c => c.statut === 'En cours').map(c => clients.find(cl => cl.id === c.clientId)?.telephone))).filter(Boolean);
+                 const ok = window.confirm(`Ceci va vous permettre d'envoyer manuellement une alerte aux ${phones.length} clients ayant des lots en cours. Continuer ?`);
+                 if (!ok) return;
+                 
+                 const template = messageTemplates.find(t => t.category === 'ALERTE' && t.isActive) || { content: "◈ *ALERTE TECHNIQUE - IVOIRE COUVÉE D'OR*\n\nCher client, nous vous informons d'un incident technique indépendant de notre volonté. Nos équipes sont mobilisées pour stabiliser la situation.\n\nMerci de votre compréhension." };
+                 
+                 // On ouvre pour le premier client par défaut ou on redirige vers WhatsApp management
+                 alert(`Prenez contact avec les clients suivants via WhatsApp :\n${phones.join('\n')}`);
+                 window.open(`https://wa.me/?text=${encodeURIComponent(template.content)}`, '_blank');
+               }}
+               className="inline-flex items-center gap-2 rounded-xl bg-orange-100 px-4 py-2 text-sm font-bold text-orange-700 hover:bg-orange-200 transition-all border border-orange-200"
+            >
+               <AlertTriangle size={16} /> Diffuser Alerte Technique
+            </button>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-600 group-hover:gap-2 self-center ml-2">
+              Configurer les messages <ArrowRight size={16} />
+            </span>
+          </div>
         </Link>
       )}
 
