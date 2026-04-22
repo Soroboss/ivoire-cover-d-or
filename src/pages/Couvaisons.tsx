@@ -286,6 +286,8 @@ const Couvaisons = () => {
                    .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
                  const balance = totalDue - paid;
 
+                 const viables = (c.nombreOeufs || 0) - (c.oeufsClairs || 0) - (c.oeufsPourris || 0);
+
                  return (
                    <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                      <td className="px-6 py-4">
@@ -318,13 +320,14 @@ const Couvaisons = () => {
                         
                         {mirageFait && (
                           <div className="mt-2 p-1.5 bg-blue-50 border border-blue-100 rounded text-[10px] leading-tight text-blue-800">
-                             <div className="flex justify-between font-bold"><span>Œufs Viables:</span> <span>{(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0))}</span></div>
+                             <div className="flex justify-between font-bold"><span>Œufs Viables:</span> <span>{viables}</span></div>
                              <div className="flex justify-between text-brand-muted mt-0.5"><span>Clairs/Pourris:</span> <span>{(c.oeufsClairs || 0) + (c.oeufsPourris || 0)}</span></div>
                           </div>
                         )}
                         {c.dateEclosionDemarrage && (
                           <div className="mt-1.5 p-1.5 bg-green-50 border border-green-100 rounded text-[10px] leading-tight text-green-800 font-medium">
-                             <div>Éclos: <span className="font-bold text-green-700">{c.poussinsNes || 0}</span> | Pertes: {c.mortsEnCoque || 0}</div>
+                             <div>Éclos : <span className="font-bold text-green-700">{c.poussinsNes || 0} / {viables}</span></div>
+                             <div className="text-[9px] text-green-600 mt-0.5">Pertes : {c.mortsEnCoque || 0}</div>
                              <div className="mt-1 pt-1 border-t border-green-200 flex justify-between">
                                <span>Reste machine:</span> 
                                <span className="font-black underline text-green-600">{(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0) - (c.poussinsNes || 0) - (c.mortsEnCoque || 0))}</span>
@@ -449,7 +452,7 @@ const Couvaisons = () => {
                                  client?.id,
                                  c.id,
                                  'MIRAGE',
-                                  `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)}*\n📈 Taux de fécondité : ${((c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
+                                  `Bonjour ${client?.nom || ''},\n\nLe mirage de votre lot de ${c.nombreOeufs} œufs a été effectué.\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🔍 *RÉSULTATS DU MIRAGE* :\n- Œufs clairs : ${c.oeufsClairs || 0}\n- Œufs pourris : ${c.oeufsPourris || 0}\n✅ *Œufs viables en incubation : ${viables}*\n📈 Taux de fécondité : ${(viables / c.nombreOeufs * 100).toFixed(1)}%\n\nL'incubation se poursuit. Nous vous tiendrons informé(e) pour la date d'éclosion.\n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}
                                title="WhatsApp: Bilan Mirage"
@@ -476,7 +479,7 @@ const Couvaisons = () => {
                           <div className="text-xs text-brand-muted flex items-center justify-center gap-3">
                              <div className="flex flex-col items-center">
                                <CheckCircle size={16} className="text-green-500 mb-1" />
-                               {c.poussinsNes}/{c.nombreOeufs}
+                               {c.poussinsNes}/{viables}
                              </div>
                              <button
                                onClick={() => sendClientWhatsApp(
