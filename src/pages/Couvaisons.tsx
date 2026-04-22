@@ -486,7 +486,7 @@ const Couvaisons = () => {
                                  client?.id,
                                  c.id,
                                  'ECLOSION',
-                                  `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0}*\n⚠️ Pertes (morts en coque/non éclos) : ${(c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) - (c.poussinsNes || 0)}\n🏆 Taux de réussite : ${((c.poussinsNes || 0) / (c.nombreOeufs - (c.oeufsClairs || 0) - (c.oeufsPourris || 0)) * 100).toFixed(1)}%\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
+                                  `Bonjour ${client?.nom || ''},\n\nL'incubation de votre lot de ${c.typeOeuf}s est terminée !\n\n📅 Date de dépôt : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n🥚 Œufs mis en machine : ${c.nombreOeufs}\n🔍 *BILAN DE L'ÉCLOSION* :\n🐥 Poussins éclos : *${c.poussinsNes || 0} / ${viables}*\n⚠️ Pertes (morts en coque/non éclos) : ${viables - (c.poussinsNes || 0)}\n🏆 Taux de réussite : *${(viables > 0 ? (c.poussinsNes || 0) / viables * 100 : 0).toFixed(1)}%*\n\nVous pouvez dès à présent passer retirer vos poussins. \n\n_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*`,
                                  client?.telephone,
                                )}
                                title="WhatsApp: Bilan Éclosion"

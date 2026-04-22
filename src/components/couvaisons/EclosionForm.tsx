@@ -74,7 +74,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
            `📈 *RÉSULTATS DE PRODUCTION* :\n` +
            `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
            `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
-           `- ✨ Poussins nés viables : *{{poussins}}* ({{ratio_eclosion}})\n` +
+           `- ✨ Poussins nés viables : *{{ratio_eclosion}}*\n` +
            `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
            `💵 *RÉCAPITULATIF FINANCIER* :\n` +
            `- Total Prestation : {{montant_total}} F\n` +
@@ -186,7 +186,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                    `📈 *RÉSULTATS DE PRODUCTION* :\n` +
                    `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
                    `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
-                   `- ✨ Poussins nés viables : *{{poussins}}* ({{ratio_eclosion}})\n` +
+                   `- ✨ Poussins nés viables : *{{ratio_eclosion}}*\n` +
                    `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
                    `💵 *RÉCAPITULATIF FINANCIER* :\n` +
                    `- Total Prestation : {{montant_total}} F\n` +

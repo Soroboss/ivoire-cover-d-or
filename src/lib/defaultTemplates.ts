@@ -169,7 +169,7 @@ Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de
 📈 *RÉSULTATS DE PRODUCTION* :
 - 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s
 - 💎 Œufs fertiles (viables) : {{fertile}}
-- ✨ Poussins nés viables : *{{poussins}}* ({{ratio_eclosion}})
+- ✨ Poussins nés viables : *{{ratio_eclosion}}*
 - 🌟 Taux de réussite : *{{taux_eclosion}}*
 
 💵 *RÉCAPITULATIF FINANCIER* :
