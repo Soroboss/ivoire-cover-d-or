@@ -263,6 +263,12 @@ const Couvaisons = () => {
                    mirageFait ? c.emplacementsApresMirage ?? c.emplacements : undefined,
                    machines,
                  );
+                 const totalDue = (c.nombreOeufs || 0) * (c.prixUnitaire || 0);
+                 const paid = transactions
+                   .filter(t => (t.typeTransaction as string) === 'Paiement' && t.couvaisonId === c.id)
+                   .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
+                 const balance = totalDue - paid;
+
                  return (
                    <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                      <td className="px-6 py-4">
@@ -281,7 +287,16 @@ const Couvaisons = () => {
                      <td className="px-6 py-4">
                         <div className="space-y-1">
                           <p className="font-bold text-brand-dark">{c.nombreOeufs} {c.typeOeuf}s</p>
-                          <p className="text-[10px] text-brand-muted">{c.prixUnitaire} FCFA/u (Total: {(c.nombreOeufs * c.prixUnitaire).toLocaleString()} FCFA)</p>
+                          <p className="text-[10px] text-brand-muted">{(c.nombreOeufs * c.prixUnitaire).toLocaleString()} F (Détail: {c.prixUnitaire} F/u)</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                             <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded-sm font-bold">Payé: {paid.toLocaleString()} F</span>
+                             {balance > 0 && (
+                               <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.5 rounded-sm font-bold">Reste: {balance.toLocaleString()} F</span>
+                             )}
+                             {balance <= 0 && (
+                               <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-sm font-bold">Soudé ✅</span>
+                             )}
+                          </div>
                         </div>
                         
                         {mirageFait && (
