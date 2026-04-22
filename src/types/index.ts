@@ -174,7 +174,7 @@ export interface ClientMessage {
 export interface MessageTemplate {
   id: string;
   name: string;
-  category: 'RECEPTION' | 'MIRAGE' | 'ECLOSION' | 'FINANCE' | 'AUTRE';
+  category: 'RECEPTION' | 'MISE_EN_MACHINE' | 'MIRAGE' | 'ECLOSION' | 'FINANCE' | 'AUTRE';
   content: string;
   description?: string;
   isActive: boolean;

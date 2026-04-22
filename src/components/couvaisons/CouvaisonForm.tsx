@@ -6,6 +6,7 @@ import { format, addDays, parseISO } from 'date-fns';
 import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { receptionDateInputToIso } from '../../lib/couvaisonPlanning';
 import { normalizeTelephone } from '../../lib/phoneNormalize';
 import { getClientGlobalBalance } from '../../lib/financeCalculations';
@@ -28,7 +29,8 @@ const emptyLine = (): LotLine => ({
 });
 
 export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
-  const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates } = useAppContext();
+  const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates, addClientMessage } = useAppContext();
+  const { currentUser } = useAuth();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   
 
@@ -113,34 +115,43 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
     // On cherche le template
     const template = messageTemplates.find(t => t.name === 'Accusé de Réception' && t.isActive)
       || messageTemplates.find(t => t.category === 'RECEPTION' && t.isActive)
-      || { content: `🧾 *ACCUSÉ DE RÉCEPTION - IVOIRE COUVÉE D'OR*\n\n` +
-          `👤 Client : *{{client_name}}*\n` +
-          `📅 Date de dépôt : {{date_reception}}\n\n` +
-          `📦 *DÉTAIL DES LOTS* :\n{{details_lots}}\n\n` +
+      || { content: `🌟 *BIENVENUE CHEZ IVOIRE COUVÉE D'OR* 🌟\n\n` +
+          `Cher(e) *{{client_name}}*,\n\n` +
+          `Nous sommes ravis de vous confirmer la prise en charge de vos œufs pour incubation. Notre équipe mettra tout en œuvre pour vous garantir un taux d'éclosion optimal.\n\n` +
+          `📦 *DÉTAIL DE VOTRE LOT* :\n` +
+          `- 🥚 Type d'œuf : *{{type_oeuf}}*\n` +
+          `- 🔢 Quantité déposée : *{{quantite}}* œufs\n\n` +
+          `📅 *CALENDRIER TECHNIQUE* :\n` +
+          `- 📥 Jour de dépôt : {{date_reception}}\n` +
+          `- 🔍 Jour de mirage : {{date_mirage}}\n` +
+          `- 🐣 Démarrage éclosion : {{date_eclosion}}\n\n` +
           `💰 *SITUATION FINANCIÈRE* :\n` +
-          `- Coût Total : {{montant_total}} F\n` +
-          `- Acompte versé : {{acompte}} F\n` +
-          `🚩 *RESTE À PAYER : {{reste_a_payer}} F*\n\n` +
-          `🔍 *PROCHAINES ÉTAPES* :\n` +
-          `- Mirage technique : J+14\n` +
-          `- Éclosion : Selon type d'oeuf\n\n` +
-          `⚠️ *Note* : Veuillez conserver ce message comme preuve de dépôt.\n\n` +
-          `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+          `- 💵 Montant total : {{montant_total}} FCFA\n` +
+          `- 💳 Acompte versé : {{acompte}} FCFA\n` +
+          `🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*\n\n` +
+          `Veuillez prévoir le règlement total pour récupérer vos poussins.\n\n` +
+          `Merci de votre confiance !\n` +
+          `L'équipe Ivoire Couvée d'Or.\n` +
+          `📞 Service client : +225 01 03 03 64 62` };
 
     const startIso = receptionDateInputToIso(dateReception);
     const startDate = parseISO(startIso);
     const mirageDateObj = addDays(startDate, 14);
     
     // Estimation d'éclosion basée sur le cycle le plus long des lots déposés
-    const maxDays = Math.max(...batchLines.map(l => OEUF_CONFIG[l.typeOeuf]?.dureeTotale || 21));
+    const primaryLot = batchLines[0];
+    const maxDays = Math.max(...batchLines.map(l => OEUF_CONFIG[l.typeOeuf]?.jours || 21));
     const eclosionDateObj = addDays(startDate, maxDays);
 
     const msg = formatWhatsAppMessage(template as any, {
       client: { nom: clientNom, telephone: clientTel } as any,
       couvaison: { dateReception: startIso } as any,
       extra: {
+        type_oeuf: batchLines.length > 1 ? 'Multiples' : (primaryLot?.typeOeuf || ''),
+        quantite: batchLines.reduce((sum, l) => sum + (l.nombreOeufs || 0), 0),
         details_lots: lotSummary,
         detail_lot: lotSummary,
+        date_mise_en_machine: 'À définir',
         date_mirage: format(mirageDateObj, 'dd/MM/yyyy'),
         date_eclosion: format(eclosionDateObj, 'dd/MM/yyyy'),
         montant_total: (totalBrut - (remise || 0)).toLocaleString(),
@@ -149,6 +160,19 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
         reste_a_payer: balance.toLocaleString()
       }
     });
+
+    // Logging the message in history if client is known or newly created
+    if (clientNom && clientTel) {
+      addClientMessage({
+        clientId: selectedClientId || 'new',
+        canal: 'WhatsApp',
+        statut: 'Envoye',
+        template: 'Accusé de Réception',
+        message: msg,
+        sentByUserId: currentUser?.id,
+        sentByName: currentUser?.nom,
+      }).catch(console.error);
+    }
 
     const url = `https://wa.me/${normalizeTelephone(clientTel)}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');

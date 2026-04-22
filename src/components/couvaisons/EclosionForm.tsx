@@ -68,21 +68,22 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         
         const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
            || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-           || { content: `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
-           `👤 Client : *{{client_name}}* ({{client_id_ext}})\n` +
-           `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +
-           `🔍 *RÉSULTATS TECHNIQUES* :\n` +
-           `- ✅ Œufs viables mis en éclosion : {{viables}}\n` +
-           `- 🐥 Poussins prêts : *{{poussins_nes}}* (Sortie ce jour : +{{delta_nes}})\n` +
-           `- ⚠️ Pertes à l'éclosion : {{morts}}\n` +
-           `- 🏆 Taux de réussite : *{{taux_reussite}}*\n\n` +
-           `💰 *SITUATION FINANCIÈRE* :\n` +
-           `- Montant Total dû : {{montant_total}}\n` +
-           `- Remises/Avoirs : {{remises_avoirs}}\n` +
-           `- Déjà encaissé : {{deja_encaisse}}\n` +
-           `🚩 *NET À PAYER : {{reste_a_payer}}*\n\n` +
-           `📦 *Venez chercher vos poussins demain après-midi.*\n_Prévoyez le solde pour la livraison._\n\n` +
-           `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+           || { content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣\n\n` +
+           `Cher(e) *{{client_name}}*,\n\n` +
+           `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
+           `📈 *RÉSULTATS DE PRODUCTION* :\n` +
+           `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
+           `- ✨ Poussins nés viables : *{{poussins}}*\n` +
+           `- 🌟 Taux de réussite : *{{taux_eclosion}}%*\n\n` +
+           `💵 *RÉCAPITULATIF FINANCIER* :\n` +
+           `- Total Prestation : {{montant_total}} F\n` +
+           `- Acompte reçu : {{acompte}} F\n` +
+           `🚩 *NET À PAYER : {{reste_a_payer}} F*\n\n` +
+           `📦 *RÉCUPÉRATION* : Merci de passer récupérer vos poussins dès que possible cet après-midi. Le règlement total du solde est exigé pour la remise du lot.\n\n` +
+           `{{instruction_paiement}}\n\n` +
+           `_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._\n\n` +
+           `L'équipe Ivoire Couvée d'Or.\n` +
+           `📞 Service client : +225 01 03 03 64 62` };
 
          const whatsAppText = formatWhatsAppMessage(template as any, {
            client,
@@ -179,21 +180,22 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 
                 const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
                    || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-                   || { content: `🧾 *BILAN TECHNIQUE & FINANCIER ÉCLOSION*\n\n` +
-                   `👤 Client : *{{client_name}}* ({{client_id_ext}})\n` +
-                   `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +
-                   `🔍 *RÉSULTATS TECHNIQUES* :\n` +
-                   `- ✅ Œufs viables mis en éclosion : {{viables}}\n` +
-                   `- 🐥 Poussins prêts : *{{poussins_nes}}*\n` +
-                   `- ⚠️ Pertes signalées : {{morts}}\n` +
-                   `- 🏆 Taux de réussite : *{{taux_reussite}}*\n\n` +
-                   `💰 *SITUATION FINANCIÈRE* :\n` +
-                   `- Montant Total dû : {{montant_total}}\n` +
-                   `- Remises/Avoirs : {{remises_avoirs}}\n` +
-                   `- Déjà encaissé : {{deja_encaisse}}\n` +
-                   `🚩 *NET À PAYER : {{reste_a_payer}}*\n\n` +
-                   `📦 *Disponible pour récupération.*\n\n` +
-                   `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+                   || { content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣\n\n` +
+                   `Cher(e) *{{client_name}}*,\n\n` +
+                   `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
+                   `📈 *RÉSULTATS DE PRODUCTION* :\n` +
+                   `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
+                   `- ✨ Poussins nés viables : *{{poussins}}*\n` +
+                   `- 🌟 Taux de réussite : *{{taux_eclosion}}%*\n\n` +
+                   `💵 *RÉCAPITULATIF FINANCIER* :\n` +
+                   `- Total Prestation : {{montant_total}} F\n` +
+                   `- Acompte reçu : {{acompte}} F\n` +
+                   `🚩 *NET À PAYER : {{reste_a_payer}} F*\n\n` +
+                   `📦 *RÉCUPÉRATION* : Merci de passer récupérer vos poussins dès que possible cet après-midi. Le règlement total du solde est exigé pour la remise du lot.\n\n` +
+                   `{{instruction_paiement}}\n\n` +
+                   `_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._\n\n` +
+                   `L'équipe Ivoire Couvée d'Or.\n` +
+                   `📞 Service client : +225 01 03 03 64 62` };
 
                  const msg = formatWhatsAppMessage(template as any, {
                    client,

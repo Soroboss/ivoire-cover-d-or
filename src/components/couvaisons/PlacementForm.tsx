@@ -10,8 +10,11 @@ import {
   receptionDateInputToIso,
 } from '../../lib/couvaisonPlanning';
 
+import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
+import { resteLot } from '../../lib/financeCalculations';
+
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, updateCouvaison, deleteCouvaison } = useAppContext();
+  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
 
   const getCasierOccupation = (machineId: string, casierId: string) => {
@@ -28,9 +31,12 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
   const canDelete = currentUser?.role === 'Admin';
   
   const [dateMiseEnMachine, setDateMiseEnMachine] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [sendWhatsApp, setSendWhatsApp] = useState(true);
   const [emplacements, setEmplacements] = useState<{machineId: string, casierId: string, quantite: number}[]>([
     { machineId: '', casierId: '', quantite: couv?.nombreOeufs || 0 }
   ]);
+
+  const client = clients.find(cl => cl.id === couv?.clientId);
 
   if (!couv) return null;
 
@@ -41,13 +47,52 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
     const dateEclosionIso = computeEclosionDateFromReception(couv.dateReception, couv.typeOeuf);
 
     try {
+      const startIso = receptionDateInputToIso(dateMiseEnMachine);
       await updateCouvaison(couvaisonId, {
-        dateMiseEnMachine: receptionDateInputToIso(dateMiseEnMachine),
+        dateMiseEnMachine: startIso,
         dateMiragePrevue: dateMirageIso,
         dateEclosionPrevue: dateEclosionIso,
         statut: 'En cours',
         emplacements: emplacements.filter(emp => emp.machineId && emp.casierId && emp.quantite > 0),
       });
+
+      if (sendWhatsApp && client?.telephone) {
+        const template = messageTemplates.find(t => t.name === 'Mise en Machine' && t.isActive)
+          || messageTemplates.find(t => t.category === 'MISE_EN_MACHINE' && t.isActive)
+          || { content: `⚙️ *MISE EN MACHINE*\n\n` +
+              `Bonjour {{client_name}},\n` +
+              `Vos {{quantite}} œufs ({{type_oeuf}}) ont été mis en machine.\n` +
+              `Mirage : {{date_mirage}}\n` +
+              `Éclosion : {{date_eclosion}}\n\n` +
+              `Merci de votre confiance !` };
+
+        const totalDue = (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0);
+        const rest = resteLot(transactions, couv.id, totalDue);
+
+        const msg = formatWhatsAppMessage(template as any, {
+          client,
+          couvaison: { ...couv, dateMiseEnMachine: startIso, dateMiragePrevue: dateMirageIso, dateEclosionPrevue: dateEclosionIso },
+          transactions,
+          extra: {
+            reste_a_payer: rest.toLocaleString()
+          }
+        });
+
+        try {
+          await addClientMessage({
+            clientId: client.id,
+            couvaisonId: couv.id,
+            canal: 'WhatsApp',
+            statut: 'Envoye',
+            template: 'mise_en_machine',
+            message: msg,
+            sentByUserId: currentUser?.id,
+            sentByName: currentUser?.nom,
+          });
+        } catch { /* no-op */ }
+
+        window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
 
       onSuccess();
     } catch (err) {
@@ -154,6 +199,15 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
              + Ajouter une subdivision (dispatch sur un autre casier)
           </button>
         </div>
+
+        {client?.telephone && (
+          <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <input type="checkbox" id="sendMiseWa" checked={sendWhatsApp} onChange={(e) => setSendWhatsApp(e.target.checked)} className="h-4 w-4 text-brand-orange rounded border-gray-300 focus:ring-brand-orange" />
+            <label htmlFor="sendMiseWa" className="text-sm font-medium text-slate-700 cursor-pointer flex-1">
+              Notifier le client par WhatsApp de la mise en machine.
+            </label>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-4 pt-4 border-t border-brand-lightgray">
           <button type="button" onClick={onCancel} className="px-6 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50 transition-colors">

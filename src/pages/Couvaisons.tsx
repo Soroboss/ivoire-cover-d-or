@@ -20,7 +20,7 @@ const Couvaisons = () => {
   const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatutCouvaison | 'Tous'>('Tous');
+  const [statusFilter, setStatusFilter] = useState<'Tous' | 'Nouveau' | 'Placement' | 'Mirage' | 'Eclosion' | 'Terminé' | 'Annulé'>('Tous');
   const [searchTerm, setSearchTerm] = useState('');
   const [receptionFrom, setReceptionFrom] = useState('');
   const [receptionTo, setReceptionTo] = useState('');
@@ -32,7 +32,14 @@ const Couvaisons = () => {
   const filteredCouvaisons = useMemo(() => {
     return couvaisons
       .filter((c) => {
-        if (statusFilter !== 'Tous' && c.statut !== statusFilter) return false;
+        if (statusFilter !== 'Tous') {
+          if (statusFilter === 'Nouveau' && c.statut !== 'En attente') return false;
+          if (statusFilter === 'Placement' && (c.statut !== 'En cours' || c.oeufsClairs != null)) return false;
+          if (statusFilter === 'Mirage' && (c.oeufsClairs == null || c.dateEclosionDemarrage)) return false;
+          if (statusFilter === 'Eclosion' && !c.dateEclosionDemarrage) return false;
+          if (statusFilter === 'Terminé' && c.statut !== 'Terminé') return false;
+          if (statusFilter === 'Annulé' && c.statut !== 'Annulé') return false;
+        }
         if (!isIsoDateInRange(c.dateReception, receptionFrom, receptionTo)) return false;
         if (searchTerm) {
           const client = clients.find((cl) => cl.id === c.clientId);
@@ -191,28 +198,42 @@ const Couvaisons = () => {
                 className="w-full rounded-md border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-brand-orange focus:outline-none"
               />
             </div>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <Filter className="shrink-0 text-brand-muted" size={18} />
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as StatutCouvaison | 'Tous')}
-                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto"
-                >
-                  <option value="Tous">Tous les statuts</option>
-                  <option value="En attente">En attente</option>
-                  <option value="En cours">En cours</option>
-                  <option value="Terminé">Terminés</option>
-                  <option value="Annulé">Annulés</option>
-                </select>
+            <div className="flex w-full flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100/50 rounded-lg border border-gray-200">
+                {[
+                  { id: 'Tous', label: 'Tous', icon: '📊' },
+                  { id: 'Nouveau', label: 'Réception', icon: '🆕' },
+                  { id: 'Placement', label: 'En Couvaison', icon: '⚙️' },
+                  { id: 'Mirage', label: 'Mirage Fait', icon: '🔍' },
+                  { id: 'Eclosion', label: 'Éclosion', icon: '🐣' },
+                  { id: 'Terminé', label: 'Terminé', icon: '✅' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setStatusFilter(tab.id as any)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                      statusFilter === tab.id 
+                        ? 'bg-white text-brand-orange shadow-sm border border-brand-orange/20 scale-105' 
+                        : 'text-brand-muted hover:bg-white/60 hover:text-brand-dark'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'reception' | 'registration')}
-                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto"
+                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm font-semibold focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto text-brand-dark shadow-sm"
                 >
-                  <option value="reception">Tri par Date Arrivée</option>
-                  <option value="registration">Tri par Date Enregistrement</option>
+                  <option value="reception">🕒 Tri par Date Arrivée</option>
+                  <option value="registration">📑 Tri par Date Enregistrement</option>
                 </select>
+                <div className="text-[10px] text-brand-muted font-medium ml-2">
+                  Total: <span className="text-brand-orange font-bold">{filteredCouvaisons.length}</span> lot(s) affiché(s)
+                </div>
               </div>
             </div>
           </div>

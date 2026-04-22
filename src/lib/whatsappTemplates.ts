@@ -52,8 +52,10 @@ export const formatWhatsAppMessage = (
     vars.quantite = couvaison.nombreOeufs || 0;
     vars.type_oeuf = couvaison.typeOeuf || '';
     vars.date_reception = couvaison.dateReception ? format(parseISO(couvaison.dateReception), 'dd/MM/yyyy') : '';
+    vars.date_mise_en_machine = couvaison.dateMiseEnMachine ? format(parseISO(couvaison.dateMiseEnMachine), 'dd/MM/yyyy') : 'À définir';
     vars.date_mirage = couvaison.dateMiragePrevue ? format(parseISO(couvaison.dateMiragePrevue), 'dd/MM/yyyy') : '';
     vars.date_eclosion = couvaison.dateEclosionPrevue ? format(parseISO(couvaison.dateEclosionPrevue), 'dd/MM/yyyy') : '';
+    vars.date_demarrage_eclosion = couvaison.dateEclosionDemarrage ? format(parseISO(couvaison.dateEclosionDemarrage), 'dd/MM/yyyy') : 'À définir';
     
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
     vars.viables = Math.max(0, v);

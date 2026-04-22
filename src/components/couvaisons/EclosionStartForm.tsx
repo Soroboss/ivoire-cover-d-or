@@ -76,19 +76,22 @@ const EclosionStartForm = ({
     const template = messageTemplates.find(t => t.name === 'Démarrage Éclosion' && t.isActive)
       || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
       || { content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*\n\n` +
-          `Bonjour {{client_name}},\n\n` +
-          `🐣 Le transfert de votre lot en paniers d'éclosion a été effectué avec succès.\n\n` +
+          `Bonjour *{{client_name}}*,\n\n` +
+          `🐣 Votre éclosion pour le Lot de *{{quantite}}* œufs de *{{type_oeuf}}s* a démarré, préparez-vous à venir récupérer vos poussins demain dans l'après-midi.\n\n` +
+          `📅 *CALENDRIER TECHNIQUE* :\n` +
+          `• 📥 Date de dépôt : {{date_reception}}\n` +
+          `• 🔍 Jour de mirage : {{date_mirage}}\n` +
+          `• 🐣 Démarrage éclosion : {{date_eclosion}}\n\n` +
           `📊 *INFOS TECHNIQUES* :\n` +
-          `- 🧪 Lot : {{quantite}} {{type_oeuf}}s\n` +
-          `- ✅ Œufs viables en éclosion : *{{viables}}*\n` +
-          `- 🏷️ Identifiant : {{nom_depart}}\n\n` +
-          `📌 *SITUATION FINANCIÈRE* :\n` +
-          `- Reste à payer (ce lot) : {{reste_a_payer}}\n` +
-          `{{dettes_anterieures}}\n` +
+          `•  🧪 Lot : {{quantite}} {{type_oeuf}}s\n` +
+          `•  ✅ Œufs viables en éclosion : *{{viables}}*\n` +
+          `•  🏷️ Identifiant : {{nom_depart}}\n\n` +
+          `💰 *SITUATION FINANCIÈRE* :\n` +
+          `•  Reste à payer (ce lot) : {{reste_a_payer}}\n` +
           `🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*\n\n` +
-          `📦 *Les premières sorties sont attendues demain.*\n` +
-          `_Veuillez prévoir le règlement total pour récupérer vos poussins._\n\n` +
-          `Merci de votre confiance !\n*L'équipe Ivoire Couvée d'Or.*` };
+          `{{instruction_paiement}}\n\n` +
+          `Merci de votre confiance !\nL'équipe Ivoire Couvée d'Or.\n` +
+          `📞 Service client : +225 01 03 03 64 62` };
 
     return formatWhatsAppMessage(template as any, {
       client,

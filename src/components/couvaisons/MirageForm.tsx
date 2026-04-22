@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, clients, messageTemplates, updateCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, addClientMessage } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   
@@ -57,24 +57,40 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
 
     const template = messageTemplates.find(t => t.name === 'Bilan du Mirage' && t.isActive)
        || messageTemplates.find(t => t.category === 'MIRAGE' && t.isActive)
-       || { content: `🕯️ *BILAN DU MIRAGE (TRANSPARENCE)*\n\n` +
-       `👤 Client : *{{client_name}}*\n` +
-       `🐣 Lot : *{{quantite}} {{type_oeuf}}s*\n\n` +
-       `📊 *RÉSULTATS TECHNIQUES* :\n` +
-       `- ✅ Œufs fertiles (viables) : *{{viables}}*\n` +
-       `- ⚪ Œufs clairs (inféconds) : {{clairs}}\n` +
-       `- ❌ Œufs pourris / morts : {{pourris}}\n` +
-       `- 🧬 Taux de fécondité : *{{taux_fecondite}}*\n\n` +
-       `📅 *Étape suivante* : Éclosion prévue le *{{date_eclosion}}*.\n\n` +
-       `_Merci de votre confiance !_ \n*L'équipe Ivoire Couvée d'Or.*` };
+       || { content: `🕯️ *RÉSULTATS DU MIRAGE TECHNIQUE* 🕯️\n\n` +
+       `Bonjour *{{client_name}}*,\n\n` +
+       `📊 *STATISTIQUES TECHNIQUES* :\n` +
+       `- 🧪 Lot total : {{quantite}} {{type_oeuf}}s\n` +
+       `- 💎 Œufs fertiles : *{{fertile}}*\n` +
+       `- ⚪ Œufs non-fertiles (clairs) : {{clairs}}\n` +
+       `- ⚠️ Œufs pourris/écartés : {{pourris}}\n\n` +
+       `📅 *CALENDRIER TECHNIQUE* :\n` +
+       `- 📥 Date de dépôt : {{date_reception}}\n` +
+       `- 🔍 Mirage effectué : {{date_mirage}}\n` +
+       `- 🐣 Éclosion prévue : {{date_eclosion}}\n\n` +
+       `💰 *SITUATION FINANCIÈRE* :\n` +
+       `- 💵 Montant total : {{montant_total}} FCFA\n` +
+       `- 💳 Acompte versé : {{acompte}} FCFA\n` +
+       `🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*\n\n` +
+       `Veuillez prévoir le règlement total pour récupérer vos poussins.\n\n` +
+       `✅ *PROCHAINE ÉTAPE* : Vos {{fertile}} œufs fertiles poursuivent leur développement vers l'éclosion.\n\n` +
+       `_Nous restons mobilisés pour vous garantir le meilleur taux de réussite._\n\n` +
+       `Merci de votre confiance !\n` +
+       `L'équipe Ivoire Couvée d'Or.\n` +
+       `📞 Service client : +225 01 03 03 64 62` };
  
+     const totalDue = (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0);
+     const rest = resteLot(transactions, couv.id, totalDue);
+
      const message = formatWhatsAppMessage(template as any, {
        client,
        couvaison: { ...couv, oeufsClairs: clairs, oeufsPourris: pourris },
+       transactions,
        extra: {
          viables: oeufsFecondes,
          clairs,
          pourris,
+         reste_a_payer: rest.toLocaleString()
        }
      });
 
@@ -138,8 +154,11 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
       <h2 className="text-xl font-bold text-blue-800 mb-2">Résultat du Mirage</h2>
       <p className="text-sm text-brand-muted mb-4">Lot de {couv.nombreOeufs} œufs ({couv.typeOeuf}) – {client?.nom}</p>
       
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-6 text-xs text-blue-800 italic">
-        💡 **Conseil Expert** : Pour un second mirage, cumulez les nouvelles pertes détectées avec les chiffres déjà saisis ci-dessous.
+      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-6 flex items-start gap-2">
+        <div className="text-blue-600 mt-0.5">🕯️</div>
+        <div className="text-[10px] text-blue-800 italic leading-snug">
+          **Conseil Mirage** : Vous pouvez effectuer plusieurs mirages. Cumulez simplement les nouvelles pertes (clairs/pourris) avec les chiffres déjà saisis.
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
