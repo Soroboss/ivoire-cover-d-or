@@ -60,6 +60,14 @@ export const formatWhatsAppMessage = (
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
     vars.viables = Math.max(0, v);
     vars.fertile = vars.viables;
+    
+    // Auto-detail if not provided
+    if (!vars.details_lots || vars.details_lots === '') {
+      const line = `- ${couvaison.nombreOeufs} ${couvaison.typeOeuf}s (Total: ${((couvaison.nombreOeufs || 0) * (couvaison.prixUnitaire || 0)).toLocaleString()} F)`;
+      vars.details_lots = line;
+      vars.detail_lot = line;
+      vars.detail_des_lots = line;
+    }
     vars.clairs = couvaison.oeufsClairs || 0;
     vars.pourris = couvaison.oeufsPourris || 0;
     vars.poussins = couvaison.poussinsNes || 0;

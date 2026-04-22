@@ -378,7 +378,7 @@ const Couvaisons = () => {
                                client?.id,
                                c.id,
                                'RECEPTION',
-                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la bonne réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\nIls sont actuellement en salle d'attente et seront prochainement placés en machine par l'équipe technique.\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la bonne réception de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Veuillez conserver ce message comme preuve de dépôt. Merci !_`,
                                client?.telephone,
                              )}
                              title="WhatsApp: Reçu en attente"
@@ -400,7 +400,7 @@ const Couvaisons = () => {
                                client?.id,
                                c.id,
                                'RECEPTION',
-                               `Bonjour ${client?.nom || ''},\n\nNous vous confirmons la réception de votre lot de ${c.nombreOeufs} œufs de ${c.typeOeuf}.\n\n📅 Date de dépôt des œufs : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📅 Date de mise en machine : ${c.dateMiseEnMachine ? format(parseISO(c.dateMiseEnMachine), 'dd/MM/yyyy') : '-'}\n🔍 Date prévue pour le mirage (réception +14 j.) : ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'}\n🐣 Date prévue pour l'éclosion : ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}\n\nMerci pour votre confiance ! L'équipe Ivoire Couvée d'Or.`,
+                               `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\nCher(e) *${client?.nom || ''}*,\n\nNous vous confirmons la prise en charge technique de votre lot.\n\n📅 *Dépôt le* : ${c.dateReception ? format(parseISO(c.dateReception), 'dd/MM/yyyy') : '-'}\n📦 *Détail des lots* :\n{{details_lots}}\n\n📊 *SUIVI FINANCIER* :\n- Montant total : {{montant_total}} F\n- Acompte versé : {{acompte}} F\n🚩 *Reste à régler : {{reste_a_payer}} F*\n\n🕒 *PROCHAINES ÉTAPES* :\n🔍 Mirage technique : environ le ${c.dateMiragePrevue ? format(parseISO(c.dateMiragePrevue), 'dd/MM/yyyy') : '-'} (vérification de la fertilité).\n🐣 Éclosion finale prévue : environ le ${c.dateEclosionPrevue ? format(parseISO(c.dateEclosionPrevue), 'dd/MM/yyyy') : '-'}.\n\n_Merci de votre confiance !_`,
                                client?.telephone,
                              )}
                              title="WhatsApp: Réception & Planning"
