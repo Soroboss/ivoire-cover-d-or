@@ -142,7 +142,7 @@ L'équipe Ivoire Couvée d'Or.
 ◈ Client: *{{client_name}}* ({{client_id_ext}})
 ◈ Lot: *{{quantite}} {{type_oeuf}}*
 ◈ Date de dépôt : {{date_reception}}
-◈ Éclosion: *{{poussins_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
+◈ Éclosion : *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
 ◈ *DÉTAIL DU RÈGLEMENT* :
 ◈ Montant Total dû: {{montant_du}} F

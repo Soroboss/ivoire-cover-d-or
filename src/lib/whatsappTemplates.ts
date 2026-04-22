@@ -47,6 +47,8 @@ export const formatWhatsAppMessage = (
     details_lots: '',
     detail_lot: '',
     detail_des_lots: '',
+    nom_depart: '',
+    montant_paye: '0',
   };
 
   // 2. AUTO-CALCULATE FROM COUVAISON IF PRESENT
@@ -58,6 +60,7 @@ export const formatWhatsAppMessage = (
     vars.date_mirage = couvaison.dateMiragePrevue ? format(parseISO(couvaison.dateMiragePrevue), 'dd/MM/yyyy') : '';
     vars.date_eclosion = couvaison.dateEclosionPrevue ? format(parseISO(couvaison.dateEclosionPrevue), 'dd/MM/yyyy') : '';
     vars.date_demarrage_eclosion = couvaison.dateEclosionDemarrage ? format(parseISO(couvaison.dateEclosionDemarrage), 'dd/MM/yyyy') : 'À définir';
+    vars.nom_depart = couvaison.nomDepart || '';
     
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
     vars.viables = Math.max(0, v);

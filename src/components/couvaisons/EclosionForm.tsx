@@ -68,24 +68,25 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         
         const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
            || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-           || { content: `◈ *SITUATION FINANCIÈRE*
+           || { content: `◈ *SITUATION FINANCIÈRE - IVOIRE COUVÉE D'OR*
 
 ◈ Client: *{{client_name}}* ({{client_id_ext}})
-◈ Lot: *{{quantite}} {{type_oeuf}}s*
-◈ Date de dépôt des œufs : {{date_reception}}
-◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
+◈ Lot: *{{quantite}} {{type_oeuf}}*
+◈ Date de dépôt : {{date_reception}}
+◈ Éclosion : *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
+◈ *DÉTAIL DU RÈGLEMENT* :
 ◈ Montant Total dû: {{montant_du}} F
 ◈ Remise: {{remise}}
 ◈ Avoir: {{avoir}}
-◈ Net déjà encaissé: {{net_encaisse}} F
+◈ Net encaissé: {{net_encaisse}} F
 
-◈ *RESTE TOTAL À PAYER: {{total_global}} F*
+◈ *RESTE TOTAL À PAYER : {{total_global}} F*
 
-◈ Venez chercher demain après midi.
+◈ Passage prévu : demain après-midi pour la récupération.
 
 Merci de votre confiance !
-L'équipe Ivoire Couvée d'Or.
+L'équipe expertise Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62` };
 
          const whatsAppText = formatWhatsAppMessage(template as any, {
@@ -127,16 +128,19 @@ L'équipe Ivoire Couvée d'Or.
   const handleSendReminder = () => {
     if (!client?.telephone) return;
     const template = messageTemplates.find(t => t.name === 'Rappel de Collecte' && t.isActive)
-      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive);
+      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+      || { 
+          name: 'Fallback', 
+          category: 'ECLOSION', 
+          content: `◈ *RAPPEL DE RÉCUPÉRATION - IVOIRE COUVÉE D'OR*\n\nBonjour *{{client_name}}*,\n\n◈ Vos poussins pour le lot *{{type_oeuf}}s* sont prêts !\n◈ Nous vous attendons cet après-midi pour la récupération de votre lot.\n\n◈ *RESTE À RÉGLER : {{total_global}} F*\n\nMerci !`
+         };
       
-    if (template) {
-       const msg = formatWhatsAppMessage(template as any, {
-         client,
-         couvaison: couv,
-         transactions
-       });
-       openWhatsApp(client.telephone, msg);
-    }
+    const msg = formatWhatsAppMessage(template as any, {
+      client,
+      couvaison: couv,
+      transactions
+    });
+    openWhatsApp(client.telephone, msg);
   };
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
