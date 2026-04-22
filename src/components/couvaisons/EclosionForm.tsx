@@ -68,23 +68,25 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         
         const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
            || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-           || { content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣\n\n` +
-           `Cher(e) *{{client_name}}*,\n\n` +
-           `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
-           `📈 *RÉSULTATS DE PRODUCTION* :\n` +
-           `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
-           `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
-           `- ✨ Poussins nés viables : *{{ratio_eclosion}}*\n` +
-           `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
-           `💵 *RÉCAPITULATIF FINANCIER* :\n` +
-           `- Total Prestation : {{montant_total}} F\n` +
-           `- Acompte reçu : {{acompte}} F\n` +
-           `🚩 *NET À PAYER : {{reste_a_payer}} F*\n\n` +
-           `📦 *RÉCUPÉRATION* : Merci de passer récupérer vos poussins dès que possible cet après-midi. Le règlement total du solde est exigé pour la remise du lot.\n\n` +
-           `{{instruction_paiement}}\n\n` +
-           `_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._\n\n` +
-           `L'équipe Ivoire Couvée d'Or.\n` +
-           `📞 Service client : +225 01 03 03 64 62` };
+           || { content: `◈ *SITUATION FINANCIÈRE*
+
+◈ Client: *{{client_name}}* ({{client_id_ext}})
+◈ Lot: *{{quantite}} {{type_oeuf}}s*
+◈ Date de dépôt des œufs : {{date_reception}}
+◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
+
+◈ Montant Total dû: {{montant_du}} F
+◈ Remise: {{remise}}
+◈ Avoir: {{avoir}}
+◈ Net déjà encaissé: {{net_encaisse}} F
+
+◈ *RESTE TOTAL À PAYER: {{total_global}} F*
+
+◈ Venez chercher demain après midi.
+
+Merci de votre confiance !
+L'équipe Ivoire Couvée d'Or.
+📞 Service client : +225 01 03 03 64 62` };
 
          const whatsAppText = formatWhatsAppMessage(template as any, {
            client,
@@ -180,23 +182,25 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                 
                 const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
                    || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-                   || { content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣\n\n` +
-                   `Cher(e) *{{client_name}}*,\n\n` +
-                   `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
-                   `📈 *RÉSULTATS DE PRODUCTION* :\n` +
-                   `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
-                   `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
-                   `- ✨ Poussins nés viables : *{{ratio_eclosion}}*\n` +
-                   `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
-                   `💵 *RÉCAPITULATIF FINANCIER* :\n` +
-                   `- Total Prestation : {{montant_total}} F\n` +
-                   `- Acompte reçu : {{acompte}} F\n` +
-                   `🚩 *NET À PAYER : {{reste_a_payer}} F*\n\n` +
-                   `📦 *RÉCUPÉRATION* : Merci de passer récupérer vos poussins dès que possible cet après-midi. Le règlement total du solde est exigé pour la remise du lot.\n\n` +
-                   `{{instruction_paiement}}\n\n` +
-                   `_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._\n\n` +
-                   `L'équipe Ivoire Couvée d'Or.\n` +
-                   `📞 Service client : +225 01 03 03 64 62` };
+                   || { content: `◈ *SITUATION FINANCIÈRE*
+
+◈ Client: *{{client_name}}*
+◈ Lot: *{{quantite}} {{type_oeuf}}s*
+◈ Date de dépôt : {{date_reception}}
+◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
+
+◈ Montant Total dû: {{montant_du}} F
+◈ Remise: {{remise}}
+◈ Avoir: {{avoir}}
+◈ Net déjà encaissé: {{net_encaisse}} F
+
+◈ *RESTE TOTAL À PAYER: {{total_global}} F*
+
+◈ Venez chercher demain après midi.
+
+Merci de votre confiance !
+L'équipe Ivoire Couvée d'Or.
+📞 Service client : +225 01 03 03 64 62` };
 
                  const msg = formatWhatsAppMessage(template as any, {
                    client,

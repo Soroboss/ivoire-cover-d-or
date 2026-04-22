@@ -45,7 +45,6 @@ export const formatWhatsAppMessage = (
     details_lots: '',
     detail_lot: '',
     detail_des_lots: '',
-    ...extra // Override with specific extra data if provided
   };
 
   // 2. AUTO-CALCULATE FROM COUVAISON IF PRESENT
@@ -86,7 +85,7 @@ export const formatWhatsAppMessage = (
 
     // Identifiant court ou ID complet
     vars.couvaison_id = couvaison.id.split('-')[0].toUpperCase();
-    vars.id_couvaison = vars.couvaison_id;
+    vars.id_couvaison = vars.id_couvaison_ext || vars.couvaison_id;
 
     // Auto-calculate Financials if transactions are present
     if (transactions) {
@@ -96,34 +95,58 @@ export const formatWhatsAppMessage = (
         .filter(t => (t.typeTransaction as string) === 'Paiement' && t.couvaisonId === couvaison.id)
         .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
       
+      const remises = transactions
+        .filter(t => (t.typeTransaction as string) === 'Remise' && t.couvaisonId === couvaison.id)
+        .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
+      
+      const avoirs = transactions
+        .filter(t => (t.typeTransaction as string) === 'Avoir' && t.couvaisonId === couvaison.id)
+        .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
+      
       vars.montant_total = totalDue.toLocaleString();
+      vars.montant_du = totalDue.toLocaleString();
       vars.reste_a_payer = rest.toLocaleString();
       vars.acompte = paid.toLocaleString();
-      vars.accompte = paid.toLocaleString();
+      vars.remise = remises > 0 ? remises.toLocaleString() + ' F' : '-';
+      vars.avoir = avoirs > 0 ? avoirs.toLocaleString() + ' F' : '-';
+      vars.net_encaisse = paid.toLocaleString();
+      vars.total_global = rest.toLocaleString();
     }
   }
 
-  // 3. CONDITIONALS (re-calculated after all auto-calculations)
-  const rIndex = vars.reste_a_payer.toString().replace(/[^\d]/g, '');
+  // 3. OVERRIDE WITH EXTRA DATA (Moved here to ensure it wins)
+  if (extra) {
+    Object.assign(vars, extra);
+  }
+
+  // Final touches on combined variables
+  if (couvaison) {
+    const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
+    const totalNes = vars.poussins_nes || couvaison.poussinsNes || 0;
+    vars.ratio_eclosion = `${totalNes}/${v}`;
+  }
+
+  // 4. CONDITIONALS (re-calculated after all auto-calculations)
+  const rIndex = (vars.reste_a_payer || '0').toString().replace(/[^\d]/g, '');
   const rValue = parseInt(rIndex, 10) || 0;
   vars.instruction_paiement = rValue > 0 
     ? "Veuillez prévoir le règlement total pour récupérer vos poussins." 
     : "Votre lot est entièrement réglé. Merci !";
 
-  // 3. SPECIAL SCAN AND REPLACE ENGINE (Insensitive to spaces and formatting)
+  // 5. SPECIAL SCAN AND REPLACE ENGINE (Insensitive to spaces and formatting)
   const smartReplace = (msg: string, key: string, value: string | number) => {
     const val = (value ?? '').toString();
-    const k = key.toLowerCase().trim().replace(/_/g, ''); // Strip underscores for mapping
+    const k = key.toLowerCase().replace(/[^a-z0-9]/g, ''); // Strip non-alnum for mapping
     
+    if (!k) return msg;
+
     let result = msg;
     const patterns = result.match(/{{\s*[^}]+\s*}}/gi) || [];
     patterns.forEach(p => {
-      // Clean up the placeholder: remove braces, lowercase, trim, AND strip common markdown markers
-      // We ALSO strip underscores just for the comparison so that {{nom_depart}} matches "nom_depart"
+      // Clean up the placeholder: remove braces, lowercase, AND strip non-alnum
       const cleanP = p.replace(/{{\s*|\s*}}/g, '')
                       .toLowerCase()
-                      .trim()
-                      .replace(/[\*\_~]/g, ''); // strip * _ ~ and underscores
+                      .replace(/[^a-z0-9]/g, '');
                       
       if (cleanP === k) {
         result = result.split(p).join(val);
@@ -137,7 +160,7 @@ export const formatWhatsAppMessage = (
     return result;
   };
 
-  // 4. APPLY ALL COLLECTED VARIABLES
+  // 6. APPLY ALL COLLECTED VARIABLES
   Object.entries(vars).forEach(([key, val]) => {
     message = smartReplace(message, key, val);
   });

@@ -160,32 +160,26 @@ L'équipe Ivoire Couvée d'Or.
   {
     name: 'Bilan Sortie Éclosion',
     category: 'FINANCE',
-    content: `🐣 *BILAN FINAL D'ÉCLOSION — FÉLICITATIONS !* 🐣
+    content: `◈ *SITUATION FINANCIÈRE*
 
-Cher(e) *{{client_name}}*,
+◈ Client: *{{client_name}}* ({{client_id_ext}})
+◈ Lot: *{{quantite}} {{type_oeuf}}s*
+◈ Date de dépôt des œufs : {{date_reception}}
+◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
-Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :
+◈ Montant Total dû: {{montant_du}} F
+◈ Remise: {{remise}}
+◈ Avoir: {{avoir}}
+◈ Net déjà encaissé: {{net_encaisse}} F
 
-📈 *RÉSULTATS DE PRODUCTION* :
-- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s
-- 💎 Œufs fertiles (viables) : {{fertile}}
-- ✨ Poussins nés viables : *{{ratio_eclosion}}*
-- 🌟 Taux de réussite : *{{taux_eclosion}}*
+◈ *RESTE TOTAL À PAYER: {{total_global}} F*
 
-💵 *RÉCAPITULATIF FINANCIER* :
-- Total Prestation : {{montant_total}} F
-- Acompte reçu : {{acompte}} F
-- 🚩 *NET À PAYER : {{reste_a_payer}} F*
+◈ Venez chercher demain après midi.
 
-📦 *RÉCUPÉRATION* : Merci de passer récupérer vos poussins dès que possible cet après-midi. Le règlement total du solde est exigé pour la remise du lot.
-
-{{instruction_paiement}}
-
-_Merci de votre confiance. Pour toute assistance technique post-éclosion, notre équipe est à votre disposition._
-
+Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62`,
     isActive: true,
-    description: 'Bilan de sortie final avec statistiques et solde financier.'
+    description: 'Bilan de sortie final avec statistiques et solde financier détaillé.'
   }
 ];
