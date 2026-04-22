@@ -44,6 +44,8 @@ export const formatWhatsAppMessage = (
     taux_reussite: '0%',
     taux_eclosion: '0%',
     ratio_eclosion: '0 / 0',
+    delta_nes: '0',
+    nouveaux_poussins: '0',
     details_lots: '',
     detail_lot: '',
     detail_des_lots: '',
@@ -127,7 +129,8 @@ export const formatWhatsAppMessage = (
   // Final touches on combined variables
   if (couvaison) {
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
-    const totalNes = vars.poussins_nes || couvaison.poussinsNes || 0;
+    const finalNes = vars.delta_nes !== undefined ? (Number(vars.delta_nes) + (couvaison.poussinsNes || 0)) : (couvaison.poussinsNes || 0);
+    const totalNes = vars.poussins_nes || finalNes;
     vars.ratio_eclosion = `${totalNes}/${v}`;
   }
 
@@ -141,27 +144,18 @@ export const formatWhatsAppMessage = (
   // 5. SPECIAL SCAN AND REPLACE ENGINE (Insensitive to spaces and formatting)
   const smartReplace = (msg: string, key: string, value: string | number) => {
     const val = (value ?? '').toString();
-    const k = key.toLowerCase().replace(/[^a-z0-9]/g, ''); // Strip non-alnum for mapping
-    
-    if (!k) return msg;
+    const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!cleanKey) return msg;
 
+    // Direct global replacement for common variations
     let result = msg;
-    const patterns = result.match(/{{\s*[^}]+\s*}}/gi) || [];
-    patterns.forEach(p => {
-      // Clean up the placeholder: remove braces, lowercase, AND strip non-alnum
-      const cleanP = p.replace(/{{\s*|\s*}}/g, '')
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]/g, '');
-                      
-      if (cleanP === k) {
-        result = result.split(p).join(val);
-      }
+    
+    // Replacement via generalized regex callback
+    result = result.replace(/{{\s*([^}]+)\s*}}/gi, (match, p1) => {
+      const cleanP = p1.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanP === cleanKey ? val : match;
     });
 
-    // Final safety exact match
-    result = result.split(`{{${key}}}`).join(val);
-    result = result.split(`{{ ${key} }}`).join(val);
-    
     return result;
   };
 
