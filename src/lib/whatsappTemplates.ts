@@ -19,6 +19,8 @@ export const formatWhatsAppMessage = (
     // Client basics
     client_name: client.nom || '',
     client_tel: client.telephone || '',
+    client_id_ext: client.id.split('-')[0].toUpperCase(),
+    client_id: client.id.split('-')[0].toUpperCase(),
     
     // Default numerical fallbacks to '0'
     acompte: '0',

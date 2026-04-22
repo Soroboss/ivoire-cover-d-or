@@ -1,58 +1,51 @@
 import type { MessageTemplate } from '../types';
 
 export const DEFAULT_TEMPLATES: Omit<MessageTemplate, 'id' | 'updatedAt' | 'createdAt'>[] = [
-  {
+   {
     name: 'Accusé de Réception',
     category: 'RECEPTION',
-    content: `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝
+    content: `◈ *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR*
 
-Cher(e) *{{client_name}}*,
+Cher(e) *{{client_name}}*, nous vous confirmons la mise en incubation de votre lot :
 
-Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :
-
-📅 *Dépôt le* : {{date_reception}}
-📦 *Détail des lots* :
+◈ *Date de dépôt* : {{date_reception}}
+◈ *Détail des lots* :
 {{details_lots}}
 
-📊 *SUIVI FINANCIER* :
-- Montant total : {{montant_total}} F
-- Acompte versé : {{acompte}} F
-🚩 *Reste à régler : {{reste_a_payer}} F*
+◈ *SUIVI FINANCIER* :
+◈ Montant total : {{montant_total}} F
+◈ Acompte versé : {{acompte}} F
+◈ *RESTE À RÉGLER : {{reste_a_payer}} F*
 
-🕒 *PROCHAINES ÉTAPES* :
-🔍 Mirage technique : environ le {{date_mirage}} (vérification de la fertilité).
-🐣 Éclosion finale prévue : environ le {{date_eclosion}}.
+◈ *PROCHAINES ÉTAPES* :
+◈ Mirage technique : env. le {{date_mirage}}
+◈ Éclosion finale : env. le {{date_eclosion}}
 
-_Veuillez conserver ce message comme preuve de dépôt. Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_
-
-🆘 Besoin d'aide ? Contactez-nous au : +225 01 03 03 64 62.`,
+_Merci de confier vos projets à l'expertise d'Ivoire Couvée d'Or !_
+📞 Service client : +225 01 03 03 64 62`,
     isActive: true,
     description: 'Message de bienvenue envoyé lors du dépôt des œufs.'
   },
   {
     name: 'Mise en Machine',
     category: 'MISE_EN_MACHINE',
-    content: `⚙️ *CONFIRMATION DE MISE EN MACHINE - IVOIRE COUVÉE D'OR* ⚙️
+    content: `◈ *CONFIRMATION DE MISE EN MACHINE - IVOIRE COUVÉE D'OR*
 
-Bonjour *{{client_name}}*,
+Bonjour *{{client_name}}*, votre lot a été officiellement mis en machine.
 
-Nous vous informons que votre lot a été officiellement mis en machine ce jour. Le processus d'incubation a commencé.
+◈ *DÉTAIL DU LOT* :
+◈ Type d'œuf : *{{type_oeuf}}*
+◈ Quantité : *{{quantite}}* œufs
 
-📦 *DÉTAIL DU LOT* :
-- 🥚 Type d'œuf : *{{type_oeuf}}*
-- 🔢 Quantité en incubation : *{{quantite}}* œufs
+◈ *CALENDRIER TECHNIQUE* :
+◈ Date de mise en machine : {{date_mise_en_machine}}
+◈ Jour de mirage : {{date_mirage}}
+◈ Démarrage éclosion : {{date_eclosion}}
 
-📅 *CALENDRIER TECHNIQUE* :
-- ⚙️ Date de mise en machine : {{date_mise_en_machine}}
-- 🔍 Jour de mirage : {{date_mirage}}
-- 🐣 Démarrage éclosion : {{date_eclosion}}
-
-💰 *SITUATION FINANCIÈRE* :
-- 💵 Montant total : {{montant_total}} FCFA
-- 💳 Acompte versé : {{acompte}} FCFA
-- 🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*
-
-Veuillez prévoir le règlement total pour récupérer vos poussins.
+◈ *SITUATION FINANCIÈRE* :
+◈ Montant total : {{montant_total}} F
+◈ Acompte versé : {{acompte}} F
+◈ *RESTE À PAYER : {{reste_a_payer}} F*
 
 Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.
@@ -63,33 +56,26 @@ L'équipe Ivoire Couvée d'Or.
   {
     name: 'Bilan du Mirage',
     category: 'MIRAGE',
-    content: `🕯️ *RÉSULTATS DU MIRAGE TECHNIQUE* 🕯️
+    content: `◈ *RÉSULTATS DU MIRAGE TECHNIQUE - IVOIRE COUVÉE D'OR*
 
-Bonjour *{{client_name}}*,
+Bonjour *{{client_name}}*, le contrôle de fécondité de votre lot a été effectué :
 
-📊 *STATISTIQUES TECHNIQUES* :
-- 🧪 Lot total : {{quantite}} {{type_oeuf}}s
-- 💎 Œufs fertiles : *{{fertile}}*
-- ⚪ Œufs non-fertiles (clairs) : {{clairs}}
-- ⚠️ Œufs pourris/écartés : {{pourris}}
+◈ *STATISTIQUES TECHNIQUES* :
+◈ Lot total : {{quantite}} {{type_oeuf}}s
+◈ Œufs fertiles : *{{fertile}}*
+◈ Œufs clairs : {{clairs}}
+◈ Œufs pourris : {{pourris}}
 
-📅 *CALENDRIER TECHNIQUE* :
-- 📥 Date de dépôt : {{date_reception}}
-- 🔍 Mirage effectué : {{date_mirage}}
-- 🐣 Éclosion prévue : {{date_eclosion}}
+◈ *CALENDRIER TECHNIQUE* :
+◈ Dépôt : {{date_reception}}
+◈ Mirage : {{date_mirage}}
+◈ Éclosion : {{date_eclosion}}
 
-💰 *SITUATION FINANCIÈRE* :
-- 💵 Montant total : {{montant_total}} FCFA
-- 💳 Acompte versé : {{acompte}} FCFA
-- 🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*
+◈ *SITUATION FINANCIÈRE* :
+◈ Reste à payer (ce lot) : {{reste_a_payer}} F
+◈ *TOTAL GLOBAL À RÉGLER : {{total_global}} F*
 
-Veuillez prévoir le règlement total pour récupérer vos poussins.
-
-✅ *PROCHAINE ÉTAPE* : Vos {{fertile}} œufs fertiles poursuivent leur développement vers l'éclosion.
-
-_Nous restons mobilisés pour vous garantir le meilleur taux de réussite._
-
-Merci de votre confiance !
+✅ Vos {{fertile}} œufs fertiles poursuivent leur développement.
 L'équipe Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62`,
     isActive: true,
@@ -98,27 +84,20 @@ L'équipe Ivoire Couvée d'Or.
   {
     name: 'Bilan du 2ème Mirage',
     category: 'MIRAGE',
-    content: `🕯️ *RÉSULTATS DU 2ÈME MIRAGE TECHNIQUE* 🕯️
+    content: `◈ *RÉSULTATS DU 2ÈME MIRAGE TECHNIQUE*
 
-Bonjour *{{client_name}}*,
+Bonjour *{{client_name}}*, contrôle de viabilité actualisé :
 
-Nous avons effectué un second contrôle de viabilité sur votre lot :
+◈ *SITUATION TECHNIQUE* :
+◈ Lot total : {{quantite}} {{type_oeuf}}s
+◈ Œufs fertiles restants : *{{fertile}}*
+◈ Nouveaux écarts : {{pourris}}
 
-📊 *SITUATION TECHNIQUE ACTUALISÉE* :
-- 🧪 Lot total : {{quantite}} {{type_oeuf}}s
-- 💎 Œufs fertiles restants : *{{fertile}}*
-- ⚠️ Nouveaux écarts détectés : {{pourris}}
+◈ *CALENDRIER TECHNIQUE* :
+◈ Éclosion prévue : {{date_eclosion}}
 
-📅 *CALENDRIER TECHNIQUE* :
-- 📥 Date de dépôt : {{date_reception}}
-- 🐣 Éclosion prévue : {{date_eclosion}}
-
-💰 *SITUATION FINANCIÈRE* :
-- 💵 Montant total : {{montant_total}} FCFA
-- 💳 Acompte : {{acompte}} FCFA
-- 🚩 *RESTE À PAYER : {{reste_a_payer}} FCFA*
-
-Veuillez prévoir le règlement total pour récupérer vos poussins.
+◈ *SITUATION FINANCIÈRE* :
+◈ *RESTE TOTAL À PAYER : {{total_global}} F*
 
 Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.
@@ -129,25 +108,23 @@ L'équipe Ivoire Couvée d'Or.
   {
     name: 'Démarrage Éclosion',
     category: 'ECLOSION',
-    content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*
+    content: `◈ *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*
 
-Bonjour *{{client_name}}*,
+Bonjour *{{client_name}}*, votre éclosion pour le Lot de *{{quantite}}* œufs de *{{type_oeuf}}s* a démarré.
 
-🐣 Votre éclosion pour le Lot de *{{quantite}}* œufs de *{{type_oeuf}}s* a démarré, préparez-vous à venir récupérer vos poussins demain dans l'après-midi.
+◈ *CALENDRIER TECHNIQUE* :
+◈ Date de dépôt : {{date_reception}}
+◈ Mirage : {{date_mirage}}
+◈ Démarrage éclosion : {{date_eclosion}}
 
-📅 *CALENDRIER TECHNIQUE* :
-• 📥 Date de dépôt : {{date_reception}}
-• 🔍 Jour de mirage : {{date_mirage}}
-• 🐣 Démarrage éclosion : {{date_eclosion}}
+◈ *INFOS TECHNIQUES* :
+◈ Lot : {{quantite}} {{type_oeuf}}s
+◈ Œufs viables en éclosion : *{{viables}}*
+◈ Identifiant : {{nom_depart}}
 
-📊 *INFOS TECHNIQUES* :
-•  🧪 Lot : {{quantite}} {{type_oeuf}}s
-•  ✅ Œufs viables en éclosion : *{{viables}}*
-•  🏷️ Identifiant : {{nom_depart}}
-
-💰 *SITUATION FINANCIÈRE* :
-•  Reste à payer (ce lot) : {{reste_a_payer}}
-🚩 *TOTAL GLOBAL À RÉGLER : {{total_global}}*
+◈ *SITUATION FINANCIÈRE* :
+◈ Reste à payer (ce lot) : {{reste_a_payer}} F
+◈ *TOTAL GLOBAL À RÉGLER : {{total_global}} F*
 
 {{instruction_paiement}}
 
@@ -160,28 +137,28 @@ L'équipe Ivoire Couvée d'Or.
   {
     name: 'Bilan Sortie Éclosion',
     category: 'FINANCE',
-    content: `◈ *SITUATION FINANCIÈRE*
+    content: `◈ *SITUATION FINANCIÈRE - IVOIRE COUVÉE D'OR*
 
 ◈ Client: *{{client_name}}* ({{client_id_ext}})
-◈ Lot: *{{quantite}} {{type_oeuf}}s*
-◈ Date de dépôt des œufs : {{date_reception}}
-◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
+◈ Lot: *{{quantite}} {{type_oeuf}}*
+◈ Date de dépôt : {{date_reception}}
+◈ Éclosion: *{{poussins_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
+◈ *DÉTAIL DU RÈGLEMENT* :
 ◈ Montant Total dû: {{montant_du}} F
 ◈ Remise: {{remise}}
 ◈ Avoir: {{avoir}}
-◈ Net déjà encaissé: {{net_encaisse}} F
+◈ Net encaissé: {{net_encaisse}} F
 
-◈ *RESTE TOTAL À PAYER: {{total_global}} F*
+◈ *RESTE TOTAL À PAYER : {{total_global}} F*
 
-◈ Venez chercher demain après midi.
+◈ Passage prévu : demain après-midi pour la récupération.
 
 Merci de votre confiance !
-L'équipe Ivoire Couvée d'Or.
+L'équipe expertise Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62`,
     isActive: true,
-    description: 'Bilan de sortie final avec statistiques et solde financier détaillé.',
-    isActive: true
+    description: 'Bilan de sortie final avec statistiques et solde financier détaillé.'
   },
   {
     name: 'Rappel de Collecte',
