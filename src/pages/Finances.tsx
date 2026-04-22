@@ -27,6 +27,7 @@ import {
   totalAvoirsRemisesGlobal,
 } from '../lib/financeCalculations';
 import { Target, AlertTriangle } from 'lucide-react';
+import { openWhatsApp } from '../lib/whatsappTemplates';
 
 const Finances = () => {
   const { transactions, couvaisons, clients, addClientMessage } = useAppContext();
@@ -86,18 +87,11 @@ const Finances = () => {
       .sort((a, b) => b.remain - a.remain);
   }, [couvaisonsScoped, clients, transactions]);
 
-  const normalizeWhatsappNumber = (phone?: string) => {
-    if (!phone) return '';
-    let cleaned = phone.replace(/[^\d+]/g, '');
-    if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
-    if (cleaned.length === 10) return '225' + cleaned;
-    return cleaned;
-  };
 
   const sendPaymentReminder = async (clientId: string | undefined, couvaisonId: string, clientName: string | undefined, phone: string | undefined, remain: number) => {
     if (!clientId || !phone) return;
     const text = `Bonjour ${clientName || ''},\n\nPetit rappel concernant le solde de votre couvaison: ${remain.toLocaleString()} FCFA restant a regler.\nMerci de passer au couvoir pour regulariser.\n\nL'equipe Ivoire Couvee d'Or.`;
-    const url = `https://wa.me/${normalizeWhatsappNumber(phone)}?text=${encodeURIComponent(text)}`;
+    
     try {
       await addClientMessage({
         clientId,
@@ -112,7 +106,8 @@ const Finances = () => {
     } catch {
       // No-op: ne pas bloquer l'action utilisateur.
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    
+    openWhatsApp(phone, text);
   };
 
   const exportAccountingCsv = () => {

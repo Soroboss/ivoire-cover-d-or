@@ -3,7 +3,7 @@ import { CheckCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { resteLot, netPayeLot } from '../../lib/financeCalculations';
-import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 
 export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
   const { couvaisons, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
@@ -73,8 +73,9 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
            `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
            `📈 *RÉSULTATS DE PRODUCTION* :\n` +
            `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
-           `- ✨ Poussins nés viables : *{{poussins}}*\n` +
-           `- 🌟 Taux de réussite : *{{taux_eclosion}}%*\n\n` +
+           `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
+           `- ✨ Poussins nés viables : *{{poussins}}* ({{ratio_eclosion}})\n` +
+           `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
            `💵 *RÉCAPITULATIF FINANCIER* :\n` +
            `- Total Prestation : {{montant_total}} F\n` +
            `- Acompte reçu : {{acompte}} F\n` +
@@ -111,8 +112,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
             sentByName: currentUser?.nom,
           });
         } catch { /* no-op */ }
-        const url = `https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(whatsAppText)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
+        openWhatsApp(client.telephone, whatsAppText);
       }
 
       alert('Étape enregistrée avec succès !');
@@ -185,8 +185,9 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                    `Votre lot (ID: {{couvaison_id}}) est prêt ! Voici les résultats définitifs de votre passage chez Ivoire Couvée d'Or :\n\n` +
                    `📈 *RÉSULTATS DE PRODUCTION* :\n` +
                    `- 🌱 Œufs mis en machine : {{quantite}} {{type_oeuf}}s\n` +
-                   `- ✨ Poussins nés viables : *{{poussins}}*\n` +
-                   `- 🌟 Taux de réussite : *{{taux_eclosion}}%*\n\n` +
+                   `- 💎 Œufs fertiles (viables) : {{fertile}}\n` +
+                   `- ✨ Poussins nés viables : *{{poussins}}* ({{ratio_eclosion}})\n` +
+                   `- 🌟 Taux de réussite : *{{taux_eclosion}}*\n\n` +
                    `💵 *RÉCAPITULATIF FINANCIER* :\n` +
                    `- Total Prestation : {{montant_total}} F\n` +
                    `- Acompte reçu : {{acompte}} F\n` +
@@ -210,7 +211,7 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
                    }
                  });
                 
-                window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');
+                openWhatsApp(client.telephone, msg);
               }}
               className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
             >

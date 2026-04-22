@@ -24,10 +24,16 @@ const Couvaisons = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [receptionFrom, setReceptionFrom] = useState('');
   const [receptionTo, setReceptionTo] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const canDelete = currentUser?.role === 'Admin';
 
   const [sortBy, setSortBy] = useState<'reception' | 'registration'>('reception');
+
+  const eggTypes = useMemo(() => {
+    const types = new Set(couvaisons.map(c => c.typeOeuf));
+    return Array.from(types).sort();
+  }, [couvaisons]);
 
   const filteredCouvaisons = useMemo(() => {
     return couvaisons
@@ -41,6 +47,7 @@ const Couvaisons = () => {
           if (statusFilter === 'Annulé' && c.statut !== 'Annulé') return false;
         }
         if (!isIsoDateInRange(c.dateReception, receptionFrom, receptionTo)) return false;
+        if (typeFilter && c.typeOeuf !== typeFilter) return false;
         if (searchTerm) {
           const client = clients.find((cl) => cl.id === c.clientId);
           return client?.nom.toLowerCase().includes(searchTerm.toLowerCase());
@@ -54,7 +61,7 @@ const Couvaisons = () => {
           return couvaisons.indexOf(b) - couvaisons.indexOf(a);
         }
       });
-  }, [couvaisons, clients, statusFilter, searchTerm, receptionFrom, receptionTo, sortBy]);
+  }, [couvaisons, clients, statusFilter, searchTerm, receptionFrom, receptionTo, typeFilter, sortBy]);
 
   const handleOpenMirage = (id: string) => { setActiveId(id); setView('mirage'); };
   const handleOpenEclosionHub = (id: string) => { setActiveId(id); setView('eclosionHub'); };
@@ -223,6 +230,16 @@ const Couvaisons = () => {
                 ))}
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm font-semibold focus:ring-2 focus:ring-brand-orange focus:outline-none sm:w-auto text-brand-dark shadow-sm"
+                >
+                  <option value="">🥚 Tous les œufs</option>
+                  {eggTypes.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'reception' | 'registration')}

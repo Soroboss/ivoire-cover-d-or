@@ -39,6 +39,9 @@ const WhatsAppManagement = () => {
     { key: '{{total_global}}', desc: 'Total global à régler (avec dettes)' },
     { key: '{{viables}}', desc: 'Nombre d\'œufs viables (Transfert)' },
     { key: '{{poussins}}', desc: 'Nombre de poussins nés (Bilan)' },
+    { key: '{{couvaison_id}}', desc: 'ID court du lot (ex: EB42)' },
+    { key: '{{ratio_eclosion}}', desc: 'Ratio (Poussins nés / Œufs fertiles)' },
+    { key: '{{taux_eclosion}}', desc: 'Taux d\'éclosion (incluant %)' },
     { key: '{{taux_fecondite}}', desc: 'Taux de fécondité (Mirage)' },
     { key: '{{taux_reussite}}', desc: 'Taux d\'éclosion (Bilan)' },
   ];

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import { format, addDays, parseISO } from 'date-fns';
-import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 import { OEUF_CONFIG } from '../../types';
 import type { TypeOeuf } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -170,8 +170,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
       }).catch(console.error);
     }
 
-    const url = `https://wa.me/${normalizeTelephone(clientTel)}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    openWhatsApp(clientTel, msg);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -10,6 +10,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { ClientStatsSummary } from './ClientStatsSummary';
 import { ClientEditModal } from '../clients/ClientEditModal';
+import { openWhatsApp } from '../../lib/whatsappTemplates';
 
 interface LotInfo {
   id: string;
@@ -413,8 +414,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
                     `💸 *Montant versé ce Jour:* ${valMontant > 0 ? valMontant.toLocaleString() + ' F' : '...'}\n\n` +
                     `_Merci de votre confiance !_`;
                   
-                  const url = `https://wa.me/${selectedClient.telephone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-                  window.open(url, '_blank');
+                  openWhatsApp(selectedClient.telephone, msg);
                 }}
                 className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-bold"
               >

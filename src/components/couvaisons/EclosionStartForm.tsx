@@ -5,16 +5,7 @@ import type { Client, Machine, Casier } from '../../types';
 import { format } from 'date-fns';
 import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
-const normalizePhoneForWhatsApp = (phone?: string) => {
-  if (!phone) return '';
-  let cleaned = phone.replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('+')) cleaned = cleaned.substring(1);
-  // Pour les saisies locales (10 chiffres)
-  if (cleaned.length === 10) return '225' + cleaned;
-  return cleaned;
-};
-
-import { formatWhatsAppMessage } from '../../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 
 const EclosionStartForm = ({
   couvaisonId,
@@ -106,11 +97,6 @@ const EclosionStartForm = ({
     });
   }, [client, couv, couvaisonId, transactions, couvaisons, messageTemplates, nomDepart, oeufsViables]);
 
-  const whatsAppUrl = useMemo(() => {
-    const phone = normalizePhoneForWhatsApp(client?.telephone);
-    if (!phone) return '';
-    return `https://wa.me/${phone}?text=${encodeURIComponent(whatsAppText)}`;
-  }, [client?.telephone, whatsAppText]);
 
   if (!couv) return null;
 
@@ -142,8 +128,8 @@ const EclosionStartForm = ({
           // no-op: si le log échoue on laisse quand même l'utilisateur poursuivre
         }
       }
-      if (whatsAppUrl) {
-        window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
+      if (client?.telephone && whatsAppText) {
+        openWhatsApp(client.telephone, whatsAppText);
       }
       onSuccess();
     } catch (err) {
@@ -231,16 +217,15 @@ const EclosionStartForm = ({
           <button type="button" onClick={onCancel} className="px-4 py-2 border border-gray-300 text-brand-gray rounded-md hover:bg-gray-50 transition-colors">
             Annuler
           </button>
-          {whatsAppUrl && (
-            <a
-              href={whatsAppUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {client?.telephone && (
+            <button
+              type="button"
+              onClick={() => openWhatsApp(client.telephone, whatsAppText)}
               className="px-4 py-2 bg-yellow-50 text-yellow-700 font-medium rounded-md hover:bg-yellow-100 transition-colors inline-flex items-center justify-center"
               title="Ouvrir WhatsApp avec le message pré-rempli"
             >
               Envoyer WhatsApp
-            </a>
+            </button>
           )}
           <button
             type="submit"

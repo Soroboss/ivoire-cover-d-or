@@ -10,7 +10,7 @@ import {
   receptionDateInputToIso,
 } from '../../lib/couvaisonPlanning';
 
-import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 import { resteLot } from '../../lib/financeCalculations';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
@@ -91,7 +91,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
           });
         } catch { /* no-op */ }
 
-        window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(msg)}`, '_blank');
+        openWhatsApp(client.telephone, msg);
       }
 
       onSuccess();

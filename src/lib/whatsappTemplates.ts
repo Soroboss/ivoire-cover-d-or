@@ -40,7 +40,8 @@ export const formatWhatsAppMessage = (
     pourris: '0',
     taux_fecondite: '0%',
     taux_reussite: '0%',
-    taux_eclosion: '0',
+    taux_eclosion: '0%',
+    ratio_eclosion: '0 / 0',
     details_lots: '',
     detail_lot: '',
     detail_des_lots: '',
@@ -77,8 +78,15 @@ export const formatWhatsAppMessage = (
       vars.taux_fecondite = ((v / couvaison.nombreOeufs) * 100).toFixed(1) + '%';
     }
     if (v > 0 && couvaison.poussinsNes !== undefined) {
-      vars.taux_reussite = ((couvaison.poussinsNes / v) * 100).toFixed(1) + '%';
+      const tr = ((couvaison.poussinsNes / v) * 100).toFixed(1) + '%';
+      vars.taux_reussite = tr;
+      vars.taux_eclosion = tr;
+      vars.ratio_eclosion = `${couvaison.poussinsNes} / ${v}`;
     }
+
+    // Identifiant court ou ID complet
+    vars.couvaison_id = couvaison.id.split('-')[0].toUpperCase();
+    vars.id_couvaison = vars.couvaison_id;
 
     // Auto-calculate Financials if transactions are present
     if (transactions) {
@@ -139,8 +147,41 @@ export const formatWhatsAppMessage = (
 
 export const normalizePhoneForWhatsApp = (phone?: string) => {
   if (!phone) return '';
-  const cleaned = phone.replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('+')) return cleaned.substring(1);
-  if (cleaned.length === 10) return '225' + cleaned;
+  // Supprimer tout ce qui n'est pas un chiffre
+  let cleaned = phone.replace(/\D/g, '');
+  
+  // Si le numéro commence par 00, on considère que c'est un préfixe international
+  if (phone.startsWith('00')) cleaned = cleaned.substring(2);
+  // Si le numéro commence par +, on a déjà géré ça avec \D (le + est supprimé)
+  
+  // Cas spécifique Côte d'Ivoire : 10 chiffres commençant par 0
+  if (cleaned.length === 10 && (cleaned.startsWith('01') || cleaned.startsWith('05') || cleaned.startsWith('07'))) {
+    return '225' + cleaned;
+  }
+  
+  // Si on a 10 chiffres mais pas de 225 au début, on ajoute 225 par prédiction (contexte local)
+  if (cleaned.length === 10 && !cleaned.startsWith('225')) {
+    return '225' + cleaned;
+  }
+
   return cleaned;
+};
+
+/** Ouvre WhatsApp de manière robuste avec un message pré-rempli. */
+export const openWhatsApp = (phone: string, message: string) => {
+  const cleanPhone = normalizePhoneForWhatsApp(phone);
+  if (!cleanPhone) return;
+
+  const encodedText = encodeURIComponent(message);
+  // Utiliser wa.me qui est plus fiable sur mobile et desktop
+  const url = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+  
+  // Tentative d'ouverture
+  const win = window.open(url, '_blank', 'noopener,noreferrer');
+  if (win) {
+    win.focus();
+  } else {
+    // Si bloqué par un popup blocker, fallback sur location.href
+    window.location.href = url;
+  }
 };

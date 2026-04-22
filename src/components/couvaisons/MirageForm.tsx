@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
-import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 import { resteLot } from '../../lib/financeCalculations';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
@@ -108,7 +108,7 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
       });
     } catch { /* no-op */ }
 
-    window.open(`https://wa.me/${normalizePhoneForWhatsApp(client.telephone)}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsApp(client.telephone, message);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
