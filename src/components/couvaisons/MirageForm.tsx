@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
 import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../../lib/whatsappTemplates';
+import { resteLot } from '../../lib/financeCalculations';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
   const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, addClientMessage } = useAppContext();

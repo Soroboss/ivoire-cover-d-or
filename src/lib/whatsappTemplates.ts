@@ -77,7 +77,7 @@ export const formatWhatsAppMessage = (
       const totalDue = (couvaison.nombreOeufs || 0) * (couvaison.prixUnitaire || 0);
       const rest = resteLot(transactions, couvaison.id, totalDue);
       const paid = transactions
-        .filter(t => t.typeTransaction === 'Encaissement' && (t.penseBete?.includes(couvaison.id) || t.typeVente === 'LO'))
+        .filter(t => (t.typeTransaction as string) === 'Paiement' && t.couvaisonId === couvaison.id)
         .reduce((sum, t) => sum + (t.montantTotal || 0), 0);
       
       vars.montant_total = totalDue.toLocaleString();
