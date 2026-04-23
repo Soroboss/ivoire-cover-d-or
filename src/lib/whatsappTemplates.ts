@@ -189,21 +189,37 @@ export const normalizePhoneForWhatsApp = (phone?: string) => {
   return cleaned;
 };
 
-/** Ouvre WhatsApp de manière robuste avec un message pré-rempli. */
+/** Ouvre WhatsApp systématiquement dans un nouvel onglet sans quitter le logiciel. */
 export const openWhatsApp = (phone: string, message: string) => {
   const cleanPhone = normalizePhoneForWhatsApp(phone);
   if (!cleanPhone) return;
 
   const encodedText = encodeURIComponent(message);
-  // Utiliser wa.me qui est plus fiable sur mobile et desktop
   const url = `https://wa.me/${cleanPhone}?text=${encodedText}`;
   
-  // Tentative d'ouverture
-  const win = window.open(url, '_blank', 'noopener,noreferrer');
-  if (win) {
-    win.focus();
-  } else {
-    // Si bloqué par un popup blocker, fallback sur location.href
-    window.location.href = url;
+  // On utilise une approche robuste par lien invisible pour forcer le target="_blank"
+  // et minimiser les blocages par les navigateurs tout en préservant l'onglet actif.
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  
+  // Ajout temporaire au DOM pour certains navigateurs
+  document.body.appendChild(link);
+  
+  try {
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      // Si window.open est bloqué, on tente le clic sur le lien
+      link.click();
+    } else {
+      win.focus();
+    }
+  } catch (e) {
+    // Dernier recours : clic sur le lien
+    link.click();
+  } finally {
+    // Nettoyage
+    document.body.removeChild(link);
   }
 };
