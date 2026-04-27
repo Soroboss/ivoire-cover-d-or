@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppProvider';
 import { useAuth } from '../../context/AuthContext';
-import { resteLot, netPayeLot } from '../../lib/financeCalculations';
+import { resteLot, netPayeLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 
 export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
@@ -63,8 +63,8 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
 
       if (deltaNes > 0 && sendWhatsApp && client?.telephone) {
         const netEncashed = netPayeLot(transactions, couvaisonId);
-        const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
         const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
+        const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
         
         const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
            || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
@@ -76,11 +76,9 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
 ◈ Éclosion : *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
 ◈ *DÉTAIL DU RÈGLEMENT* :
-◈ Montant Total dû: {{montant_du}} F
-◈ Remise: {{remise}}
-◈ Avoir: {{avoir}}
-◈ Net encaissé: {{net_encaisse}} F
-
+◈ Montant du lot: {{montant_du}} F
+◈ Net encaissé (lot): {{net_encaisse}} F
+{{note_antecedents}}
 ◈ *RESTE TOTAL À PAYER : {{total_global}} F*
 
 ◈ Passage prévu : demain après-midi pour la récupération.
@@ -99,7 +97,11 @@ L'équipe expertise Ivoire Couvée d'Or.
              delta_nes: deltaNes,
              morts,
              remises_avoirs: (remises + avoirs).toLocaleString() + ' F',
-             deja_encaisse: netEncashed.toLocaleString() + ' F'
+             deja_encaisse: netEncashed.toLocaleString() + ' F',
+             note_antecedents: (getClientGlobalBalance(transactions, couvaisons, client.id) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))) > 0
+               ? `◈ Arriérés précédents : ${(getClientGlobalBalance(transactions, couvaisons, client.id) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))).toLocaleString()} F\n`
+               : '',
+             total_global: getClientGlobalBalance(transactions, couvaisons, client.id).toLocaleString()
            }
          });
 
@@ -201,18 +203,17 @@ L'équipe expertise Ivoire Couvée d'Or.
                 
                 const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
                    || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
-                   || { content: `◈ *SITUATION FINANCIÈRE*
+                   || { content: `◈ *SITUATION FINANCIÈRE - IVOIRE COUVÉE D'OR*
 
 ◈ Client: *{{client_name}}*
 ◈ Lot: *{{quantite}} {{type_oeuf}}s*
 ◈ Date de dépôt : {{date_reception}}
 ◈ Éclosion: *{{delta_nes}}* nouveaux poussins (Total: *{{ratio_eclosion}}*)
 
-◈ Montant Total dû: {{montant_du}} F
-◈ Remise: {{remise}}
-◈ Avoir: {{avoir}}
-◈ Net déjà encaissé: {{net_encaisse}} F
-
+◈ *DÉTAIL DU RÈGLEMENT* :
+◈ Montant du lot: {{montant_du}} F
+◈ Net encaissé (lot): {{net_encaisse}} F
+{{note_antecedents}}
 ◈ *RESTE TOTAL À PAYER: {{total_global}} F*
 
 ◈ Venez chercher demain après midi.
@@ -221,18 +222,26 @@ Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62` };
 
-                 const msg = formatWhatsAppMessage(template as any, {
-                   client,
-                   couvaison: { ...couv, poussinsNes: nes },
-                   transactions,
-                   extra: {
-                     client_id_ext: client.clientIdExt || '—',
-                     viables: oeufsRestants,
-                     morts,
-                     remises_avoirs: (remises + avoirs).toLocaleString() + ' F',
-                     deja_encaisse: netEncashed.toLocaleString() + ' F'
-                   }
-                 });
+                const globalBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
+                const restLot = resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire));
+                const antecedents = Math.max(0, globalBalance - restLot);
+
+                const msg = formatWhatsAppMessage(template as any, {
+                  client,
+                  couvaison: { ...couv, poussinsNes: nes },
+                  transactions,
+                  extra: {
+                    client_id_ext: client.clientIdExt || '—',
+                    viables: oeufsRestants,
+                    morts,
+                    remises_avoirs: (remises + avoirs).toLocaleString() + ' F',
+                    deja_encaisse: netEncashed.toLocaleString() + ' F',
+                    note_antecedents: antecedents > 0 
+                      ? `◈ Arriérés précédents : ${antecedents.toLocaleString()} F\n` 
+                      : '',
+                    total_global: globalBalance.toLocaleString()
+                  }
+                });
                 
                 openWhatsApp(client.telephone, msg);
               }}

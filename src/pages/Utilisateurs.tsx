@@ -178,10 +178,14 @@ export const Utilisateurs = () => {
                   </td>
 
                  <td className="px-6 py-4 text-center">
-                    {u.actif ? 
-                      <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-xs font-semibold"><CheckCircle size={14}/> Oui</span> : 
-                      <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded text-xs font-semibold"><XCircle size={14}/> Bloqué</span>
-                    }
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      u.actif 
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                        : 'bg-red-100 text-red-700 border border-red-200'
+                    }`}>
+                      {u.actif ? <CheckCircle size={12}/> : <XCircle size={12}/>}
+                      {u.actif ? 'Actif' : 'Bloqué'}
+                    </span>
                  </td>
                  <td className="px-6 py-4 text-center">
                     <button
@@ -195,9 +199,18 @@ export const Utilisateurs = () => {
                  <td className="px-6 py-4 text-center">
                      <div className="flex items-center justify-center gap-2">
                         <button 
-                           onClick={() => toggleStatut(u.id, u.actif)} 
+                           onClick={() => {
+                             const action = u.actif ? 'bloquer' : 'réactiver';
+                             if (window.confirm(`Voulez-vous vraiment ${action} le compte de ${u.nom} ?`)) {
+                               toggleStatut(u.id, u.actif);
+                             }
+                           }} 
                            disabled={currentUser.id === u.id}
-                           className={`px-3 py-1 rounded text-xs font-semibold ${u.actif ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'} transition-colors disabled:opacity-30`}
+                           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm disabled:opacity-30 ${
+                             u.actif 
+                               ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white' 
+                               : 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white'
+                           }`}
                            title={u.actif ? 'Bloquer l\'accès' : 'Débloquer l\'accès'}
                         >
                            {u.actif ? 'Bloquer' : 'Débloquer'}

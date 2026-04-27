@@ -84,10 +84,11 @@ export const formatWhatsAppMessage = (
       vars.taux_fecondite = ((v / couvaison.nombreOeufs) * 100).toFixed(1) + '%';
     }
     if (v > 0 && couvaison.poussinsNes !== undefined) {
-      const tr = ((couvaison.poussinsNes / v) * 100).toFixed(1) + '%';
+      const rate = ((couvaison.poussinsNes / v) * 100).toFixed(1);
+      const tr = rate + '%';
       vars.taux_reussite = tr;
       vars.taux_eclosion = tr;
-      vars.ratio_eclosion = `${couvaison.poussinsNes} / ${v}`;
+      vars.ratio_eclosion = `${couvaison.poussinsNes} / ${v} (${tr})`;
     }
 
     // Identifiant court ou ID complet
@@ -131,7 +132,8 @@ export const formatWhatsAppMessage = (
     const v = (couvaison.nombreOeufs || 0) - (couvaison.oeufsClairs || 0) - (couvaison.oeufsPourris || 0);
     const finalNes = vars.delta_nes !== undefined ? (Number(vars.delta_nes) + (couvaison.poussinsNes || 0)) : (couvaison.poussinsNes || 0);
     const totalNes = vars.poussins_nes || finalNes;
-    vars.ratio_eclosion = `${totalNes}/${v}`;
+    const rate = v > 0 ? ((Number(totalNes) / v) * 100).toFixed(1) : '0';
+    vars.ratio_eclosion = `${totalNes}/${v} (${rate}%)`;
   }
 
   // 4. CONDITIONALS (re-calculated after all auto-calculations)

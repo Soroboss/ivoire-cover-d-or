@@ -121,7 +121,8 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
           `📅 *Dépôt le* : {{date_reception}}\n` +
           `📦 *Détail des lots* :\n{{details_lots}}\n\n` +
           `📊 *SUIVI FINANCIER* :\n` +
-          `- Montant total : {{montant_total}} F\n` +
+          `- Montant du lot : {{montant_total}} F\n` +
+          `{{note_antecedents}}` +
           `- Acompte versé : {{acompte}} F\n` +
           `🚩 *Reste à régler : {{reste_a_payer}} F*\n\n` +
           `🕒 *PROCHAINES ÉTAPES* :\n` +
@@ -151,6 +152,10 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
         date_mirage: format(mirageDateObj, 'dd/MM/yyyy'),
         date_eclosion: format(eclosionDateObj, 'dd/MM/yyyy'),
         montant_total: (totalBrut - (remise || 0)).toLocaleString(),
+        montant_lot: (totalBrut - (remise || 0)).toLocaleString(),
+        note_antecedents: currentBalance > 0 
+          ? `- Arriérés précédents : ${currentBalance.toLocaleString()} F\n` 
+          : '',
         acompte: acompte.toLocaleString(),
         accompte: acompte.toLocaleString(),
         reste_a_payer: balance.toLocaleString()

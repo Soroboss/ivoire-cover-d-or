@@ -59,22 +59,38 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
       if (sendWhatsApp && client?.telephone) {
         const template = messageTemplates.find(t => t.name === 'Mise en Machine' && t.isActive)
           || messageTemplates.find(t => t.category === 'MISE_EN_MACHINE' && t.isActive)
-          || { content: `⚙️ *MISE EN MACHINE*\n\n` +
+          || { content: `⚙️ *MISE EN MACHINE - IVOIRE COUVÉE D'OR*\n\n` +
               `Bonjour {{client_name}},\n` +
-              `Vos {{quantite}} œufs ({{type_oeuf}}) ont été mis en machine.\n` +
-              `Mirage : {{date_mirage}}\n` +
-              `Éclosion : {{date_eclosion}}\n\n` +
+              `Vos {{quantite}} œufs ({{type_oeuf}}) ont été mis en machine.\n\n` +
+              `🔍 Mirage : {{date_mirage}}\n` +
+              `🐣 Éclosion : {{date_eclosion}}\n\n` +
+              `{{note_antecedents}}` +
+              `🚩 Reste à régler : {{reste_a_payer}} F\n\n` +
               `Merci de votre confiance !` };
 
         const totalDue = (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0);
         const rest = resteLot(transactions, couv.id, totalDue);
+        
+        // Calcul du solde global (antécédents)
+        const { getClientGlobalBalance } = await import('../../lib/financeCalculations');
+        const currentBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
+        const previousBalance = currentBalance - rest; // Solde avant ce lot (si on considère que rest est déjà dans currentBalance)
+        
+        // Note: resteLot(transactions, couv.id, totalDue) donne le reste pour CE lot.
+        // currentBalance donne le reste TOTAL du client (tous lots confondus).
+        // On veut les antécédents = currentBalance - rest.
+        
+        const antecedents = Math.max(0, currentBalance - rest);
 
         const msg = formatWhatsAppMessage(template as any, {
           client,
           couvaison: { ...couv, dateMiseEnMachine: startIso, dateMiragePrevue: dateMirageIso, dateEclosionPrevue: dateEclosionIso },
           transactions,
           extra: {
-            reste_a_payer: rest.toLocaleString()
+            note_antecedents: antecedents > 0 
+              ? `⚠️ *ANTÉCÉDENTS* : Reliquat de ${antecedents.toLocaleString()} F sur vos opérations précédentes.\n` 
+              : '',
+            reste_a_payer: currentBalance.toLocaleString()
           }
         });
 
