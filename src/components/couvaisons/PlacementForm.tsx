@@ -74,7 +74,6 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
         // Calcul du solde global (antécédents)
         const { getClientGlobalBalance } = await import('../../lib/financeCalculations');
         const currentBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
-        const previousBalance = currentBalance - rest; // Solde avant ce lot (si on considère que rest est déjà dans currentBalance)
         
         // Note: resteLot(transactions, couv.id, totalDue) donne le reste pour CE lot.
         // currentBalance donne le reste TOTAL du client (tous lots confondus).
