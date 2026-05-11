@@ -20,16 +20,19 @@ import type { CategorieDepense, Depense } from '../types';
 import { CATEGORIE_DEPENSE_LABELS, CATEGORIES_DEPENSE_ORDER } from '../types';
 
 function startOfDayIso(ymd: string): string {
+  if (!ymd || !ymd.includes('-')) return new Date(0).toISOString();
   const [y, m, d] = ymd.split('-').map(Number);
   return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
 }
 
 function endOfDayIso(ymd: string): string {
+  if (!ymd || !ymd.includes('-')) return new Date().toISOString();
   const [y, m, d] = ymd.split('-').map(Number);
   return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
 }
 
 function dateInputToIso(ymd: string): string {
+  if (!ymd || !ymd.includes('-')) return new Date().toISOString();
   const [y, m, d] = ymd.split('-').map(Number);
   return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
 }

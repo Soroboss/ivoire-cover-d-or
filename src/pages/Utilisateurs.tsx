@@ -7,7 +7,6 @@ import { hasPermission, PERMISSION_CATALOG, defaultPermissionsForRole } from '..
 export const Utilisateurs = () => {
   const { users, usersLoading, usersError, addUser, updateUser, deleteUser, currentUser } = useAuth();
 
-
   const [showModal, setShowModal] = useState(false);
   const [nom, setNom] = useState('');
   const [username, setUsername] = useState('');
@@ -15,6 +14,9 @@ export const Utilisateurs = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('Technicien');
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // État de chargement individuel par utilisateur pour le toggle statut
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [permUserId, setPermUserId] = useState<string | null>(null);
   const [permDraft, setPermDraft] = useState<PermissionKey[]>([]);
@@ -46,12 +48,33 @@ export const Utilisateurs = () => {
     }
   };
 
-  const toggleStatut = async (id: string, actif: boolean) => {
-    await updateUser(id, { actif: !actif });
+  const toggleStatut = async (id: string, actif: boolean, nomUtilisateur: string) => {
+    // Protection : ne pas se bloquer soi-même
+    if (id === currentUser.id) return;
+
+    const action = actif ? 'bloquer' : 'réactiver';
+    const message = actif
+      ? `Bloquer le compte de "${nomUtilisateur}" ? Il ne pourra plus se connecter.`
+      : `Réactiver le compte de "${nomUtilisateur}" ? Il pourra à nouveau se connecter.`;
+
+    if (!window.confirm(message)) return;
+
+    setTogglingId(id);
+    try {
+      await updateUser(id, { actif: !actif });
+    } catch (err) {
+      alert(`Erreur lors de l'opération "${action}" : ` + (err as Error).message);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const setRoleAuto = async (id: string, r: Role) => {
-    await updateUser(id, { role: r });
+    try {
+      await updateUser(id, { role: r });
+    } catch (err) {
+      alert("Erreur lors du changement de rôle : " + (err as Error).message);
+    }
   };
 
   return (
@@ -139,11 +162,10 @@ export const Utilisateurs = () => {
           <thead className="bg-gray-50 text-brand-gray font-semibold border-b border-brand-lightgray">
              <tr>
                <th className="px-6 py-4">Nom de la personne</th>
-               <th className="px-6 py-4">Identifiant Secret</th>
+               <th className="px-6 py-4">Identifiant</th>
                 <th className="px-6 py-4">Téléphone</th>
                <th className="px-6 py-4">Profil (Rôle)</th>
                <th className="px-6 py-4 text-center">Accès Actif</th>
-               <th className="px-6 py-4 text-center">Permissions</th>
                <th className="px-6 py-4 text-center">Actions</th>
              </tr>
           </thead>
@@ -178,58 +200,62 @@ export const Utilisateurs = () => {
                   </td>
 
                  <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      u.actif 
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                        : 'bg-red-100 text-red-700 border border-red-200'
-                    }`}>
-                      {u.actif ? <CheckCircle size={12}/> : <XCircle size={12}/>}
-                      {u.actif ? 'Actif' : 'Bloqué'}
-                    </span>
-                 </td>
-                 <td className="px-6 py-4 text-center">
                     <button
                       type="button"
-                      onClick={() => setPermUserId(u.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+                      onClick={() => toggleStatut(u.id, u.actif, u.nom)}
+                      disabled={togglingId === u.id || currentUser.id === u.id}
+                      title={
+                        currentUser.id === u.id
+                          ? 'Vous ne pouvez pas modifier votre propre statut'
+                          : u.actif
+                          ? 'Cliquer pour bloquer l\'accès'
+                          : 'Cliquer pour réactiver l\'accès'
+                      }
+                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${
+                        currentUser.id === u.id
+                          ? 'cursor-not-allowed opacity-50 bg-gray-100 text-gray-400 border border-gray-200'
+                          : u.actif
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-red-100 hover:text-red-700 hover:border-red-200 cursor-pointer'
+                          : 'bg-red-100 text-red-700 border border-red-200 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200 cursor-pointer'
+                      }`}
                     >
-                      <ListChecks size={14} /> Cocher les accès
+                      {togglingId === u.id ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : u.actif ? (
+                        <CheckCircle size={11} />
+                      ) : (
+                        <XCircle size={11} />
+                      )}
+                      <span className="group-hover:hidden">{u.actif ? 'Actif' : 'Bloqué'}</span>
+                      {currentUser.id !== u.id && (
+                        <span className="hidden group-hover:inline">
+                          {u.actif ? '→ Bloquer' : '→ Réactiver'}
+                        </span>
+                      )}
                     </button>
                  </td>
                  <td className="px-6 py-4 text-center">
-                     <div className="flex items-center justify-center gap-2">
-                        <button 
-                           onClick={() => {
-                             const action = u.actif ? 'bloquer' : 'réactiver';
-                             if (window.confirm(`Voulez-vous vraiment ${action} le compte de ${u.nom} ?`)) {
-                               toggleStatut(u.id, u.actif);
+                    <div className="flex items-center justify-center gap-2">
+                       <button 
+                          onClick={() => setPermUserId(u.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+                       >
+                          <ListChecks size={14} /> Permissions
+                       </button>
+                       <button 
+                          onClick={async () => {
+                             if (window.confirm(`Confirmez-vous la suppression DÉFINITIVE du compte de ${u.nom} ?`)) {
+                                await deleteUser(u.id);
                              }
-                           }} 
-                           disabled={currentUser.id === u.id}
-                           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm disabled:opacity-30 ${
-                             u.actif 
-                               ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white' 
-                               : 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white'
-                           }`}
-                           title={u.actif ? 'Bloquer l\'accès' : 'Débloquer l\'accès'}
-                        >
-                           {u.actif ? 'Bloquer' : 'Débloquer'}
-                        </button>
-                        <button 
-                           onClick={async () => {
-                              if (window.confirm(`Confirmez-vous la suppression DEFINITIVE du compte de ${u.nom} ?`)) {
-                                 await deleteUser(u.id);
-                              }
-                           }}
-                           disabled={currentUser.id === u.id}
-                           className="px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-red-500 hover:text-white transition-all disabled:opacity-30"
-                           title="Supprimer définitivement"
-                        >
-                           Supprimer
-                        </button>
-                     </div>
-                  </td>
-
+                          }}
+                          disabled={currentUser.id === u.id}
+                          className="px-3 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-500 hover:bg-red-500 hover:text-white transition-all disabled:opacity-30"
+                          title="Supprimer définitivement"
+                       >
+                          Supprimer
+                       </button>
+                    </div>
+                 </td>
                </tr>
              ))}
           </tbody>

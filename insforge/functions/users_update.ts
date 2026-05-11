@@ -64,10 +64,9 @@ export default async function (req: Request): Promise<Response> {
   try {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
-    const apiKey = Deno.env.get('API_KEY')
     
-    console.log(`[users_update] Updating user. HasApiKey: ${!!apiKey}`)
-    const client = createClient({ baseUrl, anonKey: apiKey || anonKey })
+    // Important: utiliser anonKey uniquement (comme users_list) pour cibler public.users
+    const client = createClient({ baseUrl, anonKey })
     
     const body = await req.json().catch(() => ({} as any))
     const id = body?.id
@@ -109,12 +108,13 @@ export default async function (req: Request): Promise<Response> {
       updateValues.profile = { ...prev, permissions: updates.permissions }
     }
 
-    console.log(`[users_update] Final updateValues:`, JSON.stringify(updateValues))
+    console.log(`[users_update] Updating user: userId=${id}`, JSON.stringify(updateValues))
+    
     const { data: updateData, error: updateError } = await client.database
       .from('users')
       .update(updateValues)
       .eq('id', id)
-      .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
+      .select('id, nom, username, telephone, role, actif, password_hash')
 
     if (updateError) {
       console.error('[users_update] DB Update error:', updateError)
@@ -126,16 +126,14 @@ export default async function (req: Request): Promise<Response> {
 
     const r = updateData?.[0] as any
     if (!r) {
-       console.warn('[users_update] No user found to update with ID:', id)
+       console.warn('[users_update] No user returned after update for ID:', id)
     }
-    
+
     const user = r
       ? (() => {
-          const isProjectAdmin = Boolean(r.is_project_admin)
-          const profile = r.profile ?? {}
-          const fromProfile = Array.isArray(profile.permissions) ? profile.permissions : undefined
+          const isProjectAdmin = false // Non supporté sur public.users directement
           const role = normalizeRole(r.role, isProjectAdmin)
-          const permissions = resolvePermissions(role, fromProfile, isProjectAdmin)
+          const permissions = resolvePermissions(role, undefined, isProjectAdmin)
           return {
             id: r.id,
             nom: r.nom,
@@ -151,7 +149,7 @@ export default async function (req: Request): Promise<Response> {
       : null
 
     return new Response(JSON.stringify({ user }), {
-      status: user ? 200 : 500,
+      status: 200, // Toujours 200 si l'update a réussi (même si le select est vide)
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {

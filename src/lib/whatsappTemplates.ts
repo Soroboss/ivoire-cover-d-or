@@ -19,8 +19,8 @@ export const formatWhatsAppMessage = (
     // Client basics
     client_name: client.nom || '',
     client_tel: client.telephone || '',
-    client_id_ext: client.id.split('-')[0].toUpperCase(),
-    client_id: client.id.split('-')[0].toUpperCase(),
+    client_id_ext: client?.id ? client.id.split('-')[0].toUpperCase() : 'NOUVEAU',
+    client_id: client?.id ? client.id.split('-')[0].toUpperCase() : 'NOUVEAU',
     
     // Default numerical fallbacks to '0'
     acompte: '0',
@@ -92,7 +92,7 @@ export const formatWhatsAppMessage = (
     }
 
     // Identifiant court ou ID complet
-    vars.couvaison_id = couvaison.id.split('-')[0].toUpperCase();
+    vars.couvaison_id = couvaison?.id ? couvaison.id.split('-')[0].toUpperCase() : 'NOUVEAU';
     vars.id_couvaison = vars.id_couvaison_ext || vars.couvaison_id;
 
     // Auto-calculate Financials if transactions are present

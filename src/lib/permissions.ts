@@ -70,19 +70,19 @@ export function hasPermission(user: User | null, key: PermissionKey): boolean {
 }
 
 /** Mappe une réponse API (login / users_list) vers User */
-export function enrichUserFromApi(raw: {
-  id: string;
-  nom: string;
-  username: string;
-  telephone?: string;
-  passwordHash?: string;
-  role?: string;
-  actif?: boolean;
-  permissions?: string[];
-  profile?: { permissions?: string[] } | null;
-  isProjectAdmin?: boolean;
-}): User {
-  const isProjectAdmin = Boolean(raw.isProjectAdmin);
+export function enrichUserFromApi(raw: any): User {
+  if (!raw) {
+    return {
+      id: '',
+      nom: 'Inconnu',
+      username: '',
+      passwordHash: '',
+      role: 'Technicien',
+      actif: false,
+      permissions: [],
+    };
+  }
+  const isProjectAdmin = Boolean(raw.isProjectAdmin || raw.is_project_admin);
   const role = normalizeRole(raw.role, isProjectAdmin);
   const fromProfile = raw.permissions ?? raw.profile?.permissions;
   const permissions = resolvePermissions(role, fromProfile, isProjectAdmin);
@@ -92,7 +92,7 @@ export function enrichUserFromApi(raw: {
     nom: raw.nom,
     username: raw.username,
     telephone: raw.telephone,
-    passwordHash: raw.passwordHash ?? '',
+    passwordHash: raw.passwordHash ?? raw.password_hash ?? '',
     role,
     actif: raw.actif ?? true,
     permissions,
