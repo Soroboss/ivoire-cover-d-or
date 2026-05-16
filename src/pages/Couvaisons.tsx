@@ -11,7 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { Search, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2, Activity } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { isIsoDateInRange } from '../lib/dateRangeFilter';
-import { formatWhatsAppMessage, normalizePhoneForWhatsApp, openWhatsApp } from '../lib/whatsappTemplates';
+import { formatWhatsAppMessage, openWhatsApp } from '../lib/whatsappTemplates';
 
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
