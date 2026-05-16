@@ -11,7 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { Search, Plus, Calendar, CheckCircle, Egg, Eye, MessageCircle, Trash2, Activity } from 'lucide-react';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { isIsoDateInRange } from '../lib/dateRangeFilter';
-import { formatWhatsAppMessage, normalizePhoneForWhatsApp } from '../lib/whatsappTemplates';
+import { formatWhatsAppMessage, normalizePhoneForWhatsApp, openWhatsApp } from '../lib/whatsappTemplates';
 
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
@@ -99,20 +99,20 @@ const Couvaisons = () => {
       transactions
     });
 
-    const url = `https://wa.me/${normalizePhoneForWhatsApp(phone)}?text=${encodeURIComponent(finalMessage)}`;
-    try {
-      await addClientMessage({
-        clientId,
-        couvaisonId,
-        canal: 'WhatsApp',
-        statut: 'Envoye',
-        template: category,
-        message: finalMessage,
-        sentByUserId: currentUser?.id,
-        sentByName: currentUser?.nom,
-      });
-    } catch { /* no-op */ }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // On n'attend pas la fin de l'enregistrement du message pour ouvrir WhatsApp
+    // afin de préserver l'activation utilisateur du navigateur.
+    void addClientMessage({
+      clientId,
+      couvaisonId,
+      canal: 'WhatsApp',
+      statut: 'Envoye',
+      template: category,
+      message: finalMessage,
+      sentByUserId: currentUser?.id,
+      sentByName: currentUser?.nom,
+    }).catch(() => {});
+
+    openWhatsApp(phone, finalMessage);
   };
 
   if (view === 'create') {

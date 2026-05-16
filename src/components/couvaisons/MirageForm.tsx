@@ -95,18 +95,16 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
        }
      });
 
-    try {
-      await addClientMessage({
-        clientId: client.id,
-        couvaisonId: couv.id,
-        canal: 'WhatsApp',
-        statut: 'Envoye',
-        template: 'bilan_mirage',
-        message,
-        sentByUserId: currentUser?.id,
-        sentByName: currentUser?.nom,
-      });
-    } catch { /* no-op */ }
+    void addClientMessage({
+      clientId: client.id,
+      couvaisonId: couv.id,
+      canal: 'WhatsApp',
+      statut: 'Envoye',
+      template: 'bilan_mirage',
+      message,
+      sentByUserId: currentUser?.id,
+      sentByName: currentUser?.nom,
+    }).catch(() => {});
 
     openWhatsApp(client.telephone, message);
   };
@@ -136,7 +134,7 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
       });
       
       if (sendWhatsApp) {
-        await handleMirageWhatsApp();
+        handleMirageWhatsApp();
       }
 
       onSuccess();

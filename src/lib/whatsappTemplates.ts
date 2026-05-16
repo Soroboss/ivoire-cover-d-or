@@ -205,11 +205,12 @@ export const openWhatsApp = (phone: string, message: string) => {
   link.href = url;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
+  link.style.display = 'none';
   
-  // Ajout temporaire au DOM pour certains navigateurs
   document.body.appendChild(link);
   
   try {
+    // Tentative 1: window.open (plus propre si ça passe)
     const win = window.open(url, '_blank', 'noopener,noreferrer');
     if (!win || win.closed || typeof win.closed === 'undefined') {
       // Si window.open est bloqué, on tente le clic sur le lien
@@ -218,10 +219,14 @@ export const openWhatsApp = (phone: string, message: string) => {
       win.focus();
     }
   } catch (e) {
-    // Dernier recours : clic sur le lien
+    // Tentative 2: Fallback clic sur le lien
     link.click();
   } finally {
-    // Nettoyage
-    document.body.removeChild(link);
+    // Nettoyage différé pour laisser le temps au navigateur de traiter le clic
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 100);
   }
 };

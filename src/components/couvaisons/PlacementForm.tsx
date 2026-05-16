@@ -11,7 +11,7 @@ import {
 } from '../../lib/couvaisonPlanning';
 
 import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
-import { resteLot } from '../../lib/financeCalculations';
+import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
   const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
@@ -72,7 +72,6 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
         const rest = resteLot(transactions, couv.id, totalDue);
         
         // Calcul du solde global (antécédents)
-        const { getClientGlobalBalance } = await import('../../lib/financeCalculations');
         const currentBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
         
         // Note: resteLot(transactions, couv.id, totalDue) donne le reste pour CE lot.
@@ -93,18 +92,16 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
           }
         });
 
-        try {
-          await addClientMessage({
-            clientId: client.id,
-            couvaisonId: couv.id,
-            canal: 'WhatsApp',
-            statut: 'Envoye',
-            template: 'mise_en_machine',
-            message: msg,
-            sentByUserId: currentUser?.id,
-            sentByName: currentUser?.nom,
-          });
-        } catch { /* no-op */ }
+        void addClientMessage({
+          clientId: client.id,
+          couvaisonId: couv.id,
+          canal: 'WhatsApp',
+          statut: 'Envoye',
+          template: 'mise_en_machine',
+          message: msg,
+          sentByUserId: currentUser?.id,
+          sentByName: currentUser?.nom,
+        }).catch(() => {});
 
         openWhatsApp(client.telephone, msg);
       }

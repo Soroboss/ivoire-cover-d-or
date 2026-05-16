@@ -105,18 +105,16 @@ L'équipe expertise Ivoire Couvée d'Or.
            }
          });
 
-        try {
-          await addClientMessage({
-            clientId: client.id,
-            couvaisonId: couv.id,
-            canal: 'WhatsApp',
-            statut: 'Envoye',
-            template: 'sortie_eclosion',
-            message: whatsAppText,
-            sentByUserId: currentUser?.id,
-            sentByName: currentUser?.nom,
-          });
-        } catch { /* no-op */ }
+        void addClientMessage({
+          clientId: client.id,
+          couvaisonId: couv.id,
+          canal: 'WhatsApp',
+          statut: 'Envoye',
+          template: 'sortie_eclosion',
+          message: whatsAppText,
+          sentByUserId: currentUser?.id,
+          sentByName: currentUser?.nom,
+        }).catch(() => {});
         openWhatsApp(client.telephone, whatsAppText);
       }
 
@@ -148,8 +146,8 @@ L'équipe expertise Ivoire Couvée d'Or.
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const confirm = window.confirm("Ceci va clôturer définitivement l'éclosion pour ce lot. Continuer ?");
-    if (!confirm) return;
+    const confirmCloture = window.confirm("Ceci va clôturer définitivement l'éclosion pour ce lot. Continuer ?");
+    if (!confirmCloture) return;
 
     try {
       await updateCouvaison(couvaisonId, {
@@ -159,6 +157,37 @@ L'équipe expertise Ivoire Couvée d'Or.
         causeEchecMajeure:
           (morts > 0 || nonEclos > 0) && cause !== 'Aucune' ? cause : couv.causeEchecMajeure,
       });
+
+      if (sendWhatsApp && client?.telephone) {
+        const netEncashed = netPayeLot(transactions, couvaisonId);
+        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
+           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive);
+        
+        const whatsAppText = formatWhatsAppMessage(template as any, {
+          client,
+          couvaison: { ...couv, poussinsNes: nes, statut: 'Terminé' },
+          transactions,
+          extra: {
+            delta_nes: deltaNes,
+            total_global: getClientGlobalBalance(transactions, couvaisons, client.id).toLocaleString(),
+            deja_encaisse: netEncashed.toLocaleString() + ' F',
+          }
+        });
+
+        void addClientMessage({
+          clientId: client.id,
+          couvaisonId: couv.id,
+          canal: 'WhatsApp',
+          statut: 'Envoye',
+          template: 'sortie_eclosion_final',
+          message: whatsAppText,
+          sentByUserId: currentUser?.id,
+          sentByName: currentUser?.nom,
+        }).catch(() => {});
+
+        openWhatsApp(client.telephone, whatsAppText);
+      }
+
       alert('L\'éclosion de ce lot a été clôturée avec succès.');
       onSuccess();
     } catch (err) {
