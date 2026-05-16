@@ -39,3 +39,7 @@ dist-ssr
 .windsurf
 .vercel
 .env*.local
+
+# Build artifacts
+deploy_pkg/
+out_deploy/
