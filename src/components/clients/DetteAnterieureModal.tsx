@@ -74,6 +74,9 @@ export const DetteAnterieureModal = ({
         notes: notes,
       });
 
+      // Success alert
+      alert("Dette ajoutée avec succès !");
+
       // Si c'est un nouveau client, forcer le rafraîchissement local en rechargeant (facile) ou on laisse AppProvider se débrouiller au prochain render.
       // Idéalement, un rafraîchissement doux. On va juste recharger la page pour garantir que le nouveau client est là, ou on laisse l'utilisateur le voir plus tard s'il est ailleurs.
       if (isNewClient) {

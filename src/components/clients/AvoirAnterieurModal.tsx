@@ -70,6 +70,9 @@ export const AvoirAnterieurModal = ({
         notes: notes,
       });
 
+      // Success alert
+      alert("Avoir ajouté avec succès !");
+
       if (isNewClient) {
         window.location.reload();
       } else {
