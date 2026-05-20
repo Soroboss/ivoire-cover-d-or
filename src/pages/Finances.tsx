@@ -26,7 +26,7 @@ import {
   sumAvoirsRemisesLot,
   totalAvoirsRemisesGlobal,
 } from '../lib/financeCalculations';
-import { Target, AlertTriangle } from 'lucide-react';
+import { Target, AlertTriangle, Search } from 'lucide-react';
 import { openWhatsApp } from '../lib/whatsappTemplates';
 
 const Finances = () => {
@@ -35,6 +35,7 @@ const Finances = () => {
   const [showForm, setShowForm] = useState(false);
   const [receptionFrom, setReceptionFrom] = useState('');
   const [receptionTo, setReceptionTo] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
 
   /** Lots dont la date de réception est dans l’intervalle (ou tout si pas de filtre). */
@@ -61,9 +62,16 @@ const Finances = () => {
     .reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
   const enAttente = expectedTotal - totalEncaisse - totalAvoirsRemises;
 
-  const sortedTransactions = [...transactionsScoped].sort(
-    (a, b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime(),
-  );
+  const sortedTransactions = [...transactionsScoped]
+    .filter(t => {
+      if (!clientFilter) return true;
+      const search = clientFilter.toLowerCase();
+      const client = clients.find(c => c.id === t.clientId);
+      return client?.nom.toLowerCase().includes(search) || client?.telephone.includes(search);
+    })
+    .sort(
+      (a, b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime(),
+    );
 
   const unpaidLots = useMemo(() => {
     return couvaisonsScoped
@@ -84,8 +92,13 @@ const Finances = () => {
         };
       })
       .filter((x) => x.remain > 0)
+      .filter((x) => {
+        if (!clientFilter) return true;
+        const search = clientFilter.toLowerCase();
+        return x.client?.nom.toLowerCase().includes(search) || x.client?.telephone.includes(search);
+      })
       .sort((a, b) => b.remain - a.remain);
-  }, [couvaisonsScoped, clients, transactions]);
+  }, [couvaisonsScoped, clients, transactions, clientFilter]);
 
 
   const sendPaymentReminder = async (clientId: string | undefined, couvaisonId: string, clientName: string | undefined, phone: string | undefined, remain: number) => {
@@ -241,12 +254,13 @@ const Finances = () => {
             onChange={(e) => setReceptionTo(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none"
           />
-          {(receptionFrom || receptionTo) && (
+          {(receptionFrom || receptionTo || clientFilter) && (
             <button
               type="button"
               onClick={() => {
                 setReceptionFrom('');
                 setReceptionTo('');
+                setClientFilter('');
               }}
               className="text-sm font-semibold text-brand-orange hover:underline"
             >
@@ -254,7 +268,19 @@ const Finances = () => {
             </button>
           )}
         </div>
-        <p className="mt-2 text-xs text-brand-muted">
+        <div className="mt-3 flex items-center gap-2 w-full md:max-w-md">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              placeholder="Chercher un client (nom, numéro)..."
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-orange focus:outline-none"
+            />
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-brand-muted">
           Les totaux, impayés et historique ci-dessous suivent ce filtre (lots reçus dans la période). Un seul jour : même
           date en « du » et « au ».
         </p>
