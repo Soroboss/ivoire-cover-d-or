@@ -62,6 +62,7 @@ export const AvoirAnterieurModal = ({
       // 2. Ajouter la transaction de type Avoir
       await addTransaction({
         clientId: finalClientId,
+        couvaisonId: '00000000-0000-0000-0000-000000000000',
         montantTotal: Number(montant),
         dateTransaction: new Date().toISOString(),
         typeTransaction: 'Avoir',

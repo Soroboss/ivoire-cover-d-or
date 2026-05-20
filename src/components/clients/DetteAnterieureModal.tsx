@@ -66,6 +66,7 @@ export const DetteAnterieureModal = ({
       // 2. Ajouter la transaction de type Dette
       await addTransaction({
         clientId: finalClientId,
+        couvaisonId: '00000000-0000-0000-0000-000000000000', // Dummy couvaisonId for historical Dettes
         montantTotal: Number(montant),
         dateTransaction: new Date().toISOString(),
         typeTransaction: 'Dette',
