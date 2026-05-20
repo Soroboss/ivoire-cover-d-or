@@ -20,7 +20,7 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({} as any))
 
     const payload = {
-      couvaison_id: body.couvaisonId,
+      couvaison_id: body.couvaisonId || null,
       client_id: body.clientId,
       montant_total: Number(body.montantTotal) || 0,
       acomptes_verses: Number(body.acomptesVerses) || 0,
@@ -30,7 +30,7 @@ export default async function (req: Request): Promise<Response> {
       notes: body.notes ?? null,
     }
 
-    if (!payload.couvaison_id || !payload.client_id || !payload.type_transaction) {
+    if (!payload.client_id || !payload.type_transaction) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
