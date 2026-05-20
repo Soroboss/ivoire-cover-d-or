@@ -22,6 +22,7 @@ export const DetteAnterieureModal = ({
   const [montant, setMontant] = useState<number | ''>('');
   const [notes, setNotes] = useState('Dette antérieure / Solde initial');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   if (!isOpen) return null;
 
@@ -133,19 +134,40 @@ export const DetteAnterieureModal = ({
           </div>
 
           {!isNewClient ? (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-brand-muted">Client</label>
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                className="input-modern w-full"
-                required
-              >
-                <option value="" disabled>Sélectionner un client...</option>
-                {clients.sort((a,b) => a.nom.localeCompare(b.nom)).map(c => (
-                  <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
-                ))}
-              </select>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-brand-muted">Rechercher un client</label>
+                <div className="relative">
+                  <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-modern w-full pl-10"
+                    placeholder="Filtrer par nom ou numéro..."
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-brand-muted">Client</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="input-modern w-full"
+                  required
+                >
+                  <option value="" disabled>Sélectionner un client...</option>
+                  {clients
+                    .filter(c => 
+                      c.nom.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      c.telephone.includes(searchQuery)
+                    )
+                    .sort((a,b) => a.nom.localeCompare(b.nom))
+                    .map(c => (
+                    <option key={c.id} value={c.id}>{c.nom} ({c.telephone})</option>
+                  ))}
+                </select>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
