@@ -84,6 +84,7 @@ export interface ClientFinancialSummary {
   totalDu: number;
   avoir: number;
   remise: number;
+  dette: number;
   netEncaisse: number;
   resteAPayer: number;
   /** Crédit client : montant versé en trop (paiements > total dû). Si > 0, afficher «Avoir» */

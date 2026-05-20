@@ -36,6 +36,7 @@ export default async function (req: Request): Promise<Response> {
       totalDu: Number(r.total_du) || 0,
       avoir: Number(r.total_avoir) || 0,
       remise: Number(r.total_remise) || 0,
+      dette: Number(r.total_dette) || 0,
       netEncaisse: Number(r.net_encaisse) || 0,
       resteAPayer: Number(r.reste_a_payer) || 0,
       // avoirClient: montant en trop versé (crédit chez le client)
