@@ -7,6 +7,7 @@ import type { StatutCouvaison } from '../types';
 import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { ClientEditModal } from '../components/clients/ClientEditModal';
+import { DetteAnterieureModal } from '../components/clients/DetteAnterieureModal';
 import { callBackendFunction } from '../lib/insforgeApi';
 
 type FilterState = StatutCouvaison | 'Tous';
@@ -18,6 +19,7 @@ const ClientsDB = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterState>('Tous');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetteModalOpen, setIsDetteModalOpen] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
 
   const { currentUser } = useAuth();
@@ -121,16 +123,24 @@ const ClientsDB = () => {
             </div>
           </div>
 
-          {isAdmin && (
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
-              onClick={handleMigrateIds}
-              disabled={isMigrating}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+              onClick={() => setIsDetteModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-brand-orange text-white font-bold text-xs hover:bg-brand-hover transition-all shadow-sm"
             >
-              {isMigrating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              Migration IDs (#ICO)
+              + Ajouter Dette / Crédit
             </button>
-          )}
+            {isAdmin && (
+              <button
+                onClick={handleMigrateIds}
+                disabled={isMigrating}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+              >
+                {isMigrating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                Migration IDs
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -424,6 +434,12 @@ const ClientsDB = () => {
           </div>
         </div>
       </div>
+
+      <DetteAnterieureModal
+        isOpen={isDetteModalOpen}
+        onClose={() => setIsDetteModalOpen(false)}
+        preselectedClientId={selectedClientId}
+      />
     </div>
   );
 };

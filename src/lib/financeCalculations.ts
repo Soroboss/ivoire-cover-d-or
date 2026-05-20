@@ -36,10 +36,14 @@ export function getClientDetailedFinance(
     .filter((t) => t.typeTransaction === 'Deduction')
     .reduce((acc, t) => acc + t.montantTotal, 0);
 
+  const dette = clientTransactions
+    .filter((t) => t.typeTransaction === 'Dette')
+    .reduce((acc, t) => acc + t.montantTotal, 0);
+
   const netEncaisse = Math.max(0, paiements - deductions);
 
-  // Reste = Total Dû - Net Encaissé - Avoirs - Remises
-  const balanceValue = totalDu - netEncaisse - avoir - remise;
+  // Reste = Total Dû + Dette - Net Encaissé - Avoirs - Remises
+  const balanceValue = totalDu + dette - netEncaisse - avoir - remise;
   const resteAPayer = Math.max(0, balanceValue);
   const avoirClient = Math.max(0, -balanceValue);
 
@@ -67,7 +71,8 @@ export function getClientGlobalBalance(transactions: Transaction[], couvaisons: 
   const p = t.filter((x) => x.typeTransaction === 'Paiement').reduce((a, x) => a + x.montantTotal, 0);
   const d = t.filter((x) => x.typeTransaction === 'Deduction').reduce((a, x) => a + x.montantTotal, 0);
   const c = t.filter((x) => x.typeTransaction === 'Avoir' || x.typeTransaction === 'Remise').reduce((a, x) => a + x.montantTotal, 0);
-  return totalDues - (p - d) - c;
+  const dette = t.filter((x) => x.typeTransaction === 'Dette').reduce((a, x) => a + x.montantTotal, 0);
+  return totalDues + dette - (p - d) - c;
 }
 
 export type TypeTransaction = Transaction['typeTransaction'];
@@ -145,4 +150,5 @@ export const TYPE_TX_LABEL: Record<TypeTransaction, string> = {
   Avoir: 'Avoir',
   Remise: 'Remise',
   Deduction: 'Déduction sur encaisse',
+  Dette: 'Dette antérieure',
 };

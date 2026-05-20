@@ -82,7 +82,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
 
         const msg = formatWhatsAppMessage(template as any, {
           client,
-          couvaison: { ...couv, dateMiseEnMachine: startIso, dateMiragePrevue: dateMirageIso, dateEclosionPrevue: dateEclosionIso },
+          couvaisons, couvaison: { ...couv, dateMiseEnMachine: startIso, dateMiragePrevue: dateMirageIso, dateEclosionPrevue: dateEclosionIso },
           transactions,
           extra: {
             note_antecedents: antecedents > 0 

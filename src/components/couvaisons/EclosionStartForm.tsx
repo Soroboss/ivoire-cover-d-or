@@ -86,7 +86,7 @@ const EclosionStartForm = ({
 
     return formatWhatsAppMessage(template as any, {
       client,
-      couvaison: { ...couv },
+      couvaisons, couvaison: { ...couv },
       transactions,
       extra: {
         nom_depart: nomDepart || '-',

@@ -142,7 +142,7 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
 
     const msg = formatWhatsAppMessage(template as any, {
       client: { nom: clientNom, telephone: clientTel } as any,
-      couvaison: { dateReception: startIso } as any,
+      couvaisons, couvaison: { dateReception: startIso } as any,
       extra: {
         type_oeuf: batchLines.length > 1 ? 'Multiples' : (primaryLot?.typeOeuf || ''),
         quantite: batchLines.reduce((sum, l) => sum + (l.nombreOeufs || 0), 0),

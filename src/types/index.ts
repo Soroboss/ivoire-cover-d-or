@@ -125,7 +125,7 @@ export interface Couvaison {
   idempotencyKey?: string;
 }
 
-export type TypeTransaction = 'Paiement' | 'Avoir' | 'Remise' | 'Deduction';
+export type TypeTransaction = 'Paiement' | 'Avoir' | 'Remise' | 'Deduction' | 'Dette';
 
 export interface Transaction {
   id: string;

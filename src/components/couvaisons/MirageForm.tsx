@@ -85,7 +85,7 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
 
      const message = formatWhatsAppMessage(template as any, {
        client,
-       couvaison: { ...couv, oeufsClairs: clairs, oeufsPourris: pourris },
+       couvaisons, couvaison: { ...couv, oeufsClairs: clairs, oeufsPourris: pourris },
        transactions,
        extra: {
          viables: oeufsFecondes,

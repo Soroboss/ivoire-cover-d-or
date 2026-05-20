@@ -89,7 +89,7 @@ L'équipe expertise Ivoire Couvée d'Or.
 
          const whatsAppText = formatWhatsAppMessage(template as any, {
            client,
-           couvaison: { ...couv, poussinsNes: nes },
+           couvaisons, couvaison: { ...couv, poussinsNes: nes },
            transactions,
            extra: {
              client_id_ext: client.clientIdExt || '—',
@@ -137,7 +137,7 @@ L'équipe expertise Ivoire Couvée d'Or.
       
     const msg = formatWhatsAppMessage(template as any, {
       client,
-      couvaison: couv,
+      couvaisons, couvaison: couv,
       transactions
     });
     openWhatsApp(client.telephone, msg);
@@ -165,7 +165,7 @@ L'équipe expertise Ivoire Couvée d'Or.
         
         const whatsAppText = formatWhatsAppMessage(template as any, {
           client,
-          couvaison: { ...couv, poussinsNes: nes, statut: 'Terminé' },
+          couvaisons, couvaison: { ...couv, poussinsNes: nes, statut: 'Terminé' },
           transactions,
           extra: {
             delta_nes: deltaNes,
@@ -257,7 +257,7 @@ L'équipe Ivoire Couvée d'Or.
 
                 const msg = formatWhatsAppMessage(template as any, {
                   client,
-                  couvaison: { ...couv, poussinsNes: nes },
+                  couvaisons, couvaison: { ...couv, poussinsNes: nes },
                   transactions,
                   extra: {
                     client_id_ext: client.clientIdExt || '—',
