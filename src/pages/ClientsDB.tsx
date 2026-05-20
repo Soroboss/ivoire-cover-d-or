@@ -8,6 +8,7 @@ import { ClientStatsSummary } from '../components/finances/ClientStatsSummary';
 import { formatEmplacementsLigne } from '../lib/casierLabels';
 import { ClientEditModal } from '../components/clients/ClientEditModal';
 import { DetteAnterieureModal } from '../components/clients/DetteAnterieureModal';
+import { AvoirAnterieurModal } from '../components/clients/AvoirAnterieurModal';
 import { callBackendFunction } from '../lib/insforgeApi';
 
 type FilterState = StatutCouvaison | 'Tous';
@@ -20,6 +21,7 @@ const ClientsDB = () => {
   const [statusFilter, setStatusFilter] = useState<FilterState>('Tous');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetteModalOpen, setIsDetteModalOpen] = useState(false);
+  const [isAvoirModalOpen, setIsAvoirModalOpen] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
 
   const { currentUser } = useAuth();
@@ -128,7 +130,13 @@ const ClientsDB = () => {
               onClick={() => setIsDetteModalOpen(true)}
               className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-brand-orange text-white font-bold text-xs hover:bg-brand-hover transition-all shadow-sm"
             >
-              + Ajouter Dette / Crédit
+              + Ajouter Dette
+            </button>
+            <button
+              onClick={() => setIsAvoirModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white font-bold text-xs hover:bg-green-700 transition-all shadow-sm"
+            >
+              + Ajouter Avoir
             </button>
             {isAdmin && (
               <button
@@ -438,6 +446,11 @@ const ClientsDB = () => {
       <DetteAnterieureModal
         isOpen={isDetteModalOpen}
         onClose={() => setIsDetteModalOpen(false)}
+        preselectedClientId={selectedClientId}
+      />
+      <AvoirAnterieurModal
+        isOpen={isAvoirModalOpen}
+        onClose={() => setIsAvoirModalOpen(false)}
         preselectedClientId={selectedClientId}
       />
     </div>
