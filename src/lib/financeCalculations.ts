@@ -144,6 +144,12 @@ export function totalAvoirsRemisesGlobal(transactions: Transaction[]): number {
     .reduce((a, t) => a + t.montantTotal, 0);
 }
 
+export function totalDetteGlobal(transactions: Transaction[]): number {
+  return transactions
+    .filter((t) => t.typeTransaction === 'Dette')
+    .reduce((a, t) => a + t.montantTotal, 0);
+}
+
 /** Libellé affichage */
 export const TYPE_TX_LABEL: Record<TypeTransaction, string> = {
   Paiement: 'Paiement',

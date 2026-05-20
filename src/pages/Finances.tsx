@@ -25,6 +25,7 @@ import {
   resteLot,
   sumAvoirsRemisesLot,
   totalAvoirsRemisesGlobal,
+  totalDetteGlobal,
 } from '../lib/financeCalculations';
 import { Target, AlertTriangle, Search } from 'lucide-react';
 import { openWhatsApp } from '../lib/whatsappTemplates';
@@ -56,11 +57,13 @@ const Finances = () => {
 
   const totalEncaisse = netEncaisseGlobal(transactionsScoped);
   const totalAvoirsRemises = totalAvoirsRemisesGlobal(transactionsScoped);
+  const totalDettes = totalDetteGlobal(transactionsScoped);
 
   const expectedTotal = couvaisonsScoped
     .filter((c) => c.statut !== 'Annulé')
     .reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
-  const enAttente = expectedTotal - totalEncaisse - totalAvoirsRemises;
+  
+  const enAttente = expectedTotal + totalDettes - totalEncaisse - totalAvoirsRemises;
 
   const sortedTransactions = [...transactionsScoped]
     .filter(t => {
@@ -223,13 +226,13 @@ const Finances = () => {
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reste à Recouvrer</p>
-            <p className="text-xl font-black text-red-600">{(expectedTotal - totalEncaisse - totalAvoirsRemises).toLocaleString()} F</p>
-            <p className="text-[10px] text-slate-500 italic">Post-Avoirs & Remises (-{totalAvoirsRemises.toLocaleString()} F)</p>
+            <p className="text-xl font-black text-red-600">{Math.max(0, enAttente).toLocaleString()} F</p>
+            <p className="text-[10px] text-slate-500 italic">Post-Avoirs & Remises + Dettes</p>
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-medium text-brand-muted">
            <AlertTriangle size={14} className="text-brand-orange" />
-           <span>Tout écart entre le C.A. Théorique et la somme (Paiements + Reste + Avoirs) doit être nul pour que la compatibilité soit parfaite.</span>
+           <span>Tout écart entre (C.A. Théorique + Dettes) et la somme (Paiements + Reste + Avoirs) doit être nul pour que la comptabilité soit parfaite.</span>
         </div>
       </div>
 
