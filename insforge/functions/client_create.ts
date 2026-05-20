@@ -1,40 +1,46 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'npm:@insforge/sdk'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+export default async function (req: Request): Promise<Response> {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  }
 
-serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { nom, telephone } = await req.json();
+    const client = createClient({
+      baseUrl: Deno.env.get('INSFORGE_BASE_URL') || '',
+      anonKey: Deno.env.get('ANON_KEY') || '',
+    })
+    
+    const { nom, telephone } = await req.json()
 
     if (!nom || !telephone) {
       return new Response(JSON.stringify({ error: 'Missing nom or telephone' }), { 
         status: 400, 
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } 
-      });
+        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+      })
     }
 
-    const { data: client, error } = await supabase
+    const { data: createdClient, error } = await client.database
       .from('clients')
       .insert([{ nom, telephone }])
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
-    return new Response(JSON.stringify({ client }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return new Response(JSON.stringify({ client: createdClient }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   }
-});
+}

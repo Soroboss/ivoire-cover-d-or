@@ -26,11 +26,11 @@ export async function callBackendFunction<T = unknown>(
 
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error("Impossible de joindre le service d'analyse.");
+      throw new Error(json.error || "Impossible de joindre le service.");
     }
     return json as T;
-  } catch (err) {
-    throw new Error("Une erreur de communication est survenue.");
+  } catch (err: any) {
+    throw new Error(err.message || "Une erreur de communication est survenue.");
   }
 }
 
