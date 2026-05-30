@@ -5,7 +5,7 @@ import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates
 import { resteLot } from '../../lib/financeCalculations';
 
 export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, addClientMessage, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   
@@ -87,6 +87,7 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
        client,
        couvaisons, couvaison: { ...couv, oeufsClairs: clairs, oeufsPourris: pourris },
        transactions,
+       clientSummaries,
        extra: {
          viables: oeufsFecondes,
          clairs,

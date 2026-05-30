@@ -15,10 +15,19 @@ export default async function (req: Request): Promise<Response> {
     const anonKey = Deno.env.get('ANON_KEY') || ''
     const client = createClient({ baseUrl, anonKey })
 
-    const { data: templates, error } = await client.database
-      .from('message_templates')
-      .select('*')
-      .order('created_at', { ascending: false })
+    
+    let templates: any[] = [];
+    let error: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await client.database.from('message_templates').select('*').order('created_at', { ascending: false }).range(from, from + step - 1);
+      if (res.error) { error = res.error; break; }
+      if (res.data) templates = templates.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
+
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

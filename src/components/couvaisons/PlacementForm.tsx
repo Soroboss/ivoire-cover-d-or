@@ -14,7 +14,7 @@ import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates
 import { resteLot, getClientGlobalBalance } from '../../lib/financeCalculations';
 
 export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, machines, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
 
   const getCasierOccupation = (machineId: string, casierId: string) => {
@@ -72,7 +72,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
         const rest = resteLot(transactions, couv.id, totalDue);
         
         // Calcul du solde global (antécédents)
-        const currentBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
+        const currentBalance = getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries);
         
         // Note: resteLot(transactions, couv.id, totalDue) donne le reste pour CE lot.
         // currentBalance donne le reste TOTAL du client (tous lots confondus).
@@ -84,6 +84,7 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
           client,
           couvaisons, couvaison: { ...couv, dateMiseEnMachine: startIso, dateMiragePrevue: dateMirageIso, dateEclosionPrevue: dateEclosionIso },
           transactions,
+          clientSummaries,
           extra: {
             note_antecedents: antecedents > 0 
               ? `⚠️ *ANTÉCÉDENTS* : Reliquat de ${antecedents.toLocaleString()} F sur vos opérations précédentes.\n` 

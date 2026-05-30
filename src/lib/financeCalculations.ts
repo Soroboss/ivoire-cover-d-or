@@ -64,7 +64,13 @@ export function getClientDetailedFinance(
   };
 }
 
-export function getClientGlobalBalance(transactions: Transaction[], couvaisons: Couvaison[], clientId: string): number {
+export function getClientGlobalBalance(transactions: Transaction[], couvaisons: Couvaison[], clientId: string, clientSummaries?: import('../types').ClientFinancialSummary[]): number {
+  if (clientSummaries && clientSummaries.length > 0) {
+    const summary = clientSummaries.find((s) => s.clientId === clientId);
+    if (summary) {
+      return summary.resteAPayer - summary.avoirClient;
+    }
+  }
   const clientCouvaisons = couvaisons.filter((c) => c.clientId === clientId && c.statut !== 'Annulé');
   const totalDues = clientCouvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
   const t = transactions.filter((x) => x.clientId === clientId);

@@ -66,10 +66,19 @@ export default async function (req: Request): Promise<Response> {
     const anonKey = Deno.env.get('ANON_KEY') || ''
     const client = createClient({ baseUrl, anonKey })
 
-    const { data, error } = await client.database
-      .from('users')
-      .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
-      .order('created_at', { ascending: true })
+    
+    let data: any[] = [];
+    let error: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await client.database.from('users').select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin').order('created_at', { ascending: true }).range(from, from + step - 1);
+      if (res.error) { error = res.error; break; }
+      if (res.data) data = data.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
+
 
     if (error) {
        return new Response(JSON.stringify({ error: error.message }), {

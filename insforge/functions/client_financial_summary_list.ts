@@ -16,10 +16,22 @@ export default async function (req: Request): Promise<Response> {
       anonKey: Deno.env.get('ANON_KEY') || '',
     })
 
-    const { data, error } = await client.database
-      .from('client_financial_summary')
-      .select('*')
-      .order('nom', { ascending: true })
+    
+    let data: any[] = [];
+    let error: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await client.database.from('client_financial_summary').select('*').range(from, from + step - 1);
+      if (res.error) {
+        error = res.error;
+        break;
+      }
+      if (res.data) data = data.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
+
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

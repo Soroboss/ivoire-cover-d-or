@@ -17,7 +17,21 @@ export default async function (req: Request): Promise<Response> {
       baseUrl: Deno.env.get('INSFORGE_BASE_URL') || '',
       anonKey: Deno.env.get('ANON_KEY') || '',
     })
-    const { data, error } = await client.database.from('receipt_archives').select('*').order('created_at', { ascending: false })
+    
+    let data: any[] = [];
+    let error: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await client.database.from('receipt_archives').select('*').order('created_at', { ascending: false }).range(from, from + step - 1);
+      if (res.error) {
+        error = res.error;
+        break;
+      }
+      if (res.data) data = data.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

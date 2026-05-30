@@ -6,7 +6,7 @@ import { resteLot, netPayeLot, getClientGlobalBalance } from '../../lib/financeC
 import { formatWhatsAppMessage, openWhatsApp } from '../../lib/whatsappTemplates';
 
 export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: string, onCancel: () => void, onSuccess: () => void }) => {
-  const { couvaisons, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, transactions, messageTemplates, updateCouvaison, deleteCouvaison, addClientMessage, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
   const couv = couvaisons.find(c => c.id === couvaisonId);
   const client = clients.find(c => c.id === couv?.clientId);
@@ -91,6 +91,7 @@ L'équipe expertise Ivoire Couvée d'Or.
            client,
            couvaisons, couvaison: { ...couv, poussinsNes: nes },
            transactions,
+           clientSummaries,
            extra: {
              client_id_ext: client.clientIdExt || '—',
              viables: oeufsRestants,
@@ -98,10 +99,10 @@ L'équipe expertise Ivoire Couvée d'Or.
              morts,
              remises_avoirs: (remises + avoirs).toLocaleString() + ' F',
              deja_encaisse: netEncashed.toLocaleString() + ' F',
-             note_antecedents: (getClientGlobalBalance(transactions, couvaisons, client.id) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))) > 0
-               ? `◈ Arriérés précédents : ${(getClientGlobalBalance(transactions, couvaisons, client.id) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))).toLocaleString()} F\n`
+             note_antecedents: (getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))) > 0
+               ? `◈ Arriérés précédents : ${(getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries) - resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire))).toLocaleString()} F\n`
                : '',
-             total_global: getClientGlobalBalance(transactions, couvaisons, client.id).toLocaleString()
+             total_global: getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries).toLocaleString()
            }
          });
 
@@ -138,7 +139,8 @@ L'équipe expertise Ivoire Couvée d'Or.
     const msg = formatWhatsAppMessage(template as any, {
       client,
       couvaisons, couvaison: couv,
-      transactions
+      transactions,
+      clientSummaries
     });
     openWhatsApp(client.telephone, msg);
   };
@@ -167,9 +169,10 @@ L'équipe expertise Ivoire Couvée d'Or.
           client,
           couvaisons, couvaison: { ...couv, poussinsNes: nes, statut: 'Terminé' },
           transactions,
+          clientSummaries,
           extra: {
             delta_nes: deltaNes,
-            total_global: getClientGlobalBalance(transactions, couvaisons, client.id).toLocaleString(),
+            total_global: getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries).toLocaleString(),
             deja_encaisse: netEncashed.toLocaleString() + ' F',
           }
         });
@@ -251,7 +254,7 @@ Merci de votre confiance !
 L'équipe Ivoire Couvée d'Or.
 📞 Service client : +225 01 03 03 64 62` };
 
-                const globalBalance = getClientGlobalBalance(transactions, couvaisons, client.id);
+                const globalBalance = getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries);
                 const restLot = resteLot(transactions, couvaisonId, (couv.nombreOeufs * couv.prixUnitaire));
                 const antecedents = Math.max(0, globalBalance - restLot);
 
@@ -259,6 +262,7 @@ L'équipe Ivoire Couvée d'Or.
                   client,
                   couvaisons, couvaison: { ...couv, poussinsNes: nes },
                   transactions,
+                  clientSummaries,
                   extra: {
                     client_id_ext: client.clientIdExt || '—',
                     viables: oeufsRestants,

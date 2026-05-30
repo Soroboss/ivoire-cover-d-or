@@ -24,11 +24,23 @@ export default async function (req: Request): Promise<Response> {
     const clientId = body?.clientId
     const couvaisonId = body?.couvaisonId
 
-    let query = client.database.from('client_messages').select('*').order('sent_at', { ascending: false })
-    if (clientId) query = query.eq('client_id', clientId)
-    if (couvaisonId) query = query.eq('couvaison_id', couvaisonId)
+    
+    let baseQuery = client.database.from('client_messages').select('*').order('sent_at', { ascending: false });
+    if (clientId) baseQuery = baseQuery.eq('client_id', clientId);
+    if (couvaisonId) baseQuery = baseQuery.eq('couvaison_id', couvaisonId);
 
-    const { data, error } = await query
+    let data: any[] = [];
+    let error: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await baseQuery.range(from, from + step - 1);
+      if (res.error) { error = res.error; break; }
+      if (res.data) data = data.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
+
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,

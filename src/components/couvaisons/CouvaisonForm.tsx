@@ -29,7 +29,7 @@ const emptyLine = (): LotLine => ({
 });
 
 export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) => {
-  const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates, addClientMessage } = useAppContext();
+  const { addCouvaisonsBatch, clients, transactions, couvaisons, messageTemplates, addClientMessage, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   
@@ -75,8 +75,8 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
 
   const currentBalance = useMemo(() => {
     if (!selectedClientId) return 0;
-    return getClientGlobalBalance(transactions, couvaisons, selectedClientId);
-  }, [selectedClientId, transactions, couvaisons]);
+    return getClientGlobalBalance(transactions, couvaisons, selectedClientId, clientSummaries);
+  }, [selectedClientId, transactions, couvaisons, clientSummaries]);
 
 
   const handleSelectClient = (c: {id: string, nom: string, telephone: string}) => {
@@ -143,6 +143,8 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
     const msg = formatWhatsAppMessage(template as any, {
       client: { nom: clientNom, telephone: clientTel } as any,
       couvaisons, couvaison: { dateReception: startIso } as any,
+      transactions,
+      clientSummaries,
       extra: {
         type_oeuf: batchLines.length > 1 ? 'Multiples' : (primaryLot?.typeOeuf || ''),
         quantite: batchLines.reduce((sum, l) => sum + (l.nombreOeufs || 0), 0),

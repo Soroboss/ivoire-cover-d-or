@@ -270,7 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
        let remaining = acompte;
 
        // 1. Solder les dettes passées s'il y en a
-       const oldBalance = getClientGlobalBalance(transactions, couvaisons, firstLot.clientId);
+       const oldBalance = getClientGlobalBalance(transactions, couvaisons, firstLot.clientId, clientSummaries);
        if (oldBalance > 0) {
          const toPayOld = Math.min(remaining, oldBalance);
          await callBackendFunction('transaction_create', {

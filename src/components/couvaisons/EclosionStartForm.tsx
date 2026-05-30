@@ -16,7 +16,7 @@ const EclosionStartForm = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const { couvaisons, clients, machines, transactions, updateCouvaison, addClientMessage, messageTemplates } = useAppContext();
+  const { couvaisons, clients, machines, transactions, updateCouvaison, addClientMessage, messageTemplates, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
 
   const couv = useMemo(
@@ -61,7 +61,7 @@ const EclosionStartForm = ({
   const whatsAppText = useMemo(() => {
     if (!couv || !client) return '';
     const resteSurCeLot = resteLot(transactions, couvaisonId, (couv.nombreOeufs || 0) * (couv.prixUnitaire || 0));
-    const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client.id);
+    const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries);
     const ancienneDette = resteGlobal - resteSurCeLot;
 
     const template = messageTemplates.find(t => t.name === 'Démarrage Éclosion' && t.isActive)
@@ -88,6 +88,7 @@ const EclosionStartForm = ({
       client,
       couvaisons, couvaison: { ...couv },
       transactions,
+      clientSummaries,
       extra: {
         nom_depart: nomDepart || '-',
         viables: oeufsViables,

@@ -1,4 +1,4 @@
-import type { MessageTemplate, Client, Couvaison, Transaction } from '../types';
+import type { MessageTemplate, Client, Couvaison, Transaction, ClientFinancialSummary } from '../types';
 import { format, parseISO } from 'date-fns';
 import { resteLot, getClientGlobalBalance } from './financeCalculations';
 
@@ -9,11 +9,12 @@ export const formatWhatsAppMessage = (
     couvaison?: Couvaison;
     couvaisons?: Couvaison[]; // Pass couvaisons to calculate global balance
     transactions?: Transaction[];
+    clientSummaries?: ClientFinancialSummary[];
     extra?: Record<string, string | number>;
   }
 ) => {
   let message = (template?.content || '').normalize('NFKD').replace(/[\u200B-\u200D\uFEFF]/g, '');
-  const { client, couvaison, couvaisons, transactions, extra } = data;
+  const { client, couvaison, couvaisons, transactions, clientSummaries, extra } = data;
 
   // 1. COLLECT ALL POSSIBLE VARIABLES IN A SINGLE FLAT OBJECT
   const vars: Record<string, string | number> = {
@@ -121,7 +122,7 @@ export const formatWhatsAppMessage = (
       vars.net_encaisse = paid.toLocaleString();
       
       if (couvaisons) {
-        vars.total_global = getClientGlobalBalance(transactions, couvaisons, client.id).toLocaleString();
+        vars.total_global = getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries).toLocaleString();
       } else {
         vars.total_global = rest.toLocaleString();
       }

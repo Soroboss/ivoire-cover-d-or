@@ -21,10 +21,19 @@ export default async function (req: Request): Promise<Response> {
     const anonKey = Deno.env.get('ANON_KEY') || ''
     const client = createClient({ baseUrl, anonKey })
 
-    const { data: machinesRows, error: machinesErr } = await client.database
-      .from('machines')
-      .select('*')
-      .order('created_at', { ascending: true })
+    
+    let machinesRows: any[] = [];
+    let machinesErr: any = null;
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const res = await client.database.from('machines').select('*').order('created_at', { ascending: true }).range(from, from + step - 1);
+      if (res.error) { machinesErr = res.error; break; }
+      if (res.data) machinesRows = machinesRows.concat(res.data);
+      if (!res.data || res.data.length < step) break;
+      from += step;
+    }
+
 
     if (machinesErr) {
       return new Response(JSON.stringify({ error: machinesErr.message }), {
@@ -34,9 +43,20 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const machineIds = (machinesRows ?? []).map((m: any) => m.id)
-    const { data: casiersRows, error: casiersErr } = machineIds.length
-      ? await client.database.from('casiers').select('*').in('machine_id', machineIds)
-      : ({ data: [], error: null } as any)
+    
+    let casiersRows: any[] = [];
+    let casiersErr: any = null;
+    if (machineIds.length) {
+      let from2 = 0;
+      while(true) {
+         const res = await client.database.from('casiers').select('*').in('machine_id', machineIds).range(from2, from2 + step - 1);
+         if (res.error) { casiersErr = res.error; break; }
+         if (res.data) casiersRows = casiersRows.concat(res.data);
+         if (!res.data || res.data.length < step) break;
+         from2 += step;
+      }
+    }
+
 
     if (casiersErr) {
       return new Response(JSON.stringify({ error: casiersErr.message }), {

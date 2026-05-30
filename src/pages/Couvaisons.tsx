@@ -16,7 +16,7 @@ import { formatWhatsAppMessage, openWhatsApp } from '../lib/whatsappTemplates';
 type ViewState = 'list' | 'create' | 'mirage' | 'eclosionHub' | 'placement';
 
 const Couvaisons = () => {
-  const { couvaisons, clients, machines, transactions, messageTemplates, deleteCouvaison, addClientMessage } = useAppContext();
+  const { couvaisons, clients, machines, transactions, messageTemplates, deleteCouvaison, addClientMessage, clientSummaries } = useAppContext();
   const { currentUser } = useAuth();
   const [view, setView] = useState<ViewState>('list');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -96,7 +96,8 @@ const Couvaisons = () => {
     const finalMessage = formatWhatsAppMessage(template as any, {
       client,
       couvaison: couv,
-      transactions
+      transactions,
+      clientSummaries
     });
 
     // On n'attend pas la fin de l'enregistrement du message pour ouvrir WhatsApp
