@@ -62,7 +62,7 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
   /** Détails financiers de tous les lots du client sélectionné. */
   const clientLotsWithInfo: LotInfo[] = useMemo(() => {
     if (!selectedClientId) return [];
-    return couvaisons
+    const lots = couvaisons
       .filter((c) => c.clientId === selectedClientId)
       .map((c) => {
         const totalDue = c.nombreOeufs * c.prixUnitaire;
@@ -84,8 +84,41 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
           remises,
           balance 
         };
-      })
-      .sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
+      });
+
+    // Pseudo-lot for Dettes antérieures
+    const dummyId = '00000000-0000-0000-0000-000000000000';
+    const clientDummyTxs = transactions.filter(t => t.clientId === selectedClientId && t.couvaisonId === dummyId);
+    const detteTotale = clientDummyTxs.filter(t => t.typeTransaction === 'Dette').reduce((s, t) => s + t.montantTotal, 0);
+    
+    if (detteTotale > 0) {
+      const paimentsDette = clientDummyTxs.filter(t => t.typeTransaction === 'Paiement').reduce((s, t) => s + t.montantTotal, 0);
+      const deductionsDette = clientDummyTxs.filter(t => t.typeTransaction === 'Deduction').reduce((s, t) => s + t.montantTotal, 0);
+      const avoirsDette = clientDummyTxs.filter(t => t.typeTransaction === 'Avoir').reduce((s, t) => s + t.montantTotal, 0);
+      const remisesDette = clientDummyTxs.filter(t => t.typeTransaction === 'Remise').reduce((s, t) => s + t.montantTotal, 0);
+      
+      const netEncashedDette = Math.max(0, paimentsDette - deductionsDette);
+      const balanceDette = Math.max(0, detteTotale - netEncashedDette - avoirsDette - remisesDette);
+      
+      lots.push({
+        id: dummyId,
+        clientId: selectedClientId,
+        nombreOeufs: 0,
+        prixUnitaire: 0,
+        // Using an old date so it can be sorted properly. 
+        // Typically, we want debts to be paid first, so treating them as very old is good.
+        dateReception: '2000-01-01T00:00:00.000Z', 
+        statut: 'Terminé',
+        typeOeuf: 'Dette' as any,
+        totalDue: detteTotale,
+        netEncashed: netEncashedDette,
+        avoirs: avoirsDette,
+        remises: remisesDette,
+        balance: balanceDette
+      });
+    }
+
+    return lots.sort((a, b) => new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime());
   }, [couvaisons, transactions, selectedClientId]);
 
   /** Gérer la sélection automatique des lots quand le client change. */
@@ -350,7 +383,9 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
                             className="rounded border-slate-300 text-brand-orange focus:ring-brand-orange"
                           />
                           <span className="text-sm font-bold text-brand-dark">
-                            {l.nombreOeufs} {l.typeOeuf}s
+                            {l.id === '00000000-0000-0000-0000-000000000000' 
+                              ? 'Dettes Antérieures' 
+                              : `${l.nombreOeufs} ${l.typeOeuf}s`}
                           </span>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
@@ -360,7 +395,11 @@ export const TransactionForm = ({ onCancel, onSuccess }: { onCancel: () => void;
                         </span>
                       </div>
                       <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-500">Reçu le {format(parseISO(l.dateReception), 'dd/MM/yy')}</span>
+                        <span className="text-slate-500">
+                          {l.id === '00000000-0000-0000-0000-000000000000' 
+                            ? 'Historique' 
+                            : `Reçu le ${format(parseISO(l.dateReception), 'dd/MM/yy')}`}
+                        </span>
                         <span className={`font-bold ${l.balance > 0 ? 'text-brand-orange' : 'text-emerald-600'}`}>
                           {l.balance > 0 ? `Reste: ${l.balance.toLocaleString()} F` : 'SOLDÉ'}
                         </span>
