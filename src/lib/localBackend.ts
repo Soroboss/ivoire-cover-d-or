@@ -4,7 +4,19 @@
 import { createClient as _createSupabaseClient } from '@supabase/supabase-js';
 
 const createClient = ({ baseUrl, anonKey }) => {
-  return _createSupabaseClient(baseUrl, anonKey);
+  const sbClient = _createSupabaseClient(baseUrl, anonKey);
+  
+  const chatFn = async () => ({ message: "L'assistant AI est temporairement indisponible." });
+  chatFn.completions = {
+    create: async () => ({ choices: [{ message: { content: "L'assistant AI est temporairement indisponible." } }] })
+  };
+
+  return {
+    database: sbClient,
+    ai: {
+      chat: chatFn
+    }
+  };
 };
 
 const Deno = {
