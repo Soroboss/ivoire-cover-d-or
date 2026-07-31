@@ -1,23 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 // AUTO-GENERATED - DO NOT EDIT
-import { createClient as _createSupabaseClient } from '@supabase/supabase-js';
-
-const createClient = ({ baseUrl, anonKey }) => {
-  const sbClient = _createSupabaseClient(baseUrl, anonKey);
-  
-  const chatFn = async () => ({ message: "L'assistant AI est temporairement indisponible." });
-  chatFn.completions = {
-    create: async () => ({ choices: [{ message: { content: "L'assistant AI est temporairement indisponible." } }] })
-  };
-
-  return {
-    database: sbClient,
-    ai: {
-      chat: chatFn
-    }
-  };
-};
+import { createClient } from '@insforge/sdk';
 
 const Deno = {
   env: {
