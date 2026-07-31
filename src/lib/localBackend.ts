@@ -1,7 +1,11 @@
 /* eslint-disable */
 // @ts-nocheck
 // AUTO-GENERATED - DO NOT EDIT
-import { createClient } from '@supabase/supabase-js';
+import { createClient as _createSupabaseClient } from '@supabase/supabase-js';
+
+const createClient = ({ baseUrl, anonKey }) => {
+  return _createSupabaseClient(baseUrl, anonKey);
+};
 
 const Deno = {
   env: {
