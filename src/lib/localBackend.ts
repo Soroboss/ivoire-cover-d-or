@@ -3620,3 +3620,215 @@ localEdgeFunctions["ai_expert_advisor"] = async function(req: Request) {
 }
 
 })();
+
+// -----------------------------------------------------
+// Function: app_bootstrap_data
+// -----------------------------------------------------
+(function() {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
+  try {
+    const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
+    const anonKey = Deno.env.get('ANON_KEY') || ''
+    const client = createClient({ baseUrl, anonKey })
+
+    const [
+      clientsRes,
+      couvRes,
+      machinesRes,
+      casiersRes,
+      txRes,
+      logsRes,
+      receiptRes,
+      messagesRes,
+      depRes,
+      agRes,
+      templatesRes,
+      summariesRes,
+    ] = await Promise.all([
+      client.database.from('clients').select('*'),
+      client.database.from('couvaisons').select('*'),
+      client.database.from('machines').select('*').order('created_at', { ascending: true }),
+      client.database.from('casiers').select('*'),
+      client.database.from('transactions').select('*').order('date_transaction', { ascending: false }),
+      client.database.from('logs').select('*').order('timestamp', { ascending: false }).limit(200),
+      client.database.from('receipt_archives').select('*').order('created_at', { ascending: false }).limit(200),
+      client.database.from('client_messages').select('*').order('sent_at', { ascending: false }).limit(200),
+      client.database.from('depenses').select('*').order('date_depense', { ascending: false }),
+      client.database.from('salaire_agents').select('*').order('nom', { ascending: true }),
+      client.database.from('message_templates').select('*').order('created_at', { ascending: false }),
+      client.database.from('client_financial_summary').select('*').order('nom', { ascending: true }),
+    ]);
+
+    const clients = (clientsRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      nom: r.nom,
+      telephone: r.telephone,
+      clientIdExt: r.client_id_ext,
+    }));
+
+    const couvaisons = (couvRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      clientId: r.client_id,
+      typeOeuf: r.type_oeuf,
+      nombreOeufs: r.nombre_oeufs,
+      prixUnitaire: r.prix_unitaire,
+      dateReception: r.date_reception ? new Date(r.date_reception).toISOString() : r.date_reception,
+      dateMiseEnMachine: r.date_mise_en_machine ? new Date(r.date_mise_en_machine).toISOString() : undefined,
+      dateMiragePrevue: r.date_mirage_prevue ? new Date(r.date_mirage_prevue).toISOString() : undefined,
+      dateEclosionPrevue: r.date_eclosion_prevue ? new Date(r.date_eclosion_prevue).toISOString() : undefined,
+      dateEclosionDemarrage: r.date_eclosion_demarrage ? new Date(r.date_eclosion_demarrage).toISOString() : undefined,
+      nomDepart: r.nom_depart ?? undefined,
+      statut: r.statut,
+      oeufsClairs: r.oeufs_clairs ?? undefined,
+      oeufsPourris: r.oeufs_pourris ?? undefined,
+      poussinsNes: r.poussins_nes ?? undefined,
+      mortsEnCoque: r.morts_en_coque ?? undefined,
+      emplacements: r.emplacements ?? undefined,
+      emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
+      emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
+      causeEchecMajeure: r.cause_echec_majeure ?? undefined,
+      notesEchec: r.notes_echec ?? undefined,
+    }));
+
+    const casiersRows = casiersRes.data ?? [];
+    const machines = (machinesRes.data ?? []).map((m: any) => ({
+      id: m.id,
+      nom: m.nom,
+      capacite: Number(m.capacite) || 0,
+      type: m.type,
+      enService: !!m.en_service,
+      casiers: casiersRows
+        .filter((c: any) => c.machine_id === m.id)
+        .map((c: any) => ({ id: c.id, nom: c.nom, capacite: Number(c.capacite) || 0 })),
+    }));
+
+    const transactions = (txRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      couvaisonId: r.couvaison_id,
+      clientId: r.client_id,
+      montantTotal: Number(r.montant_total) || 0,
+      acomptesVerses: Number(r.acomptes_verses) || 0,
+      resteAPayer: Number(r.reste_a_payer) || 0,
+      dateTransaction: r.date_transaction ? new Date(r.date_transaction).toISOString() : new Date().toISOString(),
+      typeTransaction: r.type_transaction,
+      notes: r.notes ?? undefined,
+    }));
+
+    const logs = (logsRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      userId: r.user_id,
+      userName: r.user_name,
+      action: r.action,
+      target: r.target,
+      targetId: r.target_id ?? undefined,
+      details: r.details,
+      metadata: r.metadata ?? undefined,
+      timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : new Date().toISOString(),
+    }));
+
+    const archives = (receiptRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      invoiceNumber: r.invoice_number,
+      clientId: r.client_id,
+      pdfDataUri: r.pdf_data_uri,
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    }));
+
+    const messages = (messagesRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      clientId: r.client_id,
+      couvaisonId: r.couvaison_id ?? undefined,
+      canal: r.canal,
+      statut: r.statut,
+      template: r.template ?? undefined,
+      message: r.message,
+      sentByUserId: r.sent_by_user_id ?? undefined,
+      sentByName: r.sent_by_name ?? undefined,
+      sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : new Date().toISOString(),
+    }));
+
+    const depenses = (depRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      libelle: r.libelle,
+      montant: Number(r.montant) || 0,
+      categorie: r.categorie,
+      beneficiaire: r.beneficiaire ?? undefined,
+      notes: r.notes ?? undefined,
+      modePaiement: r.mode_paiement,
+      recuUrl: r.recu_url ?? undefined,
+      dateDepense: r.date_depense ? new Date(r.date_depense).toISOString() : new Date().toISOString(),
+      createdByName: r.created_by_name,
+      createdByUserId: r.created_by_user_id,
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    }));
+
+    const agents = (agRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      nom: r.nom,
+      poste: r.poste,
+      salaireMensuelBrut: Number(r.salaire_mensuel_brut) || 0,
+      primeTransportFixe: Number(r.prime_transport_fixe) || 0,
+      autresPrimesFixes: Number(r.autres_primes_fixes) || 0,
+      avancesSurSalaire: Number(r.avances_sur_salaire) || 0,
+      statut: r.statut,
+      cnpsAssujetti: Boolean(r.cnps_assujetti),
+      partsIgr: Number(r.parts_igr) || 1,
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    }));
+
+    const templates = (templatesRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      content: r.content,
+      variables: Array.isArray(r.variables) ? r.variables : [],
+      updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
+    }));
+
+    const summaries = (summariesRes.data ?? []).map((r: any) => ({
+      clientId: r.client_id,
+      nom: r.nom,
+      telephone: r.telephone,
+      clientIdExt: r.client_id_ext,
+      totalDu: Number(r.total_du) || 0,
+      avoir: Number(r.total_avoir) || 0,
+      remise: Number(r.total_remise) || 0,
+      netEncaisse: Number(r.net_encaisse) || 0,
+      resteAPayer: Number(r.reste_a_payer) || 0,
+      avoirClient: Number(r.avoir_client) || 0,
+      verseJour: Number(r.verse_jour) || 0,
+    }));
+
+    return new Response(
+      JSON.stringify({
+        clients,
+        couvaisons,
+        machines,
+        transactions,
+        logs,
+        archives,
+        messages,
+        depenses,
+        agents,
+        templates,
+        summaries,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+};
+})();
+

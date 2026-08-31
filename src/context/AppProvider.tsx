@@ -17,7 +17,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callBackendFunction } from '../lib/insforgeApi';
 import { getClientGlobalBalance } from '../lib/financeCalculations';
-import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
 
 const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
   try {
@@ -114,100 +113,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshSummaries = async () => {
     try {
       const res = await callBackendFunction<{ summaries: ClientFinancialSummary[] }>('client_financial_summary_list', {});
-      setClientSummaries(res.summaries);
+      if (res.summaries) setClientSummaries(res.summaries);
     } catch (e) {
       console.error('Erreur lors du rafraîchissement des résumés financiers:', e);
     }
   };
 
-  // Charge les données depuis InsForge au démarrage — tout en parallèle pour la performance.
+  // Charge les données depuis InsForge au démarrage et dès qu'un utilisateur se connecte
   useEffect(() => {
+    if (!currentUser) return;
+
     (async () => {
-      const seedMachines: Array<Omit<Machine, 'id'>> = [
-        {
-          nom: 'Couveuse Alpha-1000',
-          capacite: 1000,
-          type: 'Couveuse',
-          enService: true,
-          casiers: [
-            { id: uuidv4(), nom: 'Casier Haut', capacite: 500 },
-            { id: uuidv4(), nom: 'Casier Bas', capacite: 500 },
-          ],
-        },
-        {
-          nom: 'Éclosoir Beta-500',
-          capacite: 500,
-          type: 'Éclosoir',
-          enService: true,
-          casiers: [
-            { id: uuidv4(), nom: 'Panier 1', capacite: 250 },
-            { id: uuidv4(), nom: 'Panier 2', capacite: 250 },
-          ],
-        },
-      ]
+      try {
+        const res = await callBackendFunction<{
+          clients?: Client[];
+          couvaisons?: Couvaison[];
+          machines?: Machine[];
+          transactions?: Transaction[];
+          logs?: AuditLog[];
+          archives?: ReceiptArchive[];
+          messages?: ClientMessage[];
+          depenses?: Depense[];
+          agents?: SalarieAgent[];
+          templates?: MessageTemplate[];
+          summaries?: ClientFinancialSummary[];
+        }>('app_bootstrap_data', {});
 
-      const [
-        clientsResult,
-        couvResult,
-        machinesResult,
-        txResult,
-        logsResult,
-        receiptResult,
-        messagesResult,
-        depResult,
-        agResult,
-        templatesResult,
-        summariesResult,
-      ] = await Promise.allSettled([
-        callBackendFunction<{ clients: Client[] }>('clients_list', {}),
-        callBackendFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
-        callBackendFunction<{ machines: Machine[] }>('machines_list', {}),
-        callBackendFunction<{ transactions: Transaction[] }>('transactions_list', {}),
-        callBackendFunction<{ logs: AuditLog[] }>('logs_list', {}),
-        callBackendFunction<{ archives: ReceiptArchive[] }>('receipt_archives_list', {}),
-        callBackendFunction<{ messages: ClientMessage[] }>('client_messages_list', {}),
-        callBackendFunction<{ depenses: Depense[] }>('depenses_list', {}),
-        callBackendFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {}),
-        callBackendFunction<{ templates: MessageTemplate[] }>('message_templates_list', {}),
-        callBackendFunction<{ summaries: ClientFinancialSummary[] }>('client_financial_summary_list', {}),
-      ]);
-
-      if (clientsResult.status === 'fulfilled') setClients(clientsResult.value.clients);
-      if (couvResult.status === 'fulfilled') setCouvaisons(couvResult.value.couvaisons);
-      if (txResult.status === 'fulfilled') setTransactions(txResult.value.transactions);
-      if (logsResult.status === 'fulfilled') setLogs(logsResult.value.logs);
-      if (receiptResult.status === 'fulfilled') setReceiptArchives(receiptResult.value.archives);
-      if (messagesResult.status === 'fulfilled') setClientMessages(messagesResult.value.messages);
-      if (depResult.status === 'fulfilled') setDepenses(depResult.value.depenses);
-      if (agResult.status === 'fulfilled') setSalaireAgents(agResult.value.agents);
-      if (summariesResult.status === 'fulfilled') setClientSummaries(summariesResult.value.summaries);
-      
-      if (templatesResult.status === 'fulfilled') {
-        if (templatesResult.value.templates.length === 0) {
-          // Seed par défaut si vide
-          await Promise.all(DEFAULT_TEMPLATES.map(t => callBackendFunction('message_template_create', { 
-            ...t, 
-            updatedAt: new Date().toISOString() 
-          })));
-          const templatesRes2 = await callBackendFunction<{ templates: MessageTemplate[] }>('message_templates_list', {});
-          setMessageTemplates(templatesRes2.templates);
-        } else {
-          setMessageTemplates(templatesResult.value.templates);
-        }
+        if (res.clients) setClients(res.clients);
+        if (res.couvaisons) setCouvaisons(res.couvaisons);
+        if (res.transactions) setTransactions(res.transactions);
+        if (res.logs) setLogs(res.logs);
+        if (res.archives) setReceiptArchives(res.archives);
+        if (res.messages) setClientMessages(res.messages);
+        if (res.depenses) setDepenses(res.depenses);
+        if (res.agents) setSalaireAgents(res.agents);
+        if (res.summaries) setClientSummaries(res.summaries);
+        if (res.templates) setMessageTemplates(res.templates);
+        if (res.machines) setMachines(res.machines);
+      } catch (e) {
+        console.error('Erreur lors du chargement des données:', e);
       }
-
-      if (machinesResult.status === 'fulfilled') {
-        if (machinesResult.value.machines.length === 0) {
-          // Seed uniquement si la table est vide.
-          await Promise.all(seedMachines.map(m => callBackendFunction('machine_create', m)));
-          const machinesRes2 = await callBackendFunction<{ machines: Machine[] }>('machines_list', {});
-          setMachines(machinesRes2.machines);
-        } else {
-          setMachines(machinesResult.value.machines);
-        }
-      }
-    })()
-  }, [])
+    })();
+  }, [currentUser?.id]);
 
 
   const addLog = (
