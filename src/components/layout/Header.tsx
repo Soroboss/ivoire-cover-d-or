@@ -1,8 +1,8 @@
-import { Bell, User, Menu } from 'lucide-react';
+import { Bell, User, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = ({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   return (
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/90 bg-white/85 px-4 shadow-sm backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-3">
@@ -30,13 +30,23 @@ const Header = ({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) => {
           <Bell size={20} />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
         </button>
-        <div className="flex cursor-default items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 py-1 pl-1 pr-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-orange to-brand-hover text-white shadow-sm">
-            <User size={18} strokeWidth={2.2} />
+        <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 py-1 pl-1 pr-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-orange to-brand-hover text-white shadow-sm font-bold text-sm uppercase">
+            {currentUser?.nom ? currentUser.nom.charAt(0) : <User size={18} strokeWidth={2.2} />}
           </div>
           <span className="hidden max-w-[10rem] truncate text-sm font-semibold text-brand-dark md:block">
             {currentUser?.nom || 'Compte'}
           </span>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1.5 rounded-xl bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+            title="Se déconnecter"
+            aria-label="Se déconnecter"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Déconnexion</span>
+          </button>
         </div>
       </div>
     </header>
@@ -44,3 +54,4 @@ const Header = ({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) => {
 };
 
 export default Header;
+

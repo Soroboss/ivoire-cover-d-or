@@ -39,31 +39,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return saved ? JSON.parse(saved) : DEFAULT_USERS;
   });
 
-  const [usersLoading, setUsersLoading] = useState(true);
-  const [usersError, setUsersError] = useState<string | null>(null);
-
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('ivoire_current_user');
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [usersLoading, setUsersLoading] = useState<boolean>(() => {
+    const savedUsers = localStorage.getItem('ivoire_users');
+    const savedCurrentUser = localStorage.getItem('ivoire_current_user');
+    return !savedUsers && !savedCurrentUser;
+  });
+  const [usersError, setUsersError] = useState<string | null>(null);
+
   useEffect(() => {
-    // Cache local pour éviter une mauvaise UX au rechargement.
     localStorage.setItem('ivoire_users', JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
-    // Récupère la liste des utilisateurs depuis InsForge.
-    // Si ça échoue, on garde le cache local.
+    // Récupère la liste des utilisateurs depuis InsForge en arrière-plan.
     (async () => {
-      setUsersLoading(true);
-      setUsersError(null);
       try {
         const res = await callBackendFunction<{ users: Record<string, unknown>[] }>('users_list', {});
-        setUsers(res.users.map((u) => enrichUserFromApi(u as never)));
+        if (res.users) {
+          const enriched = res.users.map((u) => enrichUserFromApi(u as never));
+          setUsers(enriched);
+          setCurrentUser((prev) => {
+            if (!prev) return null;
+            const updated = enriched.find((u) => u.id === prev.id);
+            return updated || prev;
+          });
+        }
       } catch (e) {
         setUsersError((e as Error).message || 'Impossible de charger les utilisateurs depuis le serveur.');
-        // Garde le cache local déjà affiché
       } finally {
         setUsersLoading(false);
       }

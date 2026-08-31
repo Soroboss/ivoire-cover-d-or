@@ -19,6 +19,21 @@ import { callBackendFunction } from '../lib/insforgeApi';
 import { getClientGlobalBalance } from '../lib/financeCalculations';
 import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
 
+const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = (key: string, value: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+};
+
 interface AppState {
   clients: Client[];
   couvaisons: Couvaison[];
@@ -65,23 +80,36 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
   
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [receiptArchives, setReceiptArchives] = useState<ReceiptArchive[]>([]);
-  const [clientMessages, setClientMessages] = useState<ClientMessage[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>(() => loadFromStorage('ivoire_logs', []));
+  const [receiptArchives, setReceiptArchives] = useState<ReceiptArchive[]>(() => loadFromStorage('ivoire_receipt_archives', []));
+  const [clientMessages, setClientMessages] = useState<ClientMessage[]>(() => loadFromStorage('ivoire_client_messages', []));
 
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Client[]>(() => loadFromStorage('ivoire_clients', []));
   
-  const [couvaisons, setCouvaisons] = useState<Couvaison[]>([]);
+  const [couvaisons, setCouvaisons] = useState<Couvaison[]>(() => loadFromStorage('ivoire_couvaisons', []));
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => loadFromStorage('ivoire_transactions', []));
 
-  const [machines, setMachines] = useState<Machine[]>([]);
+  const [machines, setMachines] = useState<Machine[]>(() => loadFromStorage('ivoire_machines', []));
 
-  const [depenses, setDepenses] = useState<Depense[]>([]);
+  const [depenses, setDepenses] = useState<Depense[]>(() => loadFromStorage('ivoire_depenses', []));
 
-  const [salaireAgents, setSalaireAgents] = useState<SalarieAgent[]>([]);
-  const [clientSummaries, setClientSummaries] = useState<ClientFinancialSummary[]>([]);
-  const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>([]);
+  const [salaireAgents, setSalaireAgents] = useState<SalarieAgent[]>(() => loadFromStorage('ivoire_salaire_agents', []));
+  const [clientSummaries, setClientSummaries] = useState<ClientFinancialSummary[]>(() => loadFromStorage('ivoire_client_summaries', []));
+  const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>(() => loadFromStorage('ivoire_message_templates', []));
+
+  // Synchro des états dans le cache local
+  useEffect(() => { saveToStorage('ivoire_clients', clients); }, [clients]);
+  useEffect(() => { saveToStorage('ivoire_couvaisons', couvaisons); }, [couvaisons]);
+  useEffect(() => { saveToStorage('ivoire_transactions', transactions); }, [transactions]);
+  useEffect(() => { saveToStorage('ivoire_machines', machines); }, [machines]);
+  useEffect(() => { saveToStorage('ivoire_logs', logs); }, [logs]);
+  useEffect(() => { saveToStorage('ivoire_receipt_archives', receiptArchives); }, [receiptArchives]);
+  useEffect(() => { saveToStorage('ivoire_client_messages', clientMessages); }, [clientMessages]);
+  useEffect(() => { saveToStorage('ivoire_depenses', depenses); }, [depenses]);
+  useEffect(() => { saveToStorage('ivoire_salaire_agents', salaireAgents); }, [salaireAgents]);
+  useEffect(() => { saveToStorage('ivoire_client_summaries', clientSummaries); }, [clientSummaries]);
+  useEffect(() => { saveToStorage('ivoire_message_templates', messageTemplates); }, [messageTemplates]);
 
   const refreshSummaries = async () => {
     try {
@@ -129,6 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         depResult,
         agResult,
         templatesResult,
+        summariesResult,
       ] = await Promise.allSettled([
         callBackendFunction<{ clients: Client[] }>('clients_list', {}),
         callBackendFunction<{ couvaisons: Couvaison[] }>('couvaisons_list', {}),
@@ -140,6 +169,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         callBackendFunction<{ depenses: Depense[] }>('depenses_list', {}),
         callBackendFunction<{ agents: SalarieAgent[] }>('salaire_agents_list', {}),
         callBackendFunction<{ templates: MessageTemplate[] }>('message_templates_list', {}),
+        callBackendFunction<{ summaries: ClientFinancialSummary[] }>('client_financial_summary_list', {}),
       ]);
 
       if (clientsResult.status === 'fulfilled') setClients(clientsResult.value.clients);
@@ -150,6 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (messagesResult.status === 'fulfilled') setClientMessages(messagesResult.value.messages);
       if (depResult.status === 'fulfilled') setDepenses(depResult.value.depenses);
       if (agResult.status === 'fulfilled') setSalaireAgents(agResult.value.agents);
+      if (summariesResult.status === 'fulfilled') setClientSummaries(summariesResult.value.summaries);
       
       if (templatesResult.status === 'fulfilled') {
         if (templatesResult.value.templates.length === 0) {
@@ -175,8 +206,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setMachines(machinesResult.value.machines);
         }
       }
-
-      void refreshSummaries();
     })()
   }, [])
 
