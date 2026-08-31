@@ -91,8 +91,8 @@ const Tresorerie = () => {
   }, [depenses, dateFrom, dateTo]);
 
   const resultatNetEncaissementsMoinsCharges = useMemo(
-    () => kpis.net - totalDepensesPeriode,
-    [kpis.net, totalDepensesPeriode],
+    () => kpis.net,
+    [kpis.net],
   );
 
   const globalNet = useMemo(() => netEncaisseGlobal(transactions), [transactions]);

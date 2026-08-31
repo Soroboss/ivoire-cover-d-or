@@ -58,7 +58,7 @@ const Couvaisons = () => {
         if (sortBy === 'reception') {
           return new Date(b.dateReception).getTime() - new Date(a.dateReception).getTime();
         } else {
-          return couvaisons.indexOf(b) - couvaisons.indexOf(a);
+          return b.id.localeCompare(a.id);
         }
       });
   }, [couvaisons, clients, statusFilter, searchTerm, receptionFrom, receptionTo, typeFilter, sortBy]);

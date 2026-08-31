@@ -133,11 +133,11 @@ export const ClientFinanceCardModal: React.FC<ClientFinanceCardModalProps> = ({ 
                       </div>
                       <p className={`text-sm font-black ${
                         t.typeTransaction === 'Paiement' ? 'text-green-600' : 
-                        t.typeTransaction === 'Deduction' ? 'text-red-500' : 
                         t.typeTransaction === 'Dette' ? 'text-purple-600' :
+                        t.typeTransaction === 'Deduction' ? 'text-red-500' : 
                         'text-brand-orange'
                       }`}>
-                        {t.typeTransaction === 'Paiement' ? '+' : '-'} {t.montantTotal.toLocaleString()} F
+                        {t.typeTransaction === 'Paiement' || t.typeTransaction === 'Dette' ? '+' : '-'} {t.montantTotal.toLocaleString()} F
                       </p>
                     </div>
                   ))

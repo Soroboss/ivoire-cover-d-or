@@ -50,7 +50,8 @@ const Factures = () => {
   const totalAmountGen = clientCouvaisonsTotal.reduce((acc, c) => acc + (c.nombreOeufs * c.prixUnitaire), 0);
   const totalPaidGen = netEncaisseByClient(clientTransactionsTotal, selectedClient);
   const totalCreditsGen = totalAvoirRemiseByClient(clientTransactionsTotal, selectedClient);
-  const dueAmountGen = totalAmountGen - totalPaidGen - totalCreditsGen;
+  const totalDetteGen = clientTransactionsTotal.filter(t => t.typeTransaction === 'Dette').reduce((acc, t) => acc + t.montantTotal, 0);
+  const dueAmountGen = totalAmountGen + totalDetteGen - totalPaidGen - totalCreditsGen;
 
   const invoiceNumber = client ? `FC-${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2, '0')}-${client.id.split('-')[0].toUpperCase()}` : ''
 

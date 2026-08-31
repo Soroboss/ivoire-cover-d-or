@@ -20,7 +20,8 @@ export const InvoiceTemplate = forwardRef<HTMLDivElement, InvoiceProps>(
     const totalAmount = couvaisons.reduce((acc, c) => acc + c.nombreOeufs * c.prixUnitaire, 0);
     const totalPaid = netEncaisseByClient(transactions, client.id);
     const totalCredits = totalAvoirRemiseByClient(transactions, client.id);
-    const due = totalAmount - totalPaid - totalCredits;
+    const totalDette = transactions.filter((t) => t.clientId === client.id && t.typeTransaction === 'Dette').reduce((acc, t) => acc + t.montantTotal, 0);
+    const due = totalAmount + totalDette - totalPaid - totalCredits;
     const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
     return (

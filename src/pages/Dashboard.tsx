@@ -168,19 +168,17 @@ const Dashboard = () => {
   }, [transactions, clientFilter]);
 
 
-  const totalRevenue = scopedTransactions.reduce((acc, t) => acc + t.montantTotal, 0);
-  const todayRevenue = scopedTransactions
-    .filter((t) => isToday(parseISO(t.dateTransaction)))
-    .reduce((acc, t) => acc + t.montantTotal, 0);
-  const weekRevenue = scopedTransactions
-    .filter((t) => isThisWeek(parseISO(t.dateTransaction), { weekStartsOn: 1 }))
-    .reduce((acc, t) => acc + t.montantTotal, 0);
-  const monthRevenue = scopedTransactions
-    .filter((t) => isThisMonth(parseISO(t.dateTransaction)))
-    .reduce((acc, t) => acc + t.montantTotal, 0);
-  const yearRevenue = scopedTransactions
-    .filter((t) => isThisYear(parseISO(t.dateTransaction)))
-    .reduce((acc, t) => acc + t.montantTotal, 0);
+  const getNetEncaisseForList = (txList: typeof transactions) => {
+    const p = txList.filter((t) => t.typeTransaction === 'Paiement').reduce((acc, t) => acc + t.montantTotal, 0);
+    const d = txList.filter((t) => t.typeTransaction === 'Deduction').reduce((acc, t) => acc + t.montantTotal, 0);
+    return Math.max(0, p - d);
+  };
+
+  const totalRevenue = getNetEncaisseForList(scopedTransactions);
+  const todayRevenue = getNetEncaisseForList(scopedTransactions.filter((t) => isToday(parseISO(t.dateTransaction))));
+  const weekRevenue = getNetEncaisseForList(scopedTransactions.filter((t) => isThisWeek(parseISO(t.dateTransaction), { weekStartsOn: 1 })));
+  const monthRevenue = getNetEncaisseForList(scopedTransactions.filter((t) => isThisMonth(parseISO(t.dateTransaction))));
+  const yearRevenue = getNetEncaisseForList(scopedTransactions.filter((t) => isThisYear(parseISO(t.dateTransaction))));
 
   const scopedDepenses = useMemo(() => {
     // Les dépenses ne sont pas liées aux clients, mais on peut les filtrer par période si besoin.

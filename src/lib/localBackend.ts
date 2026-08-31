@@ -5,8 +5,14 @@ import { createClient } from '@insforge/sdk';
 
 const Deno = {
   env: {
-    get: (key) => {
-      if (key === 'INSFORGE_BASE_URL') return import.meta.env.VITE_INSFORGE_OSS_HOST || 'https://bzna2rx5.eu-central.insforge.app';
+    get: (key: string) => {
+      if (key === 'INSFORGE_BASE_URL') {
+        try {
+          return (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_INSFORGE_OSS_HOST) || 'https://bzna2rx5.eu-central.insforge.app';
+        } catch {
+          return 'https://bzna2rx5.eu-central.insforge.app';
+        }
+      }
       if (key === 'ANON_KEY') return 'ik_bde2c73e789f5234a01bd842ad7bb3fa';
       return '';
     }
@@ -3694,6 +3700,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+async function fetchAllFromTable(client: any, tableName: string, orderCol?: string, ascending = true, maxLimit?: number) {
+  let allData: any[] = [];
+  let from = 0;
+  const step = 1000;
+  while (true) {
+    let query = client.database.from(tableName).select('*').range(from, from + step - 1);
+    if (orderCol) query = query.order(orderCol, { ascending });
+    const { data, error } = await query;
+    if (error) { console.error(`fetchAll ${tableName}:`, error); break; }
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (maxLimit && allData.length >= maxLimit) { allData = allData.slice(0, maxLimit); break; }
+    if (data.length < step) break;
+    from += step;
+  }
+  return allData;
+}
+
 localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
   try {
@@ -3862,6 +3886,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       totalDu: Number(r.total_du) || 0,
       avoir: Number(r.total_avoir) || 0,
       remise: Number(r.total_remise) || 0,
+      dette: Number(r.total_dette) || 0,
       netEncaisse: Number(r.net_encaisse) || 0,
       resteAPayer: Number(r.reste_a_payer) || 0,
       avoirClient: Number(r.avoir_client) || 0,

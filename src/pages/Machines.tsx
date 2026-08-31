@@ -6,7 +6,12 @@ import type { Couvaison, Machine } from '../types';
 import { MachineForm } from '../components/machines/MachineForm';
 
 const MachineCard = ({ machine, activeBatches, onEdit, onDelete, canDelete }: { machine: Machine, activeBatches: Couvaison[], onEdit: (id: string) => void, onDelete: (id: string) => void, canDelete: boolean }) => {
-  const currentEggs = activeBatches.reduce((sum, c) => sum + c.nombreOeufs, 0);
+  const currentEggs = activeBatches.reduce((sum, c) => {
+    const empQty = (c.emplacements || [])
+      .filter((e) => e.machineId === machine.id)
+      .reduce((s, e) => s + (e.quantite || 0), 0);
+    return sum + (empQty > 0 ? empQty : c.nombreOeufs);
+  }, 0);
   const occupancyRate = machine.capacite > 0 ? (currentEggs / machine.capacite) * 100 : 0;
   
   const isCouveuse = machine.type === 'Couveuse';

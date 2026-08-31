@@ -45,13 +45,15 @@ const Finances = () => {
     return couvaisons.filter((c) => isIsoDateInRange(c.dateReception, receptionFrom, receptionTo));
   }, [couvaisons, receptionFrom, receptionTo]);
 
-  /** Transactions dont le lot a une réception dans l’intervalle. */
+  /** Transactions dont le lot (ou la date d'opération si lot absent) est dans l’intervalle. */
   const transactionsScoped = useMemo(() => {
     if (!receptionFrom && !receptionTo) return transactions;
     return transactions.filter((t) => {
       const lot = couvaisons.find((c) => c.id === t.couvaisonId);
-      if (!lot) return false;
-      return isIsoDateInRange(lot.dateReception, receptionFrom, receptionTo);
+      if (lot) {
+        return isIsoDateInRange(lot.dateReception, receptionFrom, receptionTo);
+      }
+      return isIsoDateInRange(t.dateTransaction, receptionFrom, receptionTo);
     });
   }, [transactions, couvaisons, receptionFrom, receptionTo]);
 
