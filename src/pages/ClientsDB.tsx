@@ -14,7 +14,7 @@ import { callBackendFunction } from '../lib/insforgeApi';
 type FilterState = StatutCouvaison | 'Tous';
 
 const ClientsDB = () => {
-  const { clients, couvaisons, clientMessages, machines } = useAppContext();
+  const { clients, couvaisons, transactions, clientMessages, machines } = useAppContext();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,9 +70,15 @@ const ClientsDB = () => {
     if (!selectedClientId) return [];
     return clientMessages
       .filter(m => m.clientId === selectedClientId)
-      .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
-      .slice(0, 8);
+      .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
   }, [clientMessages, selectedClientId]);
+
+  const clientTransactions = useMemo(() => {
+    if (!selectedClientId) return [];
+    return transactions
+      .filter(t => t.clientId === selectedClientId)
+      .sort((a, b) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime());
+  }, [transactions, selectedClientId]);
 
   const stats = useMemo(() => {
     const totalClients = clients.length;
@@ -419,23 +425,66 @@ const ClientsDB = () => {
                   </tbody>
                 </table>
               </div>
-              <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
-                <h3 className="text-sm font-semibold text-brand-dark mb-2">Historique messages client</h3>
-                {clientMessageHistory.length === 0 ? (
-                  <p className="text-xs text-brand-muted">Aucun message enregistré.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {clientMessageHistory.map((m) => (
-                      <div key={m.id} className="bg-white border border-gray-200 rounded-md p-2">
-                        <div className="flex items-center justify-between text-xs text-brand-muted">
-                          <span>{m.canal} - {m.template || 'manuel'}</span>
-                          <span>{format(parseISO(m.sentAt), 'dd/MM/yyyy HH:mm')}</span>
+              <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-dark mb-2 flex items-center justify-between">
+                    <span>Historique complet des règlements & transactions ({clientTransactions.length})</span>
+                  </h3>
+                  {clientTransactions.length === 0 ? (
+                    <p className="text-xs text-brand-muted">Aucune transaction enregistrée pour ce client.</p>
+                  ) : (
+                    <div className="overflow-x-auto bg-white rounded-md border border-gray-200">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-100 text-slate-700 font-bold border-b">
+                          <tr>
+                            <th className="px-3 py-2">Date</th>
+                            <th className="px-3 py-2">Type</th>
+                            <th className="px-3 py-2">Montant</th>
+                            <th className="px-3 py-2">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {clientTransactions.map((t) => (
+                            <tr key={t.id} className="hover:bg-slate-50">
+                              <td className="px-3 py-2 font-medium">{format(parseISO(t.dateTransaction), 'dd/MM/yyyy HH:mm')}</td>
+                              <td className="px-3 py-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  t.typeTransaction === 'Paiement' ? 'bg-green-100 text-green-700' :
+                                  t.typeTransaction === 'Deduction' ? 'bg-red-100 text-red-700' :
+                                  t.typeTransaction === 'Dette' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-orange-100 text-orange-700'
+                                }`}>
+                                  {t.typeTransaction}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 font-bold">{t.montantTotal.toLocaleString()} F</td>
+                              <td className="px-3 py-2 text-slate-500">{t.notes || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-dark mb-2">Historique messages client ({clientMessageHistory.length})</h3>
+                  {clientMessageHistory.length === 0 ? (
+                    <p className="text-xs text-brand-muted">Aucun message enregistré.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {clientMessageHistory.map((m) => (
+                        <div key={m.id} className="bg-white border border-gray-200 rounded-md p-2">
+                          <div className="flex items-center justify-between text-xs text-brand-muted">
+                            <span>{m.canal} - {m.template || 'manuel'}</span>
+                            <span>{format(parseISO(m.sentAt), 'dd/MM/yyyy HH:mm')}</span>
+                          </div>
+                          <p className="text-xs text-brand-dark mt-1">{m.message}</p>
                         </div>
-                        <p className="text-xs text-brand-dark mt-1 line-clamp-2">{m.message}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               </div>
             )}

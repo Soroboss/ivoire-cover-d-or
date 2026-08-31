@@ -1,37 +1,31 @@
 import React, { useMemo } from 'react';
 import { useAppContext } from '../../context/AppProvider';
 import { DollarSign, Wallet, Percent, Landmark, Receipt, CalendarCheck } from 'lucide-react';
+import { getClientDetailedFinance } from '../../lib/financeCalculations';
 
 interface Props {
   clientId: string;
 }
 
 export const ClientStatsSummary: React.FC<Props> = ({ clientId }) => {
-  const { clientSummaries } = useAppContext();
+  const { clientSummaries, transactions, couvaisons } = useAppContext();
 
   const stats = useMemo(() => {
     const s = clientSummaries.find(summary => summary.clientId === clientId);
-    if (!s) {
+    if (s && (s.totalDu > 0 || s.netEncaisse > 0 || s.resteAPayer > 0 || s.avoirClient > 0 || s.avoir > 0)) {
       return {
-        totalDu: 0,
-        avoir: 0,
-        remise: 0,
-        netEncaisse: 0,
-        resteAPayer: 0,
-        avoirClient: 0,
-        verseJour: 0,
+        totalDu: s.totalDu,
+        avoir: s.avoir,
+        remise: s.remise,
+        netEncaisse: s.netEncaisse,
+        resteAPayer: s.resteAPayer,
+        avoirClient: s.avoirClient ?? 0,
+        verseJour: s.verseJour,
       };
     }
-    return {
-      totalDu: s.totalDu,
-      avoir: s.avoir,
-      remise: s.remise,
-      netEncaisse: s.netEncaisse,
-      resteAPayer: s.resteAPayer,
-      avoirClient: s.avoirClient ?? 0,
-      verseJour: s.verseJour,
-    };
-  }, [clientId, clientSummaries]);
+    // Calcul de secours direct sur transactions & couvaisons en mémoire
+    return getClientDetailedFinance(transactions, couvaisons, clientId);
+  }, [clientId, clientSummaries, transactions, couvaisons]);
 
   if (!clientId) return null;
 
