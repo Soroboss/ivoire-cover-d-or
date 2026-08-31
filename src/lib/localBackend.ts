@@ -3654,33 +3654,33 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       templatesRes,
       summariesRes,
     ] = await Promise.all([
-      client.database.from('clients').select('*'),
-      client.database.from('couvaisons').select('*'),
-      client.database.from('machines').select('*').order('created_at', { ascending: true }),
-      client.database.from('casiers').select('*'),
-      client.database.from('transactions').select('*').order('date_transaction', { ascending: false }),
-      client.database.from('logs').select('*').order('timestamp', { ascending: false }).limit(200),
-      client.database.from('receipt_archives').select('*').order('created_at', { ascending: false }).limit(200),
-      client.database.from('client_messages').select('*').order('sent_at', { ascending: false }).limit(200),
-      client.database.from('depenses').select('*').order('date_depense', { ascending: false }),
-      client.database.from('salaire_agents').select('*').order('nom', { ascending: true }),
-      client.database.from('message_templates').select('*').order('created_at', { ascending: false }),
-      client.database.from('client_financial_summary').select('*').order('nom', { ascending: true }),
+      fetchAllFromTable(client, 'clients'),
+      fetchAllFromTable(client, 'couvaisons'),
+      fetchAllFromTable(client, 'machines', 'created_at', true),
+      fetchAllFromTable(client, 'casiers'),
+      fetchAllFromTable(client, 'transactions', 'date_transaction', false),
+      fetchAllFromTable(client, 'logs', 'timestamp', false, 1000),
+      fetchAllFromTable(client, 'receipt_archives', 'created_at', false, 1000),
+      fetchAllFromTable(client, 'client_messages', 'sent_at', false, 1000),
+      fetchAllFromTable(client, 'depenses', 'date_depense', false),
+      fetchAllFromTable(client, 'salaire_agents', 'nom', true),
+      fetchAllFromTable(client, 'message_templates', 'created_at', false),
+      fetchAllFromTable(client, 'client_financial_summary', 'nom', true),
     ]);
 
-    const clients = (clientsRes.data ?? []).map((r: any) => ({
+    const clients = (clientsRes ?? []).map((r: any) => ({
       id: r.id,
       nom: r.nom,
       telephone: r.telephone,
       clientIdExt: r.client_id_ext,
     }));
 
-    const couvaisons = (couvRes.data ?? []).map((r: any) => ({
+    const couvaisons = (couvRes ?? []).map((r: any) => ({
       id: r.id,
       clientId: r.client_id,
       typeOeuf: r.type_oeuf,
-      nombreOeufs: r.nombre_oeufs,
-      prixUnitaire: r.prix_unitaire,
+      nombreOeufs: Number(r.nombre_oeufs) || 0,
+      prixUnitaire: Number(r.prix_unitaire) || 0,
       dateReception: r.date_reception ? new Date(r.date_reception).toISOString() : r.date_reception,
       dateMiseEnMachine: r.date_mise_en_machine ? new Date(r.date_mise_en_machine).toISOString() : undefined,
       dateMiragePrevue: r.date_mirage_prevue ? new Date(r.date_mirage_prevue).toISOString() : undefined,
@@ -3688,10 +3688,10 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       dateEclosionDemarrage: r.date_eclosion_demarrage ? new Date(r.date_eclosion_demarrage).toISOString() : undefined,
       nomDepart: r.nom_depart ?? undefined,
       statut: r.statut,
-      oeufsClairs: r.oeufs_clairs ?? undefined,
-      oeufsPourris: r.oeufs_pourris ?? undefined,
-      poussinsNes: r.poussins_nes ?? undefined,
-      mortsEnCoque: r.morts_en_coque ?? undefined,
+      oeufsClairs: r.oeufs_clairs != null ? Number(r.oeufs_clairs) : undefined,
+      oeufsPourris: r.oeufs_pourris != null ? Number(r.oeufs_pourris) : undefined,
+      poussinsNes: r.poussins_nes != null ? Number(r.poussins_nes) : undefined,
+      mortsEnCoque: r.morts_en_coque != null ? Number(r.morts_en_coque) : undefined,
       emplacements: r.emplacements ?? undefined,
       emplacementsAvantMirage: r.emplacements_avant_mirage ?? undefined,
       emplacementsApresMirage: r.emplacements_apres_mirage ?? undefined,
@@ -3699,8 +3699,8 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       notesEchec: r.notes_echec ?? undefined,
     }));
 
-    const casiersRows = casiersRes.data ?? [];
-    const machines = (machinesRes.data ?? []).map((m: any) => ({
+    const casiersRows = casiersRes ?? [];
+    const machines = (machinesRes ?? []).map((m: any) => ({
       id: m.id,
       nom: m.nom,
       capacite: Number(m.capacite) || 0,
@@ -3711,7 +3711,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
         .map((c: any) => ({ id: c.id, nom: c.nom, capacite: Number(c.capacite) || 0 })),
     }));
 
-    const transactions = (txRes.data ?? []).map((r: any) => ({
+    const transactions = (txRes ?? []).map((r: any) => ({
       id: r.id,
       couvaisonId: r.couvaison_id,
       clientId: r.client_id,
@@ -3723,7 +3723,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       notes: r.notes ?? undefined,
     }));
 
-    const logs = (logsRes.data ?? []).map((r: any) => ({
+    const logs = (logsRes ?? []).map((r: any) => ({
       id: r.id,
       userId: r.user_id,
       userName: r.user_name,
@@ -3735,7 +3735,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : new Date().toISOString(),
     }));
 
-    const archives = (receiptRes.data ?? []).map((r: any) => ({
+    const archives = (receiptRes ?? []).map((r: any) => ({
       id: r.id,
       invoiceNumber: r.invoice_number,
       clientId: r.client_id,
@@ -3743,7 +3743,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
     }));
 
-    const messages = (messagesRes.data ?? []).map((r: any) => ({
+    const messages = (messagesRes ?? []).map((r: any) => ({
       id: r.id,
       clientId: r.client_id,
       couvaisonId: r.couvaison_id ?? undefined,
@@ -3756,7 +3756,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : new Date().toISOString(),
     }));
 
-    const depenses = (depRes.data ?? []).map((r: any) => ({
+    const depenses = (depRes ?? []).map((r: any) => ({
       id: r.id,
       libelle: r.libelle,
       montant: Number(r.montant) || 0,
@@ -3771,7 +3771,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
     }));
 
-    const agents = (agRes.data ?? []).map((r: any) => ({
+    const agents = (agRes ?? []).map((r: any) => ({
       id: r.id,
       nom: r.nom,
       poste: r.poste,
@@ -3785,7 +3785,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
     }));
 
-    const templates = (templatesRes.data ?? []).map((r: any) => ({
+    const templates = (templatesRes ?? []).map((r: any) => ({
       id: r.id,
       name: r.name,
       content: r.content,
@@ -3793,7 +3793,7 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
     }));
 
-    const summaries = (summariesRes.data ?? []).map((r: any) => ({
+    const summaries = (summariesRes ?? []).map((r: any) => ({
       clientId: r.client_id,
       nom: r.nom,
       telephone: r.telephone,
@@ -3831,4 +3831,3 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
   }
 };
 })();
-

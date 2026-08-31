@@ -98,17 +98,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [messageTemplates, setMessageTemplates] = useState<MessageTemplate[]>(() => loadFromStorage('ivoire_message_templates', []));
 
   // Synchro des états dans le cache local
-  useEffect(() => { saveToStorage('ivoire_clients', clients); }, [clients]);
-  useEffect(() => { saveToStorage('ivoire_couvaisons', couvaisons); }, [couvaisons]);
-  useEffect(() => { saveToStorage('ivoire_transactions', transactions); }, [transactions]);
-  useEffect(() => { saveToStorage('ivoire_machines', machines); }, [machines]);
-  useEffect(() => { saveToStorage('ivoire_logs', logs); }, [logs]);
-  useEffect(() => { saveToStorage('ivoire_receipt_archives', receiptArchives); }, [receiptArchives]);
-  useEffect(() => { saveToStorage('ivoire_client_messages', clientMessages); }, [clientMessages]);
-  useEffect(() => { saveToStorage('ivoire_depenses', depenses); }, [depenses]);
-  useEffect(() => { saveToStorage('ivoire_salaire_agents', salaireAgents); }, [salaireAgents]);
-  useEffect(() => { saveToStorage('ivoire_client_summaries', clientSummaries); }, [clientSummaries]);
-  useEffect(() => { saveToStorage('ivoire_message_templates', messageTemplates); }, [messageTemplates]);
+  useEffect(() => { if (clients.length > 0) saveToStorage('ivoire_clients', clients); }, [clients]);
+  useEffect(() => { if (couvaisons.length > 0) saveToStorage('ivoire_couvaisons', couvaisons); }, [couvaisons]);
+  useEffect(() => { if (transactions.length > 0) saveToStorage('ivoire_transactions', transactions); }, [transactions]);
+  useEffect(() => { if (machines.length > 0) saveToStorage('ivoire_machines', machines); }, [machines]);
+  useEffect(() => { if (logs.length > 0) saveToStorage('ivoire_logs', logs); }, [logs]);
+  useEffect(() => { if (receiptArchives.length > 0) saveToStorage('ivoire_receipt_archives', receiptArchives); }, [receiptArchives]);
+  useEffect(() => { if (clientMessages.length > 0) saveToStorage('ivoire_client_messages', clientMessages); }, [clientMessages]);
+  useEffect(() => { if (depenses.length > 0) saveToStorage('ivoire_depenses', depenses); }, [depenses]);
+  useEffect(() => { if (salaireAgents.length > 0) saveToStorage('ivoire_salaire_agents', salaireAgents); }, [salaireAgents]);
+  useEffect(() => { if (clientSummaries.length > 0) saveToStorage('ivoire_client_summaries', clientSummaries); }, [clientSummaries]);
+  useEffect(() => { if (messageTemplates.length > 0) saveToStorage('ivoire_message_templates', messageTemplates); }, [messageTemplates]);
 
   const refreshSummaries = async () => {
     try {
