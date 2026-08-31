@@ -87,7 +87,6 @@ localEdgeFunctions["users_update"] = async function(req: Request) {
     const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
     const anonKey = Deno.env.get('ANON_KEY') || ''
     
-    // Important: utiliser anonKey uniquement (comme users_list) pour cibler public.users
     const client = createClient({ baseUrl, anonKey })
     
     const body = await req.json().catch(() => ({} as any))
@@ -109,26 +108,6 @@ localEdgeFunctions["users_update"] = async function(req: Request) {
     if (updates.passwordHash !== undefined) updateValues.password_hash = updates.passwordHash
     if (updates.role !== undefined) updateValues.role = updates.role
     if (updates.actif !== undefined) updateValues.actif = updates.actif
-
-    // Handle profile update for permissions
-    if (updates.permissions !== undefined && Array.isArray(updates.permissions)) {
-      console.log(`[users_update] Requested permissions: ${updates.permissions.join(',')}`)
-      const { data: curRow, error: curErr } = await client.database
-        .from('users')
-        .select('profile')
-        .eq('id', id)
-        .maybeSingle()
-      
-      if (curErr) {
-        console.error('[users_update] Error fetching profile:', curErr)
-        return new Response(JSON.stringify({ error: curErr.message }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      const prev = (curRow as any)?.profile ?? {}
-      updateValues.profile = { ...prev, permissions: updates.permissions }
-    }
 
     console.log(`[users_update] Updating user: userId=${id}`, JSON.stringify(updateValues))
     
@@ -153,7 +132,7 @@ localEdgeFunctions["users_update"] = async function(req: Request) {
 
     const user = r
       ? (() => {
-          const isProjectAdmin = false // Non supporté sur public.users directement
+          const isProjectAdmin = false
           const role = normalizeRole(r.role, isProjectAdmin)
           const permissions = resolvePermissions(role, undefined, isProjectAdmin)
           return {
@@ -171,7 +150,7 @@ localEdgeFunctions["users_update"] = async function(req: Request) {
       : null
 
     return new Response(JSON.stringify({ user }), {
-      status: 200, // Toujours 200 si l'update a réussi (même si le select est vide)
+      status: 200, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {
@@ -263,7 +242,11 @@ localEdgeFunctions["users_list"] = async function(req: Request) {
     let from = 0;
     const step = 1000;
     while (true) {
-      const res = await client.database.from('users').select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin').order('created_at', { ascending: true }).range(from, from + step - 1);
+      const res = await client.database
+        .from('users')
+        .select('id, nom, username, telephone, role, actif, password_hash')
+        .order('created_at', { ascending: true })
+        .range(from, from + step - 1);
       if (res.error) { error = res.error; break; }
       if (res.data) data = data.concat(res.data);
       if (!res.data || res.data.length < step) break;
@@ -279,11 +262,9 @@ localEdgeFunctions["users_list"] = async function(req: Request) {
     }
 
     const users = (data ?? []).map((r: any) => {
-      const isProjectAdmin = Boolean(r.is_project_admin)
-      const profile = r.profile ?? {}
-      const fromProfile = Array.isArray(profile.permissions) ? profile.permissions : undefined
+      const isProjectAdmin = false
       const role = normalizeRole(r.role, isProjectAdmin)
-      const permissions = resolvePermissions(role, fromProfile, isProjectAdmin)
+      const permissions = resolvePermissions(role, undefined, isProjectAdmin)
       return {
         id: r.id,
         nom: r.nom,
@@ -390,7 +371,6 @@ localEdgeFunctions["users_add"] = async function(req: Request) {
     const passwordHash = body?.passwordHash
     const role = body?.role
     const actif = body?.actif ?? true
-    const permissions = body?.permissions
 
     if (!nom || !username || !passwordHash || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -398,8 +378,6 @@ localEdgeFunctions["users_add"] = async function(req: Request) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
-    const profile = Array.isArray(permissions) && permissions.length > 0 ? { permissions } : undefined
 
     const { data, error } = await client.database
       .from('users')
@@ -410,9 +388,8 @@ localEdgeFunctions["users_add"] = async function(req: Request) {
         password_hash: passwordHash,
         role,
         actif,
-        ...(profile ? { profile } : {}),
       })
-      .select('id, nom, username, telephone, role, actif, password_hash, profile, is_project_admin')
+      .select('id, nom, username, telephone, role, actif, password_hash')
 
     if (error) {
        return new Response(JSON.stringify({ error: error.message }), {
@@ -424,11 +401,9 @@ localEdgeFunctions["users_add"] = async function(req: Request) {
     const r = data?.[0] as any
     const user = r
       ? (() => {
-          const isProjectAdmin = Boolean(r.is_project_admin)
-          const prof = r.profile ?? {}
-          const fromProfile = Array.isArray(prof.permissions) ? prof.permissions : undefined
+          const isProjectAdmin = false
           const roleNorm = normalizeRole(r.role, isProjectAdmin)
-          const perms = resolvePermissions(roleNorm, fromProfile, isProjectAdmin)
+          const perms = resolvePermissions(roleNorm, undefined, isProjectAdmin)
           return {
             id: r.id,
             nom: r.nom,
@@ -455,6 +430,92 @@ localEdgeFunctions["users_add"] = async function(req: Request) {
   }
 }
 
+})();
+
+// -----------------------------------------------------
+// Function: users_reset_password
+// -----------------------------------------------------
+(function() {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+localEdgeFunctions["users_reset_password"] = async function(req: Request) {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    const baseUrl = Deno.env.get('INSFORGE_BASE_URL') || ''
+    const anonKey = Deno.env.get('ANON_KEY') || ''
+    const client = createClient({ baseUrl, anonKey })
+    const body = await req.json().catch(() => ({} as any))
+
+    const usernameOrPhone = body?.usernameOrPhone?.trim()
+    const newPassword = body?.newPassword
+
+    if (!usernameOrPhone || !newPassword) {
+      return new Response(JSON.stringify({ error: 'Identifiant et nouveau mot de passe requis' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { data: usersData, error: fetchErr } = await client.database
+      .from('users')
+      .select('id, username, telephone')
+
+    if (fetchErr) {
+      return new Response(JSON.stringify({ error: fetchErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const searchLower = usernameOrPhone.toLowerCase()
+    const target = (usersData || []).find((u: any) => 
+      (u.username && u.username.toLowerCase() === searchLower) ||
+      (u.telephone && u.telephone.trim() === usernameOrPhone)
+    )
+
+    if (!target) {
+      return new Response(JSON.stringify({ error: 'Aucun utilisateur trouvé avec cet identifiant ou numéro de téléphone.' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { error: updateError } = await client.database
+      .from('users')
+      .update({ password_hash: newPassword })
+      .eq('id', target.id)
+
+    if (updateError) {
+      return new Response(JSON.stringify({ error: updateError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response(JSON.stringify({ success: true, message: 'Mot de passe réinitialisé avec succès.' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+};
 })();
 
 // -----------------------------------------------------

@@ -1,19 +1,83 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, UserRound } from 'lucide-react';
+import { Lock, UserRound, KeyRound, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { callBackendFunction } from '../lib/insforgeApi';
 
 export const Login = () => {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // État Réinitialisation Mot de Passe
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetUsername, setResetUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [isSubmittingReset, setIsSubmittingReset] = useState(false);
+
   const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = await login(username, password);
-    if (!ok) {
-      setError('Identifiants incorrects ou compte désactivé.');
+    setError('');
+    setIsLoggingIn(true);
+    try {
+      const ok = await login(username, password);
+      if (!ok) {
+        setError('Identifiants incorrects ou compte désactivé.');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSuccess('');
+
+    if (!resetUsername.trim()) {
+      setResetError('Veuillez entrer votre nom d’utilisateur ou numéro de téléphone.');
+      return;
+    }
+
+    if (newPassword.length < 3) {
+      setResetError('Le nouveau mot de passe doit contenir au moins 3 caractères.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setResetError('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    setIsSubmittingReset(true);
+    try {
+      const res = await callBackendFunction<{ success?: boolean; error?: string; message?: string }>(
+        'users_reset_password',
+        { usernameOrPhone: resetUsername, newPassword }
+      );
+
+      if (res.error) {
+        setResetError(res.error);
+      } else {
+        setResetSuccess('Mot de passe réinitialisé avec succès ! Redirection vers la connexion...');
+        setTimeout(() => {
+          setUsername(resetUsername);
+          setPassword('');
+          setIsResetMode(false);
+          setResetSuccess('');
+          setResetError('');
+        }, 2200);
+      }
+    } catch (err) {
+      setResetError((err as Error).message || 'Erreur lors de la réinitialisation.');
+    } finally {
+      setIsSubmittingReset(false);
     }
   };
 
@@ -44,61 +108,181 @@ export const Login = () => {
                 Ivoire Couvée d&apos;Or
               </h1>
               <p className="mt-2 text-sm font-medium uppercase tracking-[0.2em] text-white/55">
-                Espace professionnel
+                {isResetMode ? 'Réinitialisation mot de passe' : 'Espace professionnel'}
               </p>
             </div>
 
             <div className="bg-white/95 px-8 py-8 backdrop-blur-sm sm:px-10">
-              <p className="mb-6 text-center text-sm text-slate-600">
-                Connectez-vous pour accéder à la gestion du couvoir.
-              </p>
+              {!isResetMode ? (
+                /* Mode Connexion Standard */
+                <>
+                  <p className="mb-6 text-center text-sm text-slate-600">
+                    Connectez-vous pour accéder à la gestion du couvoir.
+                  </p>
 
-              <form onSubmit={handleLogin} className="space-y-5">
-                {error && (
-                  <div
-                    role="alert"
-                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-                  >
-                    {error}
+                  <form onSubmit={handleLogin} className="space-y-5">
+                    {error && (
+                      <div
+                        role="alert"
+                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                      >
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <UserRound className="h-4 w-4 text-brand-orange" aria-hidden />
+                        Identifiant ou téléphone
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        autoComplete="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="input-modern"
+                        placeholder="Nom d’utilisateur ou +225…"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                          <Lock className="h-4 w-4 text-brand-orange" aria-hidden />
+                          Mot de passe
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsResetMode(true);
+                            setResetUsername(username);
+                            setError('');
+                          }}
+                          className="text-xs font-semibold text-brand-orange hover:underline focus:outline-none"
+                        >
+                          Mot de passe oublié ?
+                        </button>
+                      </div>
+                      <input
+                        required
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="input-modern"
+                        placeholder="Votre mot de passe"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoggingIn}
+                      className="btn-primary mt-2 w-full py-3.5 text-base flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isLoggingIn && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Se connecter
+                    </button>
+                  </form>
+                </>
+              ) : (
+                /* Mode Réinitialisation de Mot de Passe */
+                <>
+                  <div className="mb-6 text-center">
+                    <p className="text-sm text-slate-600">
+                      Entrez votre identifiant et choisissez votre nouveau mot de passe.
+                    </p>
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <UserRound className="h-4 w-4 text-brand-orange" aria-hidden />
-                    Identifiant ou téléphone
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    autoComplete="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="input-modern"
-                    placeholder="Nom d’utilisateur ou +225…"
-                  />
-                </div>
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    {resetError && (
+                      <div
+                        role="alert"
+                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                      >
+                        {resetError}
+                      </div>
+                    )}
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <Lock className="h-4 w-4 text-brand-orange" aria-hidden />
-                    Mot de passe
-                  </label>
-                  <input
-                    required
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-modern"
-                    placeholder="Votre mot de passe"
-                  />
-                </div>
+                    {resetSuccess && (
+                      <div
+                        role="alert"
+                        className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 flex items-center gap-2"
+                      >
+                        <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                        {resetSuccess}
+                      </div>
+                    )}
 
-                <button type="submit" className="btn-primary mt-2 w-full py-3.5 text-base">
-                  Se connecter
-                </button>
-              </form>
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <UserRound className="h-4 w-4 text-brand-orange" aria-hidden />
+                        Identifiant ou Téléphone
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={resetUsername}
+                        onChange={(e) => setResetUsername(e.target.value)}
+                        className="input-modern"
+                        placeholder="Nom d’utilisateur ou numéro..."
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <KeyRound className="h-4 w-4 text-brand-orange" aria-hidden />
+                        Nouveau mot de passe
+                      </label>
+                      <input
+                        required
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="input-modern"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                        <Lock className="h-4 w-4 text-brand-orange" aria-hidden />
+                        Confirmer le mot de passe
+                      </label>
+                      <input
+                        required
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="input-modern"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReset}
+                      className="btn-primary mt-3 w-full py-3.5 text-base flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSubmittingReset && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Valider et réinitialiser
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsResetMode(false);
+                        setResetError('');
+                        setResetSuccess('');
+                      }}
+                      className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Retour à la connexion
+                    </button>
+                  </form>
+                </>
+              )}
 
               <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
                 Connexion sécurisée · Données hébergées pour votre activité
