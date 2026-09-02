@@ -17,6 +17,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import type { MessageTemplate } from '../types';
+import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -133,8 +134,7 @@ const WhatsAppManagement = () => {
         </button>
         <button 
           onClick={async () => {
-            if (window.confirm('Voulez-vous charger les 4 modèles de messages standards ?')) {
-              const { DEFAULT_TEMPLATES } = await import('../lib/defaultTemplates');
+            if (window.confirm('Voulez-vous charger les modèles de messages standards ?')) {
               for (const t of DEFAULT_TEMPLATES) {
                 await addMessageTemplate(t);
               }

@@ -57,8 +57,8 @@ export const PlacementForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonI
       });
 
       if (sendWhatsApp && client?.telephone) {
-        const template = messageTemplates.find(t => t.name === 'Mise en Machine' && t.isActive)
-          || messageTemplates.find(t => t.category === 'MISE_EN_MACHINE' && t.isActive)
+        const template = messageTemplates.find(t => t.name === 'Mise en Machine' && t.isActive !== false)
+          || messageTemplates.find(t => t.category === 'MISE_EN_MACHINE' && t.isActive !== false)
           || { content: `⚙️ *MISE EN MACHINE - IVOIRE COUVÉE D'OR*\n\n` +
               `Bonjour {{client_name}},\n` +
               `Vos {{quantite}} œufs ({{type_oeuf}}) ont été mis en machine.\n\n` +

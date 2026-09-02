@@ -64,8 +64,8 @@ const EclosionStartForm = ({
     const resteGlobal = getClientGlobalBalance(transactions, couvaisons, client.id, clientSummaries);
     const ancienneDette = resteGlobal - resteSurCeLot;
 
-    const template = messageTemplates.find(t => t.name === 'Démarrage Éclosion' && t.isActive)
-      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+    const template = messageTemplates.find(t => t.name === 'Démarrage Éclosion' && t.isActive !== false)
+      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive !== false)
       || { content: `🚀 *DÉMARRAGE DE L'ÉCLOSION - IVOIRE COUVÉE D'OR*\n\n` +
           `Bonjour *{{client_name}}*,\n\n` +
           `🐣 Votre éclosion pour le Lot de *{{quantite}}* œufs de *{{type_oeuf}}s* a démarré, préparez-vous à venir récupérer vos poussins demain dans l'après-midi.\n\n` +

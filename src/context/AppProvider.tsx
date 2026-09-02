@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
 import { callBackendFunction } from '../lib/insforgeApi';
 import { getClientGlobalBalance } from '../lib/financeCalculations';
+import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
 
 const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
   try {
@@ -148,7 +149,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (res.depenses) setDepenses(res.depenses);
         if (res.agents) setSalaireAgents(res.agents);
         if (res.summaries) setClientSummaries(res.summaries);
-        if (res.templates) setMessageTemplates(res.templates);
+        if (res.templates) {
+          const loadedTemplates = res.templates.map(t => ({
+            ...t,
+            isActive: t.isActive !== undefined ? Boolean(t.isActive) : true,
+          }));
+
+          // Vérifier si des templates par défaut manquent
+          const existingNames = new Set(loadedTemplates.map(t => t.name.trim().toLowerCase()));
+          const missingDefaults = DEFAULT_TEMPLATES.filter(d => !existingNames.has(d.name.trim().toLowerCase()));
+
+          if (missingDefaults.length > 0) {
+            try {
+              const created = await Promise.all(missingDefaults.map(t => callBackendFunction<{ template: MessageTemplate }>('message_template_create', {
+                ...t,
+                updatedAt: new Date().toISOString()
+              })));
+              const newlyCreated = created.map(c => c.template).filter(Boolean).map(t => ({
+                ...t,
+                isActive: t.isActive !== undefined ? Boolean(t.isActive) : true,
+              }));
+              setMessageTemplates([...loadedTemplates, ...newlyCreated]);
+            } catch (e) {
+              console.error('Erreur lors de la création des templates par défaut manquants:', e);
+              setMessageTemplates(loadedTemplates);
+            }
+          } else {
+            setMessageTemplates(loadedTemplates);
+          }
+        }
         if (res.machines) setMachines(res.machines);
       } catch (e) {
         console.error('Erreur lors du chargement des données:', e);

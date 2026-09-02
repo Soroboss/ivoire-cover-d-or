@@ -66,8 +66,8 @@ export const EclosionForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId
         const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
         const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
         
-        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
-           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
+        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive !== false)
+           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive !== false)
            || { content: `◈ *SITUATION FINANCIÈRE - IVOIRE COUVÉE D'OR*
 
 ◈ Client: *{{client_name}}* ({{client_id_ext}})
@@ -128,8 +128,8 @@ L'équipe expertise Ivoire Couvée d'Or.
 
   const handleSendReminder = () => {
     if (!client?.telephone) return;
-    const template = messageTemplates.find(t => t.name === 'Rappel de Collecte' && t.isActive)
-      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive)
+    const template = messageTemplates.find(t => t.name === 'Rappel de Collecte' && t.isActive !== false)
+      || messageTemplates.find(t => t.category === 'ECLOSION' && t.isActive !== false)
       || { 
           name: 'Fallback', 
           category: 'ECLOSION', 
@@ -162,8 +162,8 @@ L'équipe expertise Ivoire Couvée d'Or.
 
       if (sendWhatsApp && client?.telephone) {
         const netEncashed = netPayeLot(transactions, couvaisonId);
-        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
-           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive);
+        const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive !== false)
+           || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive !== false);
         
         const whatsAppText = formatWhatsAppMessage(template as any, {
           client,
@@ -233,8 +233,8 @@ L'équipe expertise Ivoire Couvée d'Or.
                 const avoirs = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Avoir').reduce((s,t) => s + t.montantTotal, 0);
                 const remises = transactions.filter(t => t.couvaisonId === couvaisonId && t.typeTransaction === 'Remise').reduce((s,t) => s + t.montantTotal, 0);
                 
-                const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive)
-                   || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive)
+                const template = messageTemplates.find(t => t.name === 'Bilan Sortie Éclosion' && t.isActive !== false)
+                   || messageTemplates.find(t => t.category === 'FINANCE' && t.isActive !== false)
                    || { content: `◈ *SITUATION FINANCIÈRE - IVOIRE COUVÉE D'OR*
 
 ◈ Client: *{{client_name}}*

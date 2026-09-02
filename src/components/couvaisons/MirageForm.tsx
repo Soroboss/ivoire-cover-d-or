@@ -56,8 +56,8 @@ export const MirageForm = ({ couvaisonId, onCancel, onSuccess }: { couvaisonId: 
   const handleMirageWhatsApp = async () => {
     if (!client?.telephone || !couv) return;
 
-    const template = messageTemplates.find(t => t.name === 'Bilan du Mirage' && t.isActive)
-       || messageTemplates.find(t => t.category === 'MIRAGE' && t.isActive)
+    const template = messageTemplates.find(t => t.name === 'Bilan du Mirage' && t.isActive !== false)
+       || messageTemplates.find(t => t.category === 'MIRAGE' && t.isActive !== false)
        || { content: `🕯️ *RÉSULTATS DU MIRAGE TECHNIQUE* 🕯️\n\n` +
        `Bonjour *{{client_name}}*,\n\n` +
        `📊 *STATISTIQUES TECHNIQUES* :\n` +

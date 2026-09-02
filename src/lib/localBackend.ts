@@ -1431,7 +1431,8 @@ localEdgeFunctions["message_templates_list"] = async function(req: Request) {
       name: t.name,
       content: t.content,
       category: t.category,
-      isActive: t.is_active,
+      isActive: t.is_active !== undefined ? Boolean(t.is_active) : true,
+      description: t.description ?? undefined,
       updatedAt: t.updated_at,
       createdAt: t.created_at
     }))
@@ -1483,6 +1484,7 @@ localEdgeFunctions["message_template_update"] = async function(req: Request) {
     if (updates.content) dbUpdates.content = updates.content
     if (updates.category) dbUpdates.category = updates.category
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive
+    if (updates.description !== undefined) dbUpdates.description = updates.description
     dbUpdates.updated_at = new Date().toISOString()
 
     const { data, error } = await client.database
@@ -1499,7 +1501,17 @@ localEdgeFunctions["message_template_update"] = async function(req: Request) {
       })
     }
 
-    return new Response(JSON.stringify({ template: data }), {
+    const formattedTemplate = {
+      id: data.id,
+      name: data.name,
+      content: data.content,
+      category: data.category,
+      isActive: data.is_active ?? data.isActive ?? true,
+      description: data.description ?? undefined,
+      updatedAt: data.updated_at ? new Date(data.updated_at).toISOString() : new Date().toISOString(),
+    };
+
+    return new Response(JSON.stringify({ template: formattedTemplate }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -1589,7 +1601,7 @@ localEdgeFunctions["message_template_create"] = async function(req: Request) {
     const client = createClient({ baseUrl, anonKey })
 
     const body = await req.json()
-    const { name, content, category, isActive } = body
+    const { name, content, category, isActive, description } = body
 
     const { data, error } = await client.database
       .from('message_templates')
@@ -1598,6 +1610,7 @@ localEdgeFunctions["message_template_create"] = async function(req: Request) {
         content,
         category,
         is_active: isActive !== undefined ? isActive : true,
+        description: description ?? null,
         updated_at: new Date().toISOString()
       })
       .select()
@@ -1610,7 +1623,17 @@ localEdgeFunctions["message_template_create"] = async function(req: Request) {
       })
     }
 
-    return new Response(JSON.stringify({ template: data }), {
+    const formattedTemplate = {
+      id: data.id,
+      name: data.name,
+      content: data.content,
+      category: data.category,
+      isActive: data.is_active ?? data.isActive ?? true,
+      description: data.description ?? undefined,
+      updatedAt: data.updated_at ? new Date(data.updated_at).toISOString() : new Date().toISOString(),
+    };
+
+    return new Response(JSON.stringify({ template: formattedTemplate }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -3874,6 +3897,9 @@ localEdgeFunctions["app_bootstrap_data"] = async function(req: Request) {
       id: r.id,
       name: r.name,
       content: r.content,
+      category: r.category,
+      isActive: r.is_active ?? r.isActive ?? true,
+      description: r.description ?? undefined,
       variables: Array.isArray(r.variables) ? r.variables : [],
       updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
     }));

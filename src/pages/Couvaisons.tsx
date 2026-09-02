@@ -90,7 +90,7 @@ const Couvaisons = () => {
     const couv = couvaisons.find(c => c.id === couvaisonId);
     if (!client || !couv) return;
 
-    const template = messageTemplates.find(t => t.category === category && t.isActive) 
+    const template = messageTemplates.find(t => t.category === category && t.isActive !== false) 
       || { name: 'Fallback', category, content: fallbackMessage, isActive: true };
 
     const finalMessage = formatWhatsAppMessage(template as any, {

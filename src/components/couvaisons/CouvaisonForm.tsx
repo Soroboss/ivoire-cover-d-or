@@ -113,8 +113,8 @@ export const CouvaisonForm = ({ onCancel, onSuccess }: { onCancel: () => void; o
     const lotSummary = batchLines.map(l => `- ${l.nombreOeufs} ${l.typeOeuf}s (Total: ${l.nombreOeufs * l.prixUnitaire} F)`).join('\n');
     
     // On cherche le template
-    const template = messageTemplates.find(t => t.name === 'Accusé de Réception' && t.isActive)
-      || messageTemplates.find(t => t.category === 'RECEPTION' && t.isActive)
+    const template = messageTemplates.find(t => t.name === 'Accusé de Réception' && t.isActive !== false)
+      || messageTemplates.find(t => t.category === 'RECEPTION' && t.isActive !== false)
       || { content: `📝 *CONFIRMATION DE RÉCEPTION - IVOIRE COUVÉE D'OR* 📝\n\n` +
           `Cher(e) *{{client_name}}*,\n\n` +
           `Nous avons le plaisir de vous confirmer la mise en incubation de votre lot :\n\n` +
