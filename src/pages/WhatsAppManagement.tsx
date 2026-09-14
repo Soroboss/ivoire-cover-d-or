@@ -235,7 +235,10 @@ const WhatsAppManagement = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => setEditingTemplate({ ...template })}
+                        onClick={() => {
+                          setIsPreviewOpen(false);
+                          setEditingTemplate({ ...template });
+                        }}
                         title="Modifier ce template"
                         className="p-2.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-xl transition-all"
                       >
@@ -270,7 +273,7 @@ const WhatsAppManagement = () => {
       {/* Editor Modal */}
       {editingTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-login-in">
+          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-xl font-bold text-brand-dark">
                 {editingTemplate.id ? 'Modifier le template' : 'Nouveau template'}
