@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppContext } from '../context/AppProvider';
 import { 
   MessageSquare, 
@@ -271,9 +272,9 @@ const WhatsAppManagement = () => {
       </div>
 
       {/* Editor Modal */}
-      {editingTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20">
+      {editingTemplate && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 my-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-xl font-bold text-brand-dark">
                 {editingTemplate.id ? 'Modifier le template' : 'Nouveau template'}
@@ -403,7 +404,8 @@ const WhatsAppManagement = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
