@@ -56,8 +56,19 @@ const WhatsAppManagement = () => {
   ];
 
   const filteredTemplates = useMemo(() => {
-    if (selectedCategory === 'ALL') return messageTemplates;
-    return messageTemplates.filter(t => t.category === selectedCategory);
+    // 1. Déduplication par nom (sécurité frontend)
+    const uniqueMap = new Map<string, MessageTemplate>();
+    for (const t of messageTemplates) {
+      const key = (t.name || '').trim().toLowerCase();
+      if (key && !uniqueMap.has(key)) {
+        uniqueMap.set(key, t);
+      }
+    }
+    const deduplicated = Array.from(uniqueMap.values());
+
+    // 2. Filtrer par catégorie
+    if (selectedCategory === 'ALL') return deduplicated;
+    return deduplicated.filter(t => t.category === selectedCategory);
   }, [messageTemplates, selectedCategory]);
 
   const handleSave = async () => {

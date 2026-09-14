@@ -155,9 +155,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             isActive: t.isActive !== undefined ? Boolean(t.isActive) : true,
           }));
 
+          // Déduplication automatique des templates existants par nom
+          const uniqueTemplatesMap = new Map<string, MessageTemplate>();
+          const duplicateIdsToDelete: string[] = [];
+
+          for (const t of loadedTemplates) {
+            const key = (t.name || '').trim().toLowerCase();
+            if (!key) continue;
+            if (!uniqueTemplatesMap.has(key)) {
+              uniqueTemplatesMap.set(key, t);
+            } else {
+              // Si un doublon existe déjà, on collecte son ID pour le purger de la base de données
+              if (t.id) {
+                duplicateIdsToDelete.push(t.id);
+              }
+            }
+          }
+
+          const deduplicatedTemplates = Array.from(uniqueTemplatesMap.values());
+
+          // Purge des doublons dans la DB en arrière-plan
+          if (duplicateIdsToDelete.length > 0) {
+            console.log(`Purge de ${duplicateIdsToDelete.length} template(s) WhatsApp en doublon...`);
+            duplicateIdsToDelete.forEach(id => {
+              void callBackendFunction('message_template_delete', { id }).catch(() => undefined);
+            });
+          }
+
           // Vérifier si des templates par défaut manquent
-          const existingNames = new Set(loadedTemplates.map(t => t.name.trim().toLowerCase()));
-          const missingDefaults = DEFAULT_TEMPLATES.filter(d => !existingNames.has(d.name.trim().toLowerCase()));
+          const existingNames = new Set(deduplicatedTemplates.map(t => (t.name || '').trim().toLowerCase()));
+          const missingDefaults = DEFAULT_TEMPLATES.filter(d => !existingNames.has((d.name || '').trim().toLowerCase()));
 
           if (missingDefaults.length > 0) {
             try {
@@ -169,13 +196,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ...t,
                 isActive: t.isActive !== undefined ? Boolean(t.isActive) : true,
               }));
-              setMessageTemplates([...loadedTemplates, ...newlyCreated]);
+              setMessageTemplates([...deduplicatedTemplates, ...newlyCreated]);
             } catch (e) {
               console.error('Erreur lors de la création des templates par défaut manquants:', e);
-              setMessageTemplates(loadedTemplates);
+              setMessageTemplates(deduplicatedTemplates);
             }
           } else {
-            setMessageTemplates(loadedTemplates);
+            setMessageTemplates(deduplicatedTemplates);
           }
         }
         if (res.machines) setMachines(res.machines);
@@ -523,10 +550,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addMessageTemplate = async (t: Omit<MessageTemplate, 'id' | 'updatedAt'>) => {
     // Vérification des doublons avant création
-    const existingNames = messageTemplates.map(m => m.name.trim().toLowerCase());
-    if (existingNames.includes(t.name.trim().toLowerCase())) {
-      console.warn(`Template "${t.name}" already exists, skipping duplicate creation.`);
-      return;
+    const nameLower = (t.name || '').trim().toLowerCase();
+    const existing = messageTemplates.find(m => (m.name || '').trim().toLowerCase() === nameLower);
+    if (existing) {
+      // Si un template du même nom existe déjà, on le met à jour au lieu de créer un doublon
+      return updateMessageTemplate(existing.id, t);
     }
     const res = await callBackendFunction<{ template: MessageTemplate }>('message_template_create', {
       ...t,
