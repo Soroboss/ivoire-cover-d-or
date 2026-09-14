@@ -522,6 +522,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addMessageTemplate = async (t: Omit<MessageTemplate, 'id' | 'updatedAt'>) => {
+    // Vérification des doublons avant création
+    const existingNames = messageTemplates.map(m => m.name.trim().toLowerCase());
+    if (existingNames.includes(t.name.trim().toLowerCase())) {
+      console.warn(`Template "${t.name}" already exists, skipping duplicate creation.`);
+      return;
+    }
     const res = await callBackendFunction<{ template: MessageTemplate }>('message_template_create', {
       ...t,
       updatedAt: new Date().toISOString(),
@@ -538,9 +544,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updates: { ...updates, updatedAt: new Date().toISOString() },
     })
     if (res.template) {
+      // Backend a retourné le template complet, on l'utilise
       setMessageTemplates(prev => prev.map(t => (t.id === id ? res.template : t)))
-      addLog('MODIFICATION', 'WhatsApp', `Template mis à jour: ${res.template.name}.`)
+    } else {
+      // Le backend n'a pas retourné le template, on applique les mises à jour localement
+      // pour éviter que le contenu revienne à l'état initial
+      setMessageTemplates(prev => prev.map(t => 
+        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      ))
     }
+    addLog('MODIFICATION', 'WhatsApp', `Template mis à jour: ${updates.name ?? id}.`)
   }
 
   const deleteMessageTemplate = async (id: string) => {

@@ -1480,9 +1480,9 @@ localEdgeFunctions["message_template_update"] = async function(req: Request) {
     if (!id) throw new Error('Template ID is required')
 
     const dbUpdates: any = {}
-    if (updates.name) dbUpdates.name = updates.name
-    if (updates.content) dbUpdates.content = updates.content
-    if (updates.category) dbUpdates.category = updates.category
+    if (updates.name !== undefined && updates.name !== null) dbUpdates.name = updates.name
+    if (updates.content !== undefined && updates.content !== null) dbUpdates.content = updates.content
+    if (updates.category !== undefined && updates.category !== null) dbUpdates.category = updates.category
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive
     if (updates.description !== undefined) dbUpdates.description = updates.description
     dbUpdates.updated_at = new Date().toISOString()

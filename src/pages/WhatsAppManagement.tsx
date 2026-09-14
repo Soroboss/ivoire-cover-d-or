@@ -14,7 +14,9 @@ import {
   ChevronRight,
   Eye,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  Pencil,
+  Lock
 } from 'lucide-react';
 import type { MessageTemplate } from '../types';
 import { DEFAULT_TEMPLATES } from '../lib/defaultTemplates';
@@ -26,6 +28,8 @@ const WhatsAppManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState<MessageTemplate['category'] | 'ALL'>('ALL');
   const [editingTemplate, setEditingTemplate] = useState<Partial<MessageTemplate> | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Variables disponibles pour le remplacement
   const availableVariables = [
@@ -58,9 +62,13 @@ const WhatsAppManagement = () => {
   const handleSave = async () => {
     if (!editingTemplate?.name || !editingTemplate?.content || !editingTemplate?.category) return;
 
+    setIsSaving(true);
     try {
       if (editingTemplate.id) {
         await updateMessageTemplate(editingTemplate.id, editingTemplate);
+        // Afficher le feedback de succès sur la carte du template
+        setSavedId(editingTemplate.id);
+        setTimeout(() => setSavedId(null), 3000);
       } else {
         await addMessageTemplate({
           name: editingTemplate.name,
@@ -71,8 +79,11 @@ const WhatsAppManagement = () => {
         });
       }
       setEditingTemplate(null);
+      setIsPreviewOpen(false);
     } catch (error) {
       alert('Erreur lors de l\'enregistrement du template');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -135,10 +146,17 @@ const WhatsAppManagement = () => {
         <button 
           onClick={async () => {
             if (window.confirm('Voulez-vous charger les modèles de messages standards ?')) {
-              for (const t of DEFAULT_TEMPLATES) {
+              // Vérifier les doublons avant d'ajouter
+              const existingNames = new Set(messageTemplates.map(t => t.name.trim().toLowerCase()));
+              const toAdd = DEFAULT_TEMPLATES.filter(t => !existingNames.has(t.name.trim().toLowerCase()));
+              if (toAdd.length === 0) {
+                alert('Tous les modèles standards sont déjà présents !');
+                return;
+              }
+              for (const t of toAdd) {
                 await addMessageTemplate(t);
               }
-              alert('Modèles chargés avec succès !');
+              alert(`${toAdd.length} modèle(s) chargé(s) avec succès !`);
             }
           }}
           className="px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-all border border-slate-200"
@@ -189,7 +207,11 @@ const WhatsAppManagement = () => {
             </div>
           ) : (
             filteredTemplates.map((template) => (
-              <div key={template.id} className="app-card overflow-hidden group hover:border-brand-orange/30 transition-all duration-300">
+              <div key={template.id} className={`app-card overflow-hidden group transition-all duration-300 ${
+                savedId === template.id 
+                  ? 'border-green-400 shadow-green-100 shadow-lg' 
+                  : 'hover:border-brand-orange/30'
+              }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -203,18 +225,25 @@ const WhatsAppManagement = () => {
                         }`}>
                           {template.category}
                         </span>
+                        {savedId === template.id && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black animate-pulse">
+                            <CheckCircle size={10} /> Enregistré
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-500 font-medium">{template.description}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                       <button 
-                        onClick={() => setEditingTemplate(template)}
+                      <button 
+                        onClick={() => setEditingTemplate({ ...template })}
+                        title="Modifier ce template"
                         className="p-2.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-xl transition-all"
                       >
-                        <Save size={18} />
+                        <Pencil size={18} />
                       </button>
                       <button 
                         onClick={() => deleteMessageTemplate(template.id)}
+                        title="Supprimer ce template"
                         className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                       >
                         <Trash2 size={18} />
@@ -226,6 +255,10 @@ const WhatsAppManagement = () => {
                     <pre className="bg-slate-50 text-slate-700 p-4 rounded-2xl text-sm whitespace-pre-wrap font-sans border border-slate-100 italic leading-relaxed">
                       {template.content}
                     </pre>
+                    {/* Indicateur de verrou - le template est enregistré et protégé */}
+                    <div className="absolute top-2 right-2 p-1.5 bg-slate-200/70 rounded-lg text-slate-400" title="Cliquez sur Modifier pour éditer">
+                      <Lock size={12} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -348,11 +381,20 @@ const WhatsAppManagement = () => {
                 <div className="mt-8">
                   <button 
                     onClick={handleSave}
-                    disabled={!editingTemplate.name || !editingTemplate.content}
-                    className="btn-primary w-full shadow-lg shadow-brand-orange/20"
+                    disabled={!editingTemplate.name || !editingTemplate.content || isSaving}
+                    className="btn-primary w-full shadow-lg shadow-brand-orange/20 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Save size={20} className="mr-2" />
-                    Enregistrer le template
+                    {isSaving ? (
+                      <>
+                        <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin mr-2" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={20} className="mr-2" />
+                        Enregistrer le template
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
